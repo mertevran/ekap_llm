@@ -1,0 +1,102 @@
+{
+  "profil_kodu": "ENT-04",
+  "profil_adi": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+  "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Kartlı geçiş",
+    "Yetkilendirme",
+    "Personel giriş-çıkış takibi",
+    "Turnike sistemleri",
+    "Kapı kontrolü",
+    "Ziyaretçi yönetimi",
+    "Cihaz kurulumu",
+    "Bakım ve onarım"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "TEK-04",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "personel devam kontrol sistemi",
+      "kartlı geçiş sistemi",
+      "geçiş kontrol sistemi",
+      "pdks"
+    ],
+    "destekleyici_terimler": [
+      "turnike",
+      "ziyaretçi yönetimi",
+      "kapı kontrolü",
+      "erişim kontrol"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "42961"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Kurum binalarında personel veya ziyaretçilerin geçiş yetkilerini kontrol eden; kartlı, biyometrik veya turnike tabanlı fiziksel erişim sistemleridir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "PDKS",
+      "expanded_form": "Personel Devam Kontrol Sistemi",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Turnike",
+      "category": "donanım",
+      "aliases": [
+        "Bel Tipi Turnike",
+        "VIP Turnike"
+      ]
+    },
+    {
+      "name": "Kart Okuyucu",
+      "category": "donanım",
+      "aliases": [
+        "Mifare Okuyucu",
+        "Proximity"
+      ]
+    },
+    {
+      "name": "Biyometrik Okuyucu",
+      "category": "donanım",
+      "aliases": [
+        "Parmak İzi",
+        "Yüz Tanıma"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "geçiş",
+    "kontrol",
+    "doğrulama",
+    "entegrasyon"
+  ]
+}

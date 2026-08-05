@@ -1,0 +1,97 @@
+{
+  "profil_kodu": "AUS-04",
+  "profil_adi": "Toplu Taşıma ve Raylı Sistem Teknolojileri",
+  "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Yolcu bilgilendirme",
+    "Araç içi kamera sistemleri",
+    "Araç konum ve rota izleme",
+    "Platform ayırıcı kapı sistemleri",
+    "İstasyon güvenliği",
+    "Toplu taşıma yönetimi",
+    "Raylı sistem bütünleşmesi"
+  ],
+  "destekleyici_profiller": [
+    "ENT-02",
+    "ENT-03",
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "yolcu bilgilendirme sistemi",
+      "toplu taşıma yönetim sistemi",
+      "platform ayırıcı kapı",
+      "raylı sistem entegrasyonu"
+    ],
+    "destekleyici_terimler": [
+      "araç içi kamera",
+      "rota izleme",
+      "istasyon güvenliği",
+      "araç konum"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34970"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Toplu taşıma hatlarının ve raylı sistemlerin yönetimini sağlayan, yolcu bilgilendirme ekranları ve filo yönetim bileşenlerini barındıran elektronik sistemlerdir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "YBS",
+      "expanded_form": "Yolcu Bilgilendirme Sistemi",
+      "aliases": [
+        "Yolcu Ekranı"
+      ],
+      "ambiguous": false
+    },
+    {
+      "term": "Akıllı Durak",
+      "expanded_form": "Gerçek zamanlı otobüs varış bilgisini gösteren durak",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Yolcu Bilgilendirme Ekranı",
+      "category": "donanım",
+      "aliases": [
+        "Durak Ekranı"
+      ]
+    },
+    {
+      "name": "Araç İçi Ekran",
+      "category": "donanım",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "bilgilendirme",
+    "yönlendirme",
+    "entegrasyon"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "kural_seti_kodu": "TEK-01-KURAL-1",
+  "profil_kodu": "TEK-01",
+  "surum": "1.1.0",
+  "zorunlu_kapi_kurallari": [
+    {
+      "kural_kodu": "ZOR-01",
+      "ad": "Zorunlu belgenin varlığı",
+      "davranis": "Yoksa ilgisiz; bilinmiyorsa inceleme_gerekli."
+    },
+    {
+      "kural_kodu": "ZOR-02",
+      "ad": "Belge geçerliliği",
+      "davranis": "Süresi dolmuş belge kullanılamaz; tarih bilinmiyorsa inceleme_gerekli."
+    },
+    {
+      "kural_kodu": "ZOR-03",
+      "ad": "Asgari iş deneyimi",
+      "davranis": "Karşılanmıyorsa ilgisiz; kanıt eksikse inceleme_gerekli."
+    },
+    {
+      "kural_kodu": "ZOR-04",
+      "ad": "Asgari personel şartı",
+      "davranis": "Karşılanmıyorsa ilgisiz; veri eksikse inceleme_gerekli."
+    },
+    {
+      "kural_kodu": "ZOR-05",
+      "ad": "Kritik teknik şart",
+      "davranis": "Karşılanmıyorsa ilgisiz; kanıtlanamıyorsa inceleme_gerekli."
+    }
+  ],
+  "agirlikli_degerlendirme": {
+    "agirliklar_yuzde": {
+      "teknik_yetkinlik": 30,
+      "benzer_is_deneyimi": 20,
+      "personel_kapasitesi": 15,
+      "belge_ve_sertifikalar": 10,
+      "guvenlik_ve_uyumluluk": 10,
+      "butunlestirme_ve_yasam_dongusu": 10,
+      "mali_ve_operasyonel_uygunluk": 5
+    }
+  },
+  "karar_esikleri": {
+    "doğrudan_uygun": {
+      "asgari_toplam_puan": 80,
+      "zorunlu_kural_ihlali_olamaz": true
+    },
+    "ilgisiz": {
+      "zorunlu_kural_ihlali": true,
+      "toplam_puan_ust_siniri": 64.99
+    },
+    "inceleme_gerekli": {
+      "kritik_veri_eksigi": true,
+      "model_kod_celiskisi": true,
+      "asgari_toplam_puan": 65,
+      "azami_toplam_puan": 79.99
+    }
+  },
+  "ikinci_gorus_tetikleyicileri": {
+    "ana_model_guven_esigi_altinda": 0.75,
+    "karar_inceleme_gerekli": true,
+    "kod_dogrulamasi_ile_celiski": true,
+    "kritik_belirsizlik": true,
+    "kaynak_getirimi_yetersiz": true,
+    "zorunlu_kriterde_kanit_eksigi": true
+  },
+  "kanit_gereksinimleri": [
+    "Her olumlu yeterlilik kurum içi kanıtla desteklenmelidir.",
+    "Kaynağı bulunmayan kapasite yeterli kabul edilmemelidir.",
+    "Model gerekçeleri ihale parça kimlikleriyle ilişkilendirilmelidir."
+  ],
+  "kategoriye_ozel_kontrol_basliklari": [
+    "Kurumsal yazılım geliştirme",
+    "Web ve mobil uygulamalar",
+    "Veri tabanı sistemleri",
+    "Uygulama programlama arayüzleri",
+    "Veri aktarımı ve bütünleştirme",
+    "Raporlama ve gösterge panelleri",
+    "Bulut ve merkezî sistemler",
+    "Kullanıcı ve yetki yönetimi"
+  ]
+}

@@ -1,0 +1,40 @@
+name: EKAP-ISBAK Analiz Servisi CI
+
+on:
+  push:
+    branches: [ "main", "dev-*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[dev]"
+        
+    - name: Verify Package Import
+      run: |
+        python -c "import app; print('package import ok')"
+        
+    - name: Run Ruff Linter
+      run: |
+        python -m ruff check .
+        
+    - name: Syntax Check (compileall)
+      run: |
+        python -m compileall app scripts tests
+        
+    - name: Test with pytest (Exclude external dependencies)
+      run: |
+        python -m pytest -q -m "not external"

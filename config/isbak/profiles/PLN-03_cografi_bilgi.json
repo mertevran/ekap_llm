@@ -1,0 +1,89 @@
+{
+  "profil_kodu": "PLN-03",
+  "profil_adi": "Coğrafi Bilgi Sistemleri ve Mekânsal Analiz",
+  "profil_ailesi": "Planlama ve Projelendirme",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Mekânsal veri yönetimi",
+    "Harita tabanlı uygulamalar",
+    "Varlık envanteri",
+    "Konum analizi",
+    "Saha verisi toplama",
+    "Ulaşım ve altyapı katmanları",
+    "Coğrafi raporlama"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "OPS-03"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "coğrafi bilgi sistemi",
+      "mekânsal analiz",
+      "harita tabanlı uygulama",
+      "gis uygulaması"
+    ],
+    "destekleyici_terimler": [
+      "konum analizi",
+      "varlık envanteri",
+      "saha verisi",
+      "coğrafi veri"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "71354",
+      "72268"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Toplanan ulaşım, altyapı veya donanım verilerinin harita üzerinde sayısallaştırılması, mekânsal veri tabanlarının kurulması ve CBS tabanlı harita analizlerinin yapılmasıdır.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "CBS",
+      "expanded_form": "Coğrafi Bilgi Sistemleri",
+      "aliases": [
+        "GIS"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Mekânsal Veritabanı",
+      "category": "teslim_ciktisi",
+      "aliases": [
+        "Geodatabase"
+      ]
+    },
+    {
+      "name": "Harita Üretimi",
+      "category": "teslim_ciktisi",
+      "aliases": [
+        "Sayısal Harita"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "sayısallaştırma",
+    "haritalama",
+    "mekânsal analiz"
+  ]
+}

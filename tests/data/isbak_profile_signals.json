@@ -1,0 +1,423 @@
+{
+  "AUS-01": {
+    "guclu_terimler": [
+      "akıllı kavşak",
+      "trafik sinyalizasyonu",
+      "sinyal denetleyici",
+      "yeşil dalga",
+      "trafik kontrol sistemi"
+    ],
+    "destekleyici_terimler": [
+      "kavşak",
+      "sinyal lambası",
+      "yaya butonu",
+      "trafik yönetimi",
+      "saha kurulumu"
+    ],
+    "negatif_terimler": [
+      "yol çizgi boyası",
+      "trafik levhası alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34996",
+      "34923"
+    ]
+  },
+  "AUS-02": {
+    "guclu_terimler": [
+      "elektronik denetleme sistemi",
+      "plaka tanıma sistemi",
+      "hız ihlal tespit",
+      "kırmızı ışık ihlal tespit",
+      "ortalama hız tespit"
+    ],
+    "destekleyici_terimler": [
+      "görüntü işleme",
+      "video analitik",
+      "radar sistemi",
+      "ihlal tespiti",
+      "delil kayıt sistemi",
+      "kamera"
+    ],
+    "negatif_terimler": [
+      "özel güvenlik personeli",
+      "güvenlik görevlisi hizmet alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "35125",
+      "32323"
+    ]
+  },
+  "AUS-03": {
+    "guclu_terimler": [
+      "değişken mesaj sistemi",
+      "trafik ölçüm sistemi",
+      "araç sayım sistemi",
+      "otopark yönlendirme sistemi"
+    ],
+    "destekleyici_terimler": [
+      "hız uyarı sistemi",
+      "trafik yoğunluğu",
+      "bilgilendirme ekranı",
+      "sürücü bilgilendirme"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34924"
+    ]
+  },
+  "AUS-04": {
+    "guclu_terimler": [
+      "yolcu bilgilendirme sistemi",
+      "toplu taşıma yönetim sistemi",
+      "platform ayırıcı kapı",
+      "raylı sistem entegrasyonu"
+    ],
+    "destekleyici_terimler": [
+      "araç içi kamera",
+      "rota izleme",
+      "istasyon güvenliği",
+      "araç konum"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34970"
+    ]
+  },
+  "ENT-01": {
+    "guclu_terimler": [
+      "komuta kontrol merkezi",
+      "trafik yönetim merkezi",
+      "güvenlik operasyon merkezi",
+      "kontrol merkezi kurulumu"
+    ],
+    "destekleyici_terimler": [
+      "görüntü duvarı",
+      "olay yönetimi",
+      "alarm yönetimi",
+      "operatör konsolu"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": []
+  },
+  "ENT-02": {
+    "guclu_terimler": [
+      "video analitik",
+      "kamera yönetim sistemi",
+      "kapalı devre kamera sistemi",
+      "görüntü analiz sistemi"
+    ],
+    "destekleyici_terimler": [
+      "kamera",
+      "kayıt sistemi",
+      "nesne sayımı",
+      "kişi sayımı",
+      "arşivleme"
+    ],
+    "negatif_terimler": [
+      "fotoğraf makinesi",
+      "kamera tripod",
+      "kamera çantası"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "32323",
+      "35125"
+    ]
+  },
+  "ENT-03": {
+    "guclu_terimler": [
+      "filo yönetim sistemi",
+      "araç takip sistemi",
+      "rota yönetim sistemi"
+    ],
+    "destekleyici_terimler": [
+      "konum takibi",
+      "sürücü atama",
+      "araç bakım takibi",
+      "gps takip"
+    ],
+    "negatif_terimler": [
+      "araç kiralama hizmeti"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "32441"
+    ]
+  },
+  "ENT-04": {
+    "guclu_terimler": [
+      "personel devam kontrol sistemi",
+      "kartlı geçiş sistemi",
+      "geçiş kontrol sistemi",
+      "pdks"
+    ],
+    "destekleyici_terimler": [
+      "turnike",
+      "ziyaretçi yönetimi",
+      "kapı kontrolü",
+      "erişim kontrol"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "42961"
+    ]
+  },
+  "ENT-05": {
+    "guclu_terimler": [
+      "akıllı aydınlatma",
+      "aydınlatma kontrol sistemi",
+      "enerji yönetim sistemi"
+    ],
+    "destekleyici_terimler": [
+      "led armatür",
+      "uzaktan aydınlatma",
+      "enerji izleme",
+      "aydınlatma otomasyonu"
+    ],
+    "negatif_terimler": [
+      "ampul alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34928",
+      "31527"
+    ]
+  },
+  "ENT-06": {
+    "guclu_terimler": [
+      "akıllı kent mobilyası",
+      "çevresel sensör",
+      "nesnelerin interneti",
+      "iot sistemi"
+    ],
+    "destekleyici_terimler": [
+      "uzaktan izleme",
+      "su kalite izleme",
+      "vatandaş hizmet cihazı",
+      "sensör ağı"
+    ],
+    "negatif_terimler": [
+      "mobilya alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "38424"
+    ]
+  },
+  "PLN-01": {
+    "guclu_terimler": [
+      "ulaşım ana planı",
+      "ulaşım planlama",
+      "trafik talep yönetimi",
+      "toplu taşıma planlaması"
+    ],
+    "destekleyici_terimler": [
+      "otopark planlama",
+      "ulaşım modellemesi",
+      "talep tahmini",
+      "fizibilite"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "71311"
+    ]
+  },
+  "PLN-02": {
+    "guclu_terimler": [
+      "trafik mühendisliği",
+      "trafik simülasyonu",
+      "trafik etki analizi",
+      "kavşak simülasyonu"
+    ],
+    "destekleyici_terimler": [
+      "trafik sayımı",
+      "koridor analizi",
+      "sinyal optimizasyonu",
+      "geometrik düzenleme"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "71311"
+    ]
+  },
+  "PLN-03": {
+    "guclu_terimler": [
+      "coğrafi bilgi sistemi",
+      "mekânsal analiz",
+      "harita tabanlı uygulama",
+      "gis uygulaması"
+    ],
+    "destekleyici_terimler": [
+      "konum analizi",
+      "varlık envanteri",
+      "saha verisi",
+      "coğrafi veri"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "71354",
+      "72268"
+    ]
+  },
+  "TEK-01": {
+    "guclu_terimler": [
+      "yazılım geliştirme",
+      "sistem entegrasyonu",
+      "veri tabanı",
+      "web uygulaması",
+      "mobil uygulama",
+      "uygulama programlama arayüzü"
+    ],
+    "destekleyici_terimler": [
+      "raporlama",
+      "gösterge paneli",
+      "bulut hizmeti",
+      "veri aktarımı",
+      "yazılım bakım"
+    ],
+    "negatif_terimler": [
+      "yazılım hariç",
+      "lisans belgesi"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "48",
+      "72"
+    ]
+  },
+  "TEK-02": {
+    "guclu_terimler": [
+      "gömülü sistem",
+      "elektronik kart",
+      "saha denetleyici",
+      "endüstriyel bilgisayar"
+    ],
+    "destekleyici_terimler": [
+      "kamera",
+      "sensör",
+      "kabinet",
+      "güç sistemi",
+      "elektronik cihaz"
+    ],
+    "negatif_terimler": [
+      "beyaz eşya",
+      "mobilya donanımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "30",
+      "31",
+      "32"
+    ]
+  },
+  "TEK-03": {
+    "guclu_terimler": [
+      "haberleşme altyapısı",
+      "ağ altyapısı",
+      "saha merkez veri aktarımı",
+      "telekomünikasyon sistemi"
+    ],
+    "destekleyici_terimler": [
+      "kablosuz haberleşme",
+      "uzaktan cihaz yönetimi",
+      "yedekli iletişim",
+      "network"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "324",
+      "325"
+    ]
+  },
+  "TEK-04": {
+    "guclu_terimler": [
+      "siber güvenlik",
+      "bilgi güvenliği",
+      "felaket kurtarma",
+      "güvenlik duvarı",
+      "kayıt bütünlüğü"
+    ],
+    "destekleyici_terimler": [
+      "erişim kontrolü",
+      "yetkilendirme",
+      "güvenlik günlüğü",
+      "yedekleme",
+      "antivirüs"
+    ],
+    "negatif_terimler": [
+      "özel güvenlik personeli"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "4873",
+      "72212"
+    ]
+  },
+  "OPS-01": {
+    "guclu_terimler": [
+      "kurulum ve devreye alma",
+      "saha montajı",
+      "test ve kabul"
+    ],
+    "destekleyici_terimler": [
+      "kablolama",
+      "cihaz kurulumu",
+      "kullanıcı eğitimi",
+      "entegrasyon"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": []
+  },
+  "OPS-02": {
+    "guclu_terimler": [
+      "bakım onarım hizmeti",
+      "teknik destek",
+      "arıza müdahalesi",
+      "bakım ve destek"
+    ],
+    "destekleyici_terimler": [
+      "koruyucu bakım",
+      "yedek parça",
+      "hizmet seviyesi",
+      "uzaktan destek"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": []
+  },
+  "OPS-03": {
+    "guclu_terimler": [
+      "fizibilite danışmanlığı",
+      "proje yönetimi",
+      "teknik danışmanlık",
+      "kontrollük hizmeti"
+    ],
+    "destekleyici_terimler": [
+      "ihtiyaç analizi",
+      "teknik şartname",
+      "risk yönetimi",
+      "danışmanlık"
+    ],
+    "negatif_terimler": [
+      "hukuki danışmanlık",
+      "mali müşavirlik"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "713",
+      "794"
+    ]
+  }
+}

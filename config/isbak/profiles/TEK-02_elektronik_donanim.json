@@ -1,0 +1,117 @@
+{
+  "profil_kodu": "TEK-02",
+  "profil_adi": "Elektronik, Donanım ve Gömülü Sistemler",
+  "profil_ailesi": "Ortak Teknik Yetkinlikler",
+  "profil_surumu": "1.2.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Trafik ve saha denetleyici elektronik kartları",
+    "Kamera ve sensör donanımı",
+    "Endüstriyel/saha bilgisayarları",
+    "Gömülü yazılım",
+    "Saha kabinet ve güç sistemleri",
+    "Çevresel dayanım ve ürün doğrulama"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "gömülü sistem",
+      "elektronik kart",
+      "saha denetleyici",
+      "endüstriyel bilgisayar",
+      "elektronik kontrol sistemi"
+    ],
+    "destekleyici_terimler": [
+      "sensör sistemi",
+      "kontrol kartı",
+      "kabinet",
+      "güç sistemi"
+    ],
+    "negatif_terimler": [
+      "genel elektrik malzemesi",
+      "beyaz eşya",
+      "mobilya donanımı",
+      "elektrik malzemesi alımı",
+      "bilgisayar sarf malzemesi",
+      "bilgisayar sarf malzemeleri",
+      "derin kuyu pompası",
+      "derin kuyu pompaları",
+      "pompa montajı",
+      "mekanik tesisat",
+      "kablo alımı",
+      "priz",
+      "anahtar",
+      "sigorta malzemesi",
+      "bilim etkinliği malzemesi",
+      "eğitim seti malzemesi",
+      "elektronik sarf malzemesi"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "30",
+      "31",
+      "32"
+    ],
+    "genel_terimler": [
+      "kamera",
+      "sensör",
+      "elektronik cihaz"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Elektronik kart (PCB) tasarımı, gömülü sistem yazılımları geliştirme, endüstriyel standartlarda donanım üretimi veya özelleştirilmiş cihaz çözümleridir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "Gömülü Sistem",
+      "expanded_form": "Sadece belirli bir işlevi yerine getiren donanım-yazılım bütünü",
+      "aliases": [
+        "Embedded System"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Özel Tasarım Elektronik Kart",
+      "category": "teslim_ciktisi",
+      "aliases": [
+        "PCB"
+      ]
+    },
+    {
+      "name": "Mikrodenetleyici Yazılımı",
+      "category": "teslim_ciktisi",
+      "aliases": [
+        "Gömülü Yazılım"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "tasarım",
+    "üretim",
+    "gömülü geliştirme"
+  ],
+  "daraltma_notu": "30.07.2026: yatay/genel tanımlar İSBAK'ın alanına çapalandı. Gerekçe ve ölçüm: plan/DEVAM-BURADAN.md, 'profil daraltma' bölümü. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

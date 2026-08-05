@@ -1,0 +1,952 @@
+{
+  "source_file": "benchmark_results/software_tender_discovery.json",
+  "selected_classes": [
+    "doğrudan_uygun",
+    "koşullu_uygun"
+  ],
+  "total_selected": 33,
+  "class_counts": {
+    "doğrudan_uygun": 29,
+    "koşullu_uygun": 4
+  },
+  "ikns": [
+    "2026/1194340",
+    "2026/1227382",
+    "2026/1171308",
+    "2026/1176188",
+    "2026/1214002",
+    "2026/1257948",
+    "2026/1177878",
+    "2026/1315130",
+    "2026/1231090",
+    "2026/948244",
+    "2026/1242953",
+    "2026/1278140",
+    "2026/1121504",
+    "2026/1184319",
+    "2026/1287190",
+    "2026/1287656",
+    "2026/1308123",
+    "2026/1331021",
+    "2026/1267788",
+    "2026/1325811",
+    "2026/1113283",
+    "2026/1187150",
+    "2026/1194357",
+    "2026/1275966",
+    "2026/1206570",
+    "2026/1233630",
+    "2026/1235059",
+    "2026/1244617",
+    "2026/1306406",
+    "2026/1184839",
+    "2026/1134095",
+    "2026/1060463",
+    "2026/993306"
+  ],
+  "records": [
+    {
+      "ikn": "2026/1194340",
+      "tender_id": "a35e65bef5f4fd2e8eefb960f365d4b47473522dcda919f840aa6689881bf600",
+      "title": "24 AYLIK SUNUCU BAKIM ONARIM VE YEDEKLEME YAZILIM HİZMETİ ALIMI",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 67,
+      "tender_date": "27.07.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "MUĞLA EĞİTİM VE ARAŞTIRMA HASTANESİ BAŞHEKİMLİĞİ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [
+        "sunucu",
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım",
+        "sunucu bakım",
+        "destek hizmeti",
+        "teknik destek"
+      ],
+      "direct_okas_matches": [
+        "72700000 - Bilgisayar ağı hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1227382",
+      "tender_id": "3548c32d9a46f1346136ee120db8a4be5b28c8f695b30df4a7c161845ae522cb",
+      "title": "IBM Power Sunucuları Yazılım ve Donanım Güvencesi Bakım Hizmeti Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 57,
+      "tender_date": "29.07.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "ETİ MADEN İŞLETMELERİ GENEL MÜDÜRLÜĞÜ SATIN ALMA DAİRESİ BAŞKANLIĞI",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [
+        "sunucu"
+      ],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [
+        "72267000 - Yazılım bakım ve onarım hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1171308",
+      "tender_id": "bed3bf911d46771dfaf7b6924337c6bbdadc2148fdbc0ff2dc011018e33099eb",
+      "title": "E-posta Güvenlik Sistemi ve Korumalı Alan Sistemi (Sandbox)",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 55,
+      "tender_date": "04.08.2026 10:00",
+      "tender_type": "Mal",
+      "authority": "ADALET BAKANLIĞI BİLGİ İŞLEM GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "e-posta güvenlik sistemi"
+      ],
+      "conditional_matches": [
+        "veri merkezi"
+      ],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "48730000 - Güvenlik yazılım paketi"
+      ],
+      "conditional_okas_matches": [
+        "48820000 - Sunucular"
+      ]
+    },
+    {
+      "ikn": "2026/1176188",
+      "tender_id": "f40ae5ca69d35a750cd8c58e18080c178eede9295d7ffd00249182de42585d2e",
+      "title": "36 AYLIK SAĞLIK BİLGİ YÖNETİM SİSTEMİ (SBYS) YAZILIM HİZMET ALIMI",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 53,
+      "tender_date": "07.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "HAKKARİ İL SAĞLIK MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "sbys",
+        "hastane bilgi yönetim sistemi"
+      ],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1214002",
+      "tender_id": "b6fb642e36888bfdf38234ecdd2de5c32810b04f8978935637e79dedebbd3f10",
+      "title": "Batman İl Sağlık Müdürlüğümüze Bağlı Sağlık Tesisleri için Sağlık Bilgi Yönetim Sistemi (SBYS-HBYS), Yoğun Bakım Bilgi Yönetim Sistemi (YBYS)  Hizmet Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 48,
+      "tender_date": "07.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "BATMAN İL SAĞLIK MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "sbys",
+        "hastane bilgi yönetim sistemi",
+        "yazılım",
+        "veritabanı",
+        "bilgi güvenliği"
+      ],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1257948",
+      "tender_id": "0a45b9dc958958b8ed62073122d352c4098dd1c6439af38845040b4fe5defefa",
+      "title": "Hastanemizin  ihtiyacı için, 36 aylık SBYS ve YBBYS Hizmeti Alımı İhalesi",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 48,
+      "tender_date": "05.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "ANKARA İL SAĞLIK MÜDÜRLÜĞÜ ANKARA KAHRAMANKAZAN DEVLET HASTANESİ BAŞHEKİMLİĞİ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "sbys",
+        "ybbys",
+        "hastane bilgi yönetim sistemi",
+        "yazılım"
+      ],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1177878",
+      "tender_id": "a913d8faecb34e3ea185b9a67c5a12879d20c63947376f757d5d040b9b4cf5dc",
+      "title": "Sunucu ve Son Kullanıcı Lisans Alımı İşi",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 47,
+      "tender_date": "24.07.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "TCDD TEKNİK MÜHENDİSLİK VE MÜŞAVİRLİK ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [
+        "sunucu",
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1315130",
+      "tender_id": "efb9118f114afbb06f96dc57ae96955f47892f8151ec08ff9291d4d700dd31cb",
+      "title": "Bulut Sanal Sunucu ve Kabin Kiralama Hizmeti Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 47,
+      "tender_date": "11.08.2026 11:00",
+      "tender_type": "Hizmet",
+      "authority": "SAKARYA SU VE KANALİZASYON İDARESİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "bilgi güvenliği"
+      ],
+      "conditional_matches": [
+        "sunucu",
+        "veri merkezi"
+      ],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [
+        "72212213 - İşletim sistemi geliştirme yazılımı geliştirme hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1231090",
+      "tender_id": "25905cf0bf18f89280375b98614b64b86f13de459a25bc6fe1ce4c937593fbd3",
+      "title": "SİBER GÜVENLİK SİSTEMİ",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 45,
+      "tender_date": "03.08.2026 10:00",
+      "tender_type": "Mal",
+      "authority": "MANİSA CELAL BAYAR ÜNİVERSİTESİ REKTÖRLÜĞÜ BİLGİ İŞLEM DAİRE BAŞKANLIĞI",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "siber güvenlik"
+      ],
+      "conditional_matches": [],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "72212730 - Güvenlik yazılımı geliştirme hizmetleri",
+        "48730000 - Güvenlik yazılım paketi"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/948244",
+      "tender_id": "6b4c7119afca24552c7b3b47594bc876e2a5ff0564fe04c0c625c19bfd5f6683",
+      "title": "İBB Mikroservis ve Modüler Uygulama Altyapısı Bakım, Güncelleme ve Geliştirme Hizmeti İşi",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 42,
+      "tender_date": "28.07.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "İSTANBUL BÜYÜKŞEHİR BELEDİYE BAŞKANLIĞI BİLGİ İŞLEM DAİRESİ BAŞKANLIĞI BİLGİ TEKNOLOJİLERİ ŞUBE MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "güncelleme",
+        "yazılım",
+        "destek hizmeti",
+        "kurulum",
+        "entegrasyon",
+        "teknik destek"
+      ],
+      "direct_okas_matches": [
+        "72267000 - Yazılım bakım ve onarım hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1242953",
+      "tender_id": "199a174ac42dfa1e1f6c05f95b6b965283820956bac82cd6c0796fd0787bbafb",
+      "title": "Çoklu Satıcı Destekli Sipariş Yönetim Platformu Kurulum ve Teknik Destek",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 40,
+      "tender_date": "27.07.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "İSTANBUL BÜYÜKŞEHİR BELEDİYE BAŞKANLIĞI HAMİDİYE KAYNAK SULARI SANAYİ TURİZM VE TİCARET ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "yazılım geliştirme",
+        "yazılım entegrasyonu",
+        "yazılım bakım",
+        "erp"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "kurulum",
+        "teknik destek",
+        "yazılım",
+        "destek hizmeti",
+        "yazılım bakım",
+        "bakım ve destek"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1278140",
+      "tender_id": "b3e069f54a4d6d6568dea634c2d9a441106ae75b15447d0ef423dc40c87bb219",
+      "title": "ELEKTRONİK ÜCRET TOPLAMA SİSTEMİ BAKIM, ONARIM, YAZILIM VE DESTEK (3562 ADET HİZMET BİLEŞENİ)",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 40,
+      "tender_date": "12.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "İZMİR İNOVASYON VE TEKNOLOJİ ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti",
+        "teknik destek"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1121504",
+      "tender_id": "fab54024780645b2b03febf1fd4ded0509d22af4f26704e0b41819f934dbdbe8",
+      "title": "Dijital İnsan Kaynakları Yönetim Sistemi Hizmet Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 37,
+      "tender_date": "05.08.2026 10:30",
+      "tender_type": "Hizmet",
+      "authority": "BANKALARARASI KART MERKEZİ ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "bilgi güvenliği"
+      ],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [
+        "72262000 - Yazılım geliştirme hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1184319",
+      "tender_id": "d4eef2a199fa3502c3f846ea8286c963b1ae1d0040ba5c4a9911ada90d6d660f",
+      "title": "Edirne Belediye Başkanlığı bünyesinde kullanılmak üzere; bilişim altyapısının siber tehditlere karşı korunması amacıyla ;Teknik şartname doğrultusunda Antivirüs Programı hizmeti alınması işi",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 37,
+      "tender_date": "28.07.2026 11:00",
+      "tender_type": "Hizmet",
+      "authority": "EDİRNE BELEDİYE BAŞKANLIĞI DESTEK HİZMETLERİ MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "siber güvenlik"
+      ],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti",
+        "teknik destek"
+      ],
+      "direct_okas_matches": [
+        "72212761 - Antivirüs yazılımı geliştirme hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1287190",
+      "tender_id": "92e3ac234e363a31d2ffccc57250356f7211668f4f9c3f081fa80791d18528e4",
+      "title": "Dijital Tarım Destek ve Pazar Yeri Uygulaması Hizmeti",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 35,
+      "tender_date": "10.08.2026 11:00",
+      "tender_type": "Hizmet",
+      "authority": "KOCAELİ BÜYÜKŞEHİR BELEDİYE BAŞKANLIĞI DESTEK HİZMETLERİ DAİRESİ BAŞKANLIĞI İHALE İŞLERİ ŞUBE MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "yazılım geliştirme",
+        "bilgi güvenliği"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [
+        "72212224 - Web sayfası düzenleme yazılımı geliştirme hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1287656",
+      "tender_id": "114d019a921103e4d57c952ed5641df3e56dfb6034a753177157907f4a473f3d",
+      "title": "Bütünleşik Veri Yönetişimi ve Veri Ambarı Çalışması",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 35,
+      "tender_date": "10.08.2026 14:00",
+      "tender_type": "Hizmet",
+      "authority": "KOCAELİ BÜYÜKŞEHİR BELEDİYE BAŞKANLIĞI DESTEK HİZMETLERİ DAİRESİ BAŞKANLIĞI İHALE İŞLERİ ŞUBE MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "yazılım geliştirme"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "yazılım",
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [
+        "72212600 - Veritabanı ve işletim yazılımı geliştirme hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1308123",
+      "tender_id": "6c47b21cd33430338d9e84f7d7a0a175341f56fc5f54ae255206157f0acd3e4b",
+      "title": "Kurumsal Kaynak Planlama Güncel Lisans Hakkı Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 33,
+      "tender_date": "13.08.2026 10:30",
+      "tender_type": "Mal",
+      "authority": "İSTANBUL ELEKTRİK TRAMVAY VE TÜNEL İŞLETMELERİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "kurumsal kaynak planlama"
+      ],
+      "conditional_matches": [],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "48451000 - Kurumsal kaynak planlaması yazılım paketi"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1331021",
+      "tender_id": "c1adb275b4a07142561e5c2f0e0f3cf3ef06b44e32de05ac4736bcf4386cec12",
+      "title": "Sunucu, Ağ Anahtarı, Yedekleme Ünitesi ile Sanallaştırma, Yedekleme ve Replikasyon Yazılım Lisansları Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 30,
+      "tender_date": "18.08.2026 10:30",
+      "tender_type": "Mal",
+      "authority": "SARIYER BELEDİYE BAŞKANLIĞI DESTEK HİZMETLERİ MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [
+        "sunucu",
+        "ağ anahtarı"
+      ],
+      "support_matches": [
+        "yazılım"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1267788",
+      "tender_id": "24d31623e0be73bdd20e6ff3a5d17a15b6fd95003de6b4bb2ac3ce45de355480",
+      "title": "Radyoloji Karar Destek Sistemi Projesi; Doz Veri Seti Oluşturma, Mobil Uygulama Geliştirme, Teknik Danışmanlık ve Klinik Senaryo Analizi",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 20,
+      "tender_date": "17.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "TÜRKİYE SAĞLIK ENSTİTÜLERİ BAŞKANLIĞI PROJE YÖNETİMİ VE DESTEK DAİRE BAŞKANLIĞI",
+      "matched_sources": [
+        "tender_title"
+      ],
+      "direct_matches": [
+        "uygulama geliştirme",
+        "mobil uygulama",
+        "karar destek sistemi"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "danışmanlık"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1325811",
+      "tender_id": "66de3bf6ae3964c810202782d249e67a1bdf18fc8788285b8e0de480ec258e4c",
+      "title": "Kurumsal Kaynak Planlama  Bilgi Sistemi (KKPBS) Bakım Teknik Destek Güncelleme ve Yeni Modül İlavesi Hizmeti",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 20,
+      "tender_date": "11.08.2026 11:00",
+      "tender_type": "Hizmet",
+      "authority": "TÜRKİYE ŞEKER FABRİKALARI ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title"
+      ],
+      "direct_matches": [
+        "bilgi sistemi",
+        "kurumsal kaynak planlama"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "teknik destek",
+        "güncelleme"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1113283",
+      "tender_id": "6bd5aeda0b46f589edbfa6aa26ce9c8fb0eef677d5a3aa2df3f1e95fd7b1a4d9",
+      "title": "Şanlıurfa Şehir Hastanesi Yoğun Bakım Bilgi Yönetim Sistemi Hizmet Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 19,
+      "tender_date": "27.07.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "ŞANLIURFA İL SAĞLIK MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "hastane bilgi yönetim sistemi",
+        "ybbys"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "yazılım"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1187150",
+      "tender_id": "64fbc7b8a8b3b28dca453f6bddcd0f323290ef108a0baac2bca7545d23ed39d9",
+      "title": "Sanallaştırma Yazılımı Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 19,
+      "tender_date": "28.07.2026 10:30",
+      "tender_type": "Mal",
+      "authority": "REKABET KURUMU BAŞKANLIĞI YÖNETİM HİZMETLERİ DAİRESİ BAŞKANLIĞI",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "kurulum",
+        "yazılım"
+      ],
+      "direct_okas_matches": [
+        "48900000 - Çeşitli yazılım paketleri ve bilgisayar sistemleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1194357",
+      "tender_id": "bec80ed6e895d396510d2c3f0d629dd3655f0b001df7531dbbaa996d07de1e7b",
+      "title": "İstanbul Büyükşehir Belediyesi Afet Koordinasyon Merkezi (AKOM) Binasının Ekipman, Cihaz ve Sistemlerinin Periyodik Bakım-Onarımı ve İşletilmesi İşi",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 19,
+      "tender_date": "04.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "İSTANBUL BÜYÜKŞEHİR BELEDİYE BAŞKANLIĞI AFET İŞLERİ VE RİSK YÖNETİMİ DAİRESİ BAŞKANLIĞI AFET KOORDİNASYON MERKEZİ ŞUBE MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "yazılım geliştirme",
+        "yazılım bakım"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "entegrasyon",
+        "yazılım",
+        "yazılım bakım"
+      ],
+      "direct_okas_matches": [
+        "72260000 - Yazılım ile ilgili hizmetler"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1275966",
+      "tender_id": "314d9910d291d1013241068254a7ad4c98027226a492cc530f33fc2ccd43ba35",
+      "title": "Veri Sızıntısı Önleme ve Veri Sınıflandırma Lisansı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 19,
+      "tender_date": "31.07.2026 10:30",
+      "tender_type": "Mal",
+      "authority": "TRABZON BÜYÜKŞEHİR BELEDİYE BAŞKANLIĞI DESTEK HİZMETLERİ DAİRESİ BAŞKANLIĞI",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [
+        "yazılım",
+        "yazılım lisansı"
+      ],
+      "conditional_matches": [],
+      "support_matches": [
+        "yazılım",
+        "yazılım lisansı"
+      ],
+      "direct_okas_matches": [
+        "48218000 - Lisans yönetimi yazılım paketi"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1206570",
+      "tender_id": "c767db26f9beca992d76ae9f55c1e94e3b50d7a4516a5e1c979873a92c327ad3",
+      "title": "Müdürlüğümüz ve Bağlı Sağlık Tesislerimizde kullanılmak üzere Toplu Sms, Adsl İnternet, Mobil İnternet ve Araç Takip Sistemi Hizmet Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 17,
+      "tender_date": "24.07.2026 10:30",
+      "tender_type": "Hizmet",
+      "authority": "ERZURUM İL SAĞLIK MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "72212200 - Ağ, internet ve intranet yazılım geliştirme hizmetleri"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1233630",
+      "tender_id": "f5e8c3d11cf59bb9175986b65db3bc72fc2d6d689af21866c1e823af7b04611c",
+      "title": "3 YIL SÜRELİ MICROSOFT KURUMSAL LİSANS YENİLENMESİ MAL ALIMI İŞİ",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 17,
+      "tender_date": "10.08.2026 10:00",
+      "tender_type": "Mal",
+      "authority": "İSTON İSTANBUL BETON ELEMANLARI VE HAZIR BETON FABRİKALARI SANAYİ VE TİCARET ANONİM ŞİRKETİ GENEL MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [
+        "bilgisayar"
+      ],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "48218000 - Lisans yönetimi yazılım paketi"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1235059",
+      "tender_id": "82b79807f8afe70929f808b099748c07f548b211af15ffab9b591480ea3b0fe9",
+      "title": "ÇANKAYA BELEDİYESİ BİLGİ İŞLEM MÜDÜRLÜĞÜNÜN GÜVENLİK ÜRÜNLERİ VE LİSANS YENİLEME MAL ALIMI İŞİ",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 17,
+      "tender_date": "30.07.2026 10:00",
+      "tender_type": "Mal",
+      "authority": "ÇANKAYA BELEDİYE BAŞKANLIĞI MALİ HİZMETLER MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [
+        "güvenlik duvarı"
+      ],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "48730000 - Güvenlik yazılım paketi"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1244617",
+      "tender_id": "55b711c1f9c3ffcc1db288718aa99ab10877b21fe51f37d4dce69dc73fef1535",
+      "title": "160 TON KÖMÜR VE MICROSOFT 365 LİSANS PAKETİ ALIMI",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 15,
+      "tender_date": "27.07.2026 10:30",
+      "tender_type": "Mal",
+      "authority": "AFYON KOCATEPE ÜNİVERSİTESİ REKTÖRLÜĞÜ İDARİ VE MALİ İŞLER DAİRE BAŞKANLIĞI",
+      "matched_sources": [
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [],
+      "support_matches": [],
+      "direct_okas_matches": [
+        "48218000 - Lisans yönetimi yazılım paketi"
+      ],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1306406",
+      "tender_id": "577daa5a3e665f40ebf4f687cfd2547cc7c2d4a5a7b9731d1b9a5f1d7a96be86",
+      "title": "Sağlık Bilgi Yönetim Hizmeti (SBYS) Ve Yoğun Bakım Bilgi Yönetim Sistemi (YBBYS) Hizmet Alımı",
+      "classification": "doğrudan_uygun",
+      "evidence_score": 15,
+      "tender_date": "19.08.2026 10:00",
+      "tender_type": "Hizmet",
+      "authority": "SİNOP İL SAĞLIK MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title"
+      ],
+      "direct_matches": [
+        "sbys",
+        "ybbys"
+      ],
+      "conditional_matches": [],
+      "support_matches": [],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": []
+    },
+    {
+      "ikn": "2026/1184839",
+      "tender_id": "1efb46485cc6867bbecccc6837558b76641ff897b0e889cf3e4b9a694fef82ca",
+      "title": "HİPER BÜTÜNLEŞİK ALTYAPI SİSTEMİ LİSANS GÜNCELLEMESİ VE DONANIM DESTEK HİZMETİ ALIM İŞİ",
+      "classification": "koşullu_uygun",
+      "evidence_score": 18,
+      "tender_date": "29.07.2026 10:00",
+      "tender_type": "Mal",
+      "authority": "GAZİOSMANPAŞA BELEDİYE BAŞKANLIĞI BİLGİ İŞLEM MÜDÜRLÜĞÜ",
+      "matched_sources": [
+        "tender_title",
+        "announcement_titles",
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [],
+      "support_matches": [
+        "destek hizmeti"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": [
+        "48821000 - Ağ sunucuları"
+      ]
+    },
+    {
+      "ikn": "2026/1134095",
+      "tender_id": "15148907daa9b4a03c5b97fe02fde81df30f0ab760738712b6508d878aab8aec",
+      "title": "AĞ ANAHTARLAMA CİHAZI (SWİTCH ALIMI)",
+      "classification": "koşullu_uygun",
+      "evidence_score": 11,
+      "tender_date": "07.08.2026 11:00",
+      "tender_type": "Mal",
+      "authority": "İZMİR KATİP ÇELEBİ ÜNİVERSİTESİ REKTÖRLÜĞÜ BİLGİ İŞLEM DAİRE BAŞKANLIĞI",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [
+        "sunucu"
+      ],
+      "support_matches": [
+        "kurulum"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": [
+        "32423000 - Ağ bağlantı cihazları, hub"
+      ]
+    },
+    {
+      "ikn": "2026/1060463",
+      "tender_id": "d91d6d990cc3d0af54085fc5568e82fb821e3a54f0131386141cbeb9294f9800",
+      "title": "TOPKAPI SARAYI MÜZEDE EĞİTİM BİNASI KAMERA VE DATA SİSTEMLERİ ALTYAPISININ KURULMASI, KÜÇÜKSU KASRI SİSTEM ODASI DÜZENLEMESİ VE TEFRİŞATI İLE TOPKAPI SARAYI SİSTEM ODASI KABİNLERİ İÇİN İKLİMLENDİRME SİSTEMLERİNİN MONTAJ DAHİL ALIMI",
+      "classification": "koşullu_uygun",
+      "evidence_score": 9,
+      "tender_date": "24.07.2026 11:00",
+      "tender_type": "Mal",
+      "authority": "MİLLİ SARAYLAR İDARESİ BAŞKANLIĞI TEKNİK UYGULAMALAR DAİRESİ BAŞKANLIĞI",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [],
+      "support_matches": [
+        "kurulum"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": [
+        "30230000 - Bilgisayar ile ilgili ekipman"
+      ]
+    },
+    {
+      "ikn": "2026/993306",
+      "tender_id": "dbedda47efb19650688fc737cc468edefa7326b18835ac998495146ccedbfe8d",
+      "title": "CELAL BAYAR MÜZESİ ÇEVRE ALANI İLE YILDIZ PORSELEN FABRİKASI KAMERA, NETWORK VE DATA SİSTEMLERİ KURULUMU VE MEVCUT SİSTEME ENTEGRASYONU İŞİ",
+      "classification": "koşullu_uygun",
+      "evidence_score": 9,
+      "tender_date": "31.07.2026 11:00",
+      "tender_type": "Mal",
+      "authority": "MİLLİ SARAYLAR İDARESİ BAŞKANLIĞI TEKNİK UYGULAMALAR DAİRESİ BAŞKANLIĞI",
+      "matched_sources": [
+        "announcement_content",
+        "tender_okas_codes"
+      ],
+      "direct_matches": [],
+      "conditional_matches": [],
+      "support_matches": [
+        "kurulum"
+      ],
+      "direct_okas_matches": [],
+      "conditional_okas_matches": [
+        "30230000 - Bilgisayar ile ilgili ekipman"
+      ]
+    }
+  ]
+}

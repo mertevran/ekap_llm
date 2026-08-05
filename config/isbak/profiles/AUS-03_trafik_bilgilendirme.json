@@ -1,0 +1,116 @@
+{
+  "profil_kodu": "AUS-03",
+  "profil_adi": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+  "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+  "profil_surumu": "1.2.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Değişken mesaj sistemleri",
+    "Değişken trafik işaretleri",
+    "Hız uyarı sistemleri",
+    "Trafik yoğunluk ölçümü",
+    "Araç sayımı ve sınıflandırması",
+    "Otopark bilgi ekranları",
+    "Sürücü bilgilendirme",
+    "Merkezî veri aktarımı"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "değişken mesaj sistemi",
+      "trafik ölçüm sistemi",
+      "araç sayım sistemi",
+      "otopark yönlendirme sistemi"
+    ],
+    "destekleyici_terimler": [
+      "hız uyarı sistemi",
+      "trafik yoğunluğu",
+      "bilgilendirme ekranı",
+      "sürücü bilgilendirme"
+    ],
+    "negatif_terimler": [
+      "statik trafik levhası",
+      "yönlendirme levhası alımı",
+      "uyarı levhası alımı",
+      "trafik işaret levhası alımı",
+      "duyuru panosu",
+      "tabela alımı",
+      "ofset levhası"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34924"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Yol ağındaki trafik yoğunluğunu ölçen, sürücüleri VMS/DMS panelleriyle bilgilendiren ve otopark doluluk durumlarını yöneten sistemleri kapsar.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "DMS",
+      "expanded_form": "Değişken Mesaj İşareti",
+      "aliases": [
+        "VMS"
+      ],
+      "ambiguous": false
+    },
+    {
+      "term": "TTS",
+      "expanded_form": "Trafik Ölçüm Sistemi",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Araç Sayım Kamerası",
+      "category": "donanım",
+      "aliases": [
+        "Trafik Sensörü"
+      ]
+    },
+    {
+      "name": "DMS Paneli",
+      "category": "donanım",
+      "aliases": [
+        "VMS Ekran",
+        "Bilgilendirme Ekranı"
+      ]
+    },
+    {
+      "name": "Otopark Doluluk Sensörü",
+      "category": "donanım",
+      "aliases": [
+        "Park Sensörü"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "bilgilendirme",
+    "ölçüm",
+    "sayım",
+    "görüntüleme"
+  ],
+  "daraltma_notu": "30.07.2026: yatay/genel tanımlar İSBAK'ın alanına çapalandı. Gerekçe ve ölçüm: plan/DEVAM-BURADAN.md, 'profil daraltma' bölümü. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

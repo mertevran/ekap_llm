@@ -1,0 +1,174 @@
+{
+  "AUS-01": {
+    "guclu_terimler": [
+      "akıllı kavşak",
+      "trafik sinyalizasyonu",
+      "sinyal denetleyici",
+      "yeşil dalga",
+      "trafik kontrol sistemi"
+    ],
+    "destekleyici_terimler": [
+      "sinyal lambası",
+      "yaya butonu",
+      "trafik yönetimi",
+      "kavşak haberleşmesi"
+    ],
+    "genel_terimler": [
+      "kavşak"
+    ],
+    "negatif_terimler": [
+      "asfalt yol",
+      "asfalt yapım",
+      "yol yapım",
+      "bordür",
+      "parke taşı",
+      "kavşak düzenleme",
+      "geometrik düzenleme"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34996",
+      "34923"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "ENT-05": {
+    "guclu_terimler": [
+      "akıllı aydınlatma",
+      "aydınlatma kontrol sistemi",
+      "enerji yönetim sistemi",
+      "aydınlatma otomasyonu",
+      "uzaktan aydınlatma yönetimi"
+    ],
+    "destekleyici_terimler": [
+      "enerji izleme",
+      "merkezî aydınlatma",
+      "haberleşmeli armatür",
+      "uzaktan kontrol"
+    ],
+    "genel_terimler": [
+      "led armatür",
+      "aydınlatma",
+      "elektrik malzemesi"
+    ],
+    "negatif_terimler": [
+      "genel elektrik malzemesi",
+      "ampul alımı",
+      "kablo alımı",
+      "priz",
+      "anahtar",
+      "sigorta malzemesi"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34928",
+      "31527"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "OPS-03": {
+    "guclu_terimler": [
+      "fizibilite danışmanlığı",
+      "proje yönetimi danışmanlığı",
+      "teknik danışmanlık",
+      "ulaşım danışmanlığı",
+      "akıllı şehir danışmanlığı"
+    ],
+    "destekleyici_terimler": [
+      "ihtiyaç analizi",
+      "teknik şartname hazırlama",
+      "risk yönetimi",
+      "sistem danışmanlığı"
+    ],
+    "genel_terimler": [
+      "danışmanlık",
+      "kontrollük",
+      "proje yönetimi"
+    ],
+    "negatif_terimler": [
+      "bina inşaatı kontrollüğü",
+      "inşaat aşaması kontrollüğü",
+      "yapım işi kontrollüğü",
+      "jeolojik etüt",
+      "jeoteknik etüt",
+      "imar planı",
+      "maden etüdü",
+      "hukuki danışmanlık",
+      "mali danışmanlık"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "713",
+      "794"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "TEK-01": {
+    "guclu_terimler": [
+      "yazılım geliştirme",
+      "bilgi yönetim sistemi",
+      "yönetim bilgi sistemi",
+      "sistem entegrasyonu",
+      "veri tabanı",
+      "web uygulaması",
+      "mobil uygulama",
+      "uygulama programlama arayüzü"
+    ],
+    "destekleyici_terimler": [
+      "raporlama sistemi",
+      "gösterge paneli",
+      "veri aktarımı",
+      "yazılım bakım",
+      "kurumsal uygulama"
+    ],
+    "genel_terimler": [
+      "raporlama",
+      "yazılım",
+      "entegrasyon"
+    ],
+    "negatif_terimler": [
+      "lisans belgesi",
+      "hazır ofis yazılımı",
+      "antivirüs lisansı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "48",
+      "72"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "TEK-02": {
+    "guclu_terimler": [
+      "gömülü sistem",
+      "elektronik kart",
+      "saha denetleyici",
+      "endüstriyel bilgisayar",
+      "elektronik kontrol sistemi"
+    ],
+    "destekleyici_terimler": [
+      "sensör sistemi",
+      "kontrol kartı",
+      "kabinet",
+      "güç sistemi"
+    ],
+    "genel_terimler": [
+      "kamera",
+      "sensör",
+      "elektronik cihaz",
+      "elektrik malzemesi"
+    ],
+    "negatif_terimler": [
+      "genel elektrik malzemesi",
+      "beyaz eşya",
+      "mobilya donanımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "30",
+      "31",
+      "32"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  }
+}

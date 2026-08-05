@@ -1,0 +1,97 @@
+{
+  "profil_kodu": "OPS-02",
+  "profil_adi": "Bakım, Onarım ve Teknik Destek",
+  "profil_ailesi": "Uygulama ve Yaşam Döngüsü Hizmetleri",
+  "profil_surumu": "1.2.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Trafik ve ulaşım sistemlerinin koruyucu bakımı",
+    "Sinyalizasyon ve kavşak cihazlarında arıza müdahalesi",
+    "Kamera ve görüntüleme sistemlerinde teknik destek",
+    "Akıllı aydınlatma ve saha elektroniği bakımı",
+    "Elektronik denetleme sistemlerinde yedek parça yönetimi",
+    "Kurulu sistemlerde yazılım güncelleme ve cihaz değişimi",
+    "Saha müdahalesi ve uzaktan destek",
+    "Hizmet seviyesi süreleri"
+  ],
+  "destekleyici_profiller": [],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "trafik sistemleri bakım onarımı",
+      "sinyalizasyon bakım onarımı",
+      "kamera sistemi bakım onarımı",
+      "elektronik denetleme sistemi bakım onarımı",
+      "akıllı aydınlatma bakım onarımı",
+      "saha cihazları teknik desteği",
+      "yazılım bakım ve destek"
+    ],
+    "destekleyici_terimler": [
+      "koruyucu bakım",
+      "yedek parça",
+      "hizmet seviyesi",
+      "uzaktan destek",
+      "yazılım güncelleme"
+    ],
+    "negatif_terimler": [
+      "bina bakım onarım",
+      "mezarlık bakım onarım",
+      "park bakım onarım",
+      "yol bakım onarım",
+      "derin kuyu pompası",
+      "bilgisayar sarf malzemesi",
+      "araç bakım onarımı",
+      "ambulans bakımı",
+      "iş makinesi bakımı",
+      "tesis işletme",
+      "laboratuvar hizmeti",
+      "gemi sörveyi",
+      "römorkör bakımı",
+      "terminal binası bakımı",
+      "çatı yenileme",
+      "cephe sağlıklaştırma"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": []
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Kurulu sistemlerin düzgün çalışmaya devam etmesi için sağlanan arıza giderim, periyodik önleyici bakım, parça değişimi ve teknik destek servisleridir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "SLA",
+      "expanded_form": "Hizmet Seviyesi Sözleşmesi",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "SLA Raporu",
+      "category": "teslim_ciktisi",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "bakım",
+    "onarım",
+    "destek",
+    "müdahale",
+    "servis"
+  ],
+  "daraltma_notu": "30.07.2026: yatay/genel tanımlar İSBAK'ın alanına çapalandı. Gerekçe ve ölçüm: plan/DEVAM-BURADAN.md, 'profil daraltma' bölümü. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

@@ -1,0 +1,89 @@
+{
+  "profil_kodu": "ENT-06",
+  "profil_adi": "Akıllı Kent Donatıları ve Sensör Sistemleri",
+  "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Akıllı kent mobilyaları",
+    "Çevresel sensörler",
+    "Su kalite ve akış takibi",
+    "Vatandaş hizmet cihazları",
+    "Uzaktan izleme",
+    "Nesnelerin interneti altyapısı",
+    "Kamu alanı teknolojileri"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "akıllı kent mobilyası",
+      "çevresel sensör",
+      "nesnelerin interneti",
+      "iot sistemi"
+    ],
+    "destekleyici_terimler": [
+      "uzaktan izleme",
+      "su kalite izleme",
+      "vatandaş hizmet cihazı",
+      "sensör ağı"
+    ],
+    "negatif_terimler": [
+      "mobilya alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "38424"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Akıllı şehir konseptine uygun olarak meteoroloji, hava kalitesi ölçümü veya atık yönetimi gibi alanlarda sensör verilerini toplayıp merkeze ileten çevre donatılarıdır.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "IoT",
+      "expanded_form": "Nesnelerin İnterneti",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Hava Kalitesi Sensörü",
+      "category": "donanım",
+      "aliases": []
+    },
+    {
+      "name": "Akıllı Direk",
+      "category": "donanım",
+      "aliases": [
+        "Smart Pole"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "ölçüm",
+    "sensör veri toplama",
+    "izleme"
+  ]
+}

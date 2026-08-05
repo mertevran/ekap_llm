@@ -1,0 +1,102 @@
+{
+  "profil_kodu": "PLN-01",
+  "profil_adi": "Ulaşım Planlama ve Talep Yönetimi",
+  "profil_ailesi": "Planlama ve Projelendirme",
+  "profil_surumu": "1.2.2",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Ulaşım ana planı hazırlama",
+    "Toplu taşıma hat ve sefer planlaması",
+    "Otopark planlaması",
+    "Trafik talep yönetimi ve modelleme",
+    "Ulaşım verisi toplama ve analizi",
+    "Senaryo geliştirme ve fizibilite"
+  ],
+  "destekleyici_profiller": [
+    "PLN-03",
+    "TEK-01",
+    "OPS-03"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "ulaşım ana planı",
+      "ulaşım planlama",
+      "trafik talep yönetimi",
+      "toplu taşıma planlaması",
+      "ulaşım modellemesi"
+    ],
+    "destekleyici_terimler": [
+      "otopark planlama",
+      "ulaşım modellemesi",
+      "talep tahmini",
+      "fizibilite"
+    ],
+    "negatif_terimler": [
+      "öğrenci taşıma",
+      "personel taşıma hizmeti",
+      "yolcu taşıma hizmeti",
+      "araç kiralama",
+      "şoförlü araç kiralama",
+      "servis aracı kiralama",
+      "terminal binası bakımı",
+      "yol yapım işi",
+      "kaldırım yapımı",
+      "beton parke",
+      "parke taşı döşeme",
+      "bordür döşeme",
+      "asfaltlama",
+      "yol döşeme"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "71311"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Şehir ve ulaşım ağları için ulaşım master planları hazırlanması, talep tahmin modellerinin oluşturulması ve mevcut durum etütlerinin yapılmasıdır.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "UMP",
+      "expanded_form": "Ulaşım Master Planı",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Ulaşım Talep Tahmin Modeli",
+      "category": "metodoloji",
+      "aliases": []
+    },
+    {
+      "name": "Etüt Raporu",
+      "category": "teslim_ciktisi",
+      "aliases": [
+        "Mevcut Durum Analizi"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "planlama",
+    "modelleme",
+    "analiz",
+    "etüt"
+  ],
+  "daraltma_notu": "30.07.2026: yatay/genel tanımlar İSBAK'ın alanına çapalandı. Gerekçe ve ölçüm: plan/DEVAM-BURADAN.md, 'profil daraltma' bölümü. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

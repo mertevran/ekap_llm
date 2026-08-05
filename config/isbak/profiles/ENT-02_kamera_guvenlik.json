@@ -1,0 +1,113 @@
+{
+  "profil_kodu": "ENT-02",
+  "profil_adi": "Kamera, Video Analitik ve Güvenlik Sistemleri",
+  "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Kapalı devre kamera sistemleri",
+    "Trafik kameraları",
+    "Video analitik",
+    "Nesne ve kişi sayımı",
+    "Yasak bölge tespiti",
+    "Kayıt ve arşivleme",
+    "Merkezî kamera yönetimi"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "TEK-04",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "video analitik",
+      "kamera yönetim sistemi",
+      "kapalı devre kamera sistemi",
+      "görüntü analiz sistemi"
+    ],
+    "destekleyici_terimler": [
+      "kamera",
+      "kayıt sistemi",
+      "nesne sayımı",
+      "kişi sayımı",
+      "arşivleme"
+    ],
+    "negatif_terimler": [
+      "fotoğraf makinesi",
+      "kamera tripod",
+      "kamera çantası"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "32323",
+      "35125"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Tesis, bina veya çevre güvenliğini sağlamak için IP kamera sistemleri ve video analitik çözümlerinin entegre edildiği güvenlik projelerini kapsar.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "CCTV",
+      "expanded_form": "Kapalı Devre Televizyon",
+      "aliases": [
+        "Güvenlik Kamerası Sistemi"
+      ],
+      "ambiguous": false
+    },
+    {
+      "term": "NVR",
+      "expanded_form": "Ağ Video Kaydedici",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "IP Güvenlik Kamerası",
+      "category": "donanım",
+      "aliases": [
+        "Dome Kamera",
+        "Bullet Kamera",
+        "PTZ"
+      ]
+    },
+    {
+      "name": "Video Kayıt Cihazı",
+      "category": "donanım",
+      "aliases": [
+        "NVR",
+        "Sunucu"
+      ]
+    },
+    {
+      "name": "Video Analitik Yazılımı",
+      "category": "yazılım",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "izleme",
+    "kayıt",
+    "tespit",
+    "kurulum"
+  ]
+}

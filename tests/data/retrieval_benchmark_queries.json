@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "description": "EKAP karma bilgi getirme değerlendirme sorguları",
+  "queries": [
+    {
+      "id": "q01",
+      "category": "doğrudan_kelime",
+      "query": "bilgisayar ve bilgisayar malzemesi alımı"
+    },
+    {
+      "id": "q02",
+      "category": "doğrudan_kelime",
+      "query": "toner ve yazıcı alımı"
+    },
+    {
+      "id": "q03",
+      "category": "teknik_ifade",
+      "query": "sunucu ve veri merkezi donanımı"
+    },
+    {
+      "id": "q04",
+      "category": "teknik_ifade",
+      "query": "ağ anahtarı ve ağ cihazları"
+    },
+    {
+      "id": "q05",
+      "category": "yakın_anlam",
+      "query": "bilişim ekipmanı satın alınması"
+    },
+    {
+      "id": "q06",
+      "category": "yakın_anlam",
+      "query": "masaüstü ve taşınabilir bilgisayar temini"
+    },
+    {
+      "id": "q07",
+      "category": "hizmet",
+      "query": "yazılım geliştirme hizmeti"
+    },
+    {
+      "id": "q08",
+      "category": "hizmet",
+      "query": "bakım onarım ve teknik destek hizmeti"
+    },
+    {
+      "id": "q09",
+      "category": "mal_alimi",
+      "query": "temizlik malzemesi alımı"
+    },
+    {
+      "id": "q10",
+      "category": "mal_alimi",
+      "query": "kırtasiye malzemesi alımı"
+    },
+    {
+      "id": "q11",
+      "category": "uzun_sorgu",
+      "query": "kurum personeli için bilgisayar, ekran, klavye ve çevre birimlerinin satın alınması"
+    },
+    {
+      "id": "q12",
+      "category": "kisa_sorgu",
+      "query": "bilgisayar"
+    },
+    {
+      "id": "q13",
+      "category": "buyuk_harf",
+      "query": "BİLGİSAYAR VE EKİPMAN ALIMI"
+    },
+    {
+      "id": "q14",
+      "category": "yazim_hatasi",
+      "query": "bilgisyar malzemsi alımı"
+    },
+    {
+      "id": "q15",
+      "category": "ilgisiz_sorgu",
+      "query": "uzay aracı motoru ve roket yakıtı alımı"
+    }
+  ]
+}

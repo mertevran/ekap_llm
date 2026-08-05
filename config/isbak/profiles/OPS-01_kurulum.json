@@ -1,0 +1,75 @@
+{
+  "profil_kodu": "OPS-01",
+  "profil_adi": "Kurulum ve Devreye Alma",
+  "profil_ailesi": "Uygulama ve Yaşam Döngüsü Hizmetleri",
+  "profil_surumu": "1.2.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Trafik ve ulaşım sistemlerinde saha keşfi",
+    "Sinyalizasyon ve kamera cihazı montajı",
+    "Saha kablolama ve kabinet kurulumu",
+    "Kent teknolojisi sistemlerinin devreye alınması",
+    "Merkez-saha sistem bütünleştirmesi",
+    "Test ve kabul",
+    "Operatör ve kullanıcı eğitimi"
+  ],
+  "destekleyici_profiller": [
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "trafik sistemi kurulumu",
+      "sinyalizasyon kurulumu",
+      "kamera sistemi kurulumu ve devreye alma",
+      "saha montajı ve kablolama",
+      "sistem devreye alma"
+    ],
+    "destekleyici_terimler": [
+      "cihaz kurulumu",
+      "kullanıcı eğitimi",
+      "entegrasyon"
+    ],
+    "negatif_terimler": [
+      "bilgisayar sarf malzemesi",
+      "bilgisayar sarf malzemeleri",
+      "derin kuyu pompası",
+      "derin kuyu pompaları",
+      "pompa montajı",
+      "mekanik tesisat",
+      "genel elektrik malzemesi",
+      "bina elektrik tesisatı",
+      "sandviç panel montajı",
+      "park mobilyası montajı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": []
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "İhale kapsamında temin edilen donanım ve yazılımların sahada fiziksel montajı, elektrik-veri kablolaması, kalibrasyonu ve işletmeye alma hizmetleridir.",
+  "abbreviations_and_jargon": [],
+  "technical_equipment": [],
+  "action_verbs": [
+    "kurulum",
+    "montaj",
+    "kablolama",
+    "devreye alma",
+    "test"
+  ],
+  "daraltma_notu": "30.07.2026: yatay/genel tanımlar İSBAK'ın alanına çapalandı. Gerekçe ve ölçüm: plan/DEVAM-BURADAN.md, 'profil daraltma' bölümü. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

@@ -1,0 +1,130 @@
+{
+  "profil_kodu": "AUS-01",
+  "profil_adi": "Trafik Yönetimi ve Sinyalizasyon",
+  "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Sinyalize kavşak sistemleri",
+    "Trafik sinyal denetleyicileri",
+    "Akıllı kavşak yönetimi",
+    "Yeşil dalga uygulamaları",
+    "Yaya güvenliği sistemleri",
+    "Kavşak haberleşme altyapısı",
+    "Merkezden izleme ve yönetim",
+    "Saha kurulumu ve devreye alma"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "akıllı kavşak",
+      "trafik sinyalizasyonu",
+      "sinyal denetleyici",
+      "yeşil dalga",
+      "trafik kontrol sistemi"
+    ],
+    "destekleyici_terimler": [
+      "sinyal lambası",
+      "yaya butonu",
+      "trafik yönetimi",
+      "kavşak haberleşmesi"
+    ],
+    "negatif_terimler": [
+      "asfalt yol",
+      "asfalt yapım",
+      "yol yapım",
+      "bordür",
+      "parke taşı",
+      "kavşak düzenleme",
+      "geometrik düzenleme"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34996",
+      "34923"
+    ],
+    "genel_terimler": [
+      "kavşak"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Kavşak sinyalizasyonu, trafik kontrol merkezleri ve yaya güvenliğini artırmaya yönelik akıllı sistemlerin tasarımı, kurulumu ve yönetimidir. Dinamik ve yeşil dalga gibi trafik iyileştirici yönetim stratejilerini destekler.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "TKM",
+      "expanded_form": "Trafik Kontrol Merkezi",
+      "aliases": [],
+      "ambiguous": false
+    },
+    {
+      "term": "Dinamik Kavşak",
+      "expanded_form": "Gerçek zamanlı trafik hacmine göre süreleri ayarlayan kavşak yönetim sistemi",
+      "aliases": [
+        "Akıllı Kavşak"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Sinyal Denetleyici",
+      "category": "donanım",
+      "aliases": [
+        "Kavşak Kontrol Cihazı"
+      ]
+    },
+    {
+      "name": "Sinyalizasyon Direği",
+      "category": "altyapi",
+      "aliases": [
+        "Oto Direk",
+        "Yaya Direk"
+      ]
+    },
+    {
+      "name": "Sinyal Optiği",
+      "category": "donanım",
+      "aliases": [
+        "Sinyal Lambası"
+      ]
+    },
+    {
+      "name": "Trafik Yönetim Yazılımı",
+      "category": "yazılım",
+      "aliases": [
+        "Kavşak Yönetim Sistemi"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "kurulum",
+    "montaj",
+    "entegrasyon",
+    "sinyalizasyon",
+    "kablolama",
+    "devreye alma"
+  ]
+}
