@@ -81,6 +81,24 @@ class IsbakDeterministicValidator:
         warnings: list[str] = []
         rules = ["validate_structure_and_evidence"]
 
+        unknown_mandatory_criteria = [
+            criterion
+            for criterion in primary_decision.zorunlu_kriter_sonuclari
+            if criterion.status == "bilinmiyor"
+        ]
+        failed_mandatory_criteria = [
+            criterion
+            for criterion in primary_decision.zorunlu_kriter_sonuclari
+            if criterion.status == "karsilanmiyor"
+        ]
+
+        def criterion_label(criterion: object) -> str:
+            criterion_id = str(getattr(criterion, "criterion_id", "")).strip()
+            description = str(getattr(criterion, "description", "")).strip()
+            if criterion_id and description and criterion_id != description:
+                return f"{criterion_id}: {description}"
+            return description or criterion_id or "Tanımsız zorunlu kriter"
+
         used_ids = set(primary_decision.kullanilan_chunk_idleri)
         for criterion in primary_decision.zorunlu_kriter_sonuclari:
             used_ids.update(criterion.evidence_chunk_ids)
@@ -109,6 +127,41 @@ class IsbakDeterministicValidator:
                     source=source,
                 )
             )
+
+        # Yalnızca modelin ihale kaynağından çıkardığı yapılandırılmış zorunlu
+        # kriterler değerlendirilir. Profildeki genel boş alanlar veya ihalenin
+        # açıkça istemediği bilgiler bu kurala girmez.
+        if unknown_mandatory_criteria:
+            rules.append("verify_unknown_mandatory_criteria")
+            for criterion in unknown_mandatory_criteria:
+                issues.append(
+                    ValidationIssue(
+                        code="missing_mandatory_evidence",
+                        message=(
+                            "Gerçek zorunlu kriterin şirket tarafından karşılandığı "
+                            f"doğrulanamadı: {criterion_label(criterion)}"
+                        ),
+                        severity="blocking",
+                        source=source,
+                        related_chunk_ids=list(criterion.evidence_chunk_ids),
+                    )
+                )
+
+        if failed_mandatory_criteria:
+            rules.append("verify_failed_mandatory_criteria")
+            for criterion in failed_mandatory_criteria:
+                issues.append(
+                    ValidationIssue(
+                        code="mandatory_criterion_not_met",
+                        message=(
+                            "Gerçek zorunlu kriterin karşılanmadığı bildirildi: "
+                            f"{criterion_label(criterion)}"
+                        ),
+                        severity="blocking",
+                        source=source,
+                        related_chunk_ids=list(criterion.evidence_chunk_ids),
+                    )
+                )
 
         negative_scope = analyze_negative_scope(validation_context)
         if validation_context is not None:
@@ -225,20 +278,49 @@ class IsbakDeterministicValidator:
             )
 
         blocking = any(issue.severity == "blocking" for issue in issues)
+        safety_blocking_codes = {
+            "invalid_evidence_reference",
+            "external_information_used",
+            "unverified_negative_scope_claim",
+            "verified_negative_scope_omitted",
+            "suitable_with_verified_negative_scope",
+            "decision_reason_conflict",
+            "activity_participation_decision_conflict",
+        }
+        has_safety_blocker = any(
+            issue.severity == "blocking" and issue.code in safety_blocking_codes
+            for issue in issues
+        )
+        forced_decision = None
+        if blocking:
+            # Kaynak/kanıt güvenliği bozulmuşsa kesin ret üretme. Açıkça
+            # karşılanmayan zorunlu kriter tek bloklayıcı türüyse uygun_degil;
+            # bilinmeyen veya çelişkili durumda insan incelemesi gerekir.
+            if (
+                failed_mandatory_criteria
+                and not unknown_mandatory_criteria
+                and not has_safety_blocker
+            ):
+                forced_decision = "uygun_degil"
+            else:
+                forced_decision = "inceleme_gerekli"
         verified_rejection = bool(
-            primary_decision.decision == "uygun_degil"
-            and primary_decision.negatif_kapsam_cakismasi
-            and negative_scope.verified
+            forced_decision == "uygun_degil"
+            or (
+                primary_decision.decision == "uygun_degil"
+                and primary_decision.negatif_kapsam_cakismasi
+                and negative_scope.verified
+            )
             and not blocking
         )
         return ValidationResult(
             passed=not blocking,
-            forced_decision="inceleme_gerekli" if blocking else None,
+            forced_decision=forced_decision,
             issues=issues,
             has_blocking_issue=blocking,
-            human_review_required=blocking,
+            human_review_required=forced_decision == "inceleme_gerekli",
             verified_rejection=verified_rejection,
-            missing_mandatory_evidence=False,
+            missing_mandatory_evidence=bool(unknown_mandatory_criteria),
             source_external_information_used=primary_decision.kaynak_disinda_bilgi_var_mi,
             contradictions=[
                 issue.message
@@ -253,7 +335,12 @@ class IsbakDeterministicValidator:
                 }
             ],
             missing_required_evidence=list(
-                primary_decision.dogrulanamayan_katilim_sartlari
+                dict.fromkeys(
+                    [
+                        *(criterion_label(item) for item in unknown_mandatory_criteria),
+                        *primary_decision.dogrulanamayan_katilim_sartlari,
+                    ]
+                )
             ),
             invalid_evidence_references=invalid_refs,
             deterministic_rules_applied=rules,

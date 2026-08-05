@@ -6,7 +6,12 @@ from typing import Any, Literal
 DecisionLabel = Literal["uygun", "uygun_degil", "inceleme_gerekli"]
 CriterionStatus = Literal["karsilaniyor", "karsilanmiyor", "bilinmiyor"]
 ActivityMatch = Literal["guclu", "kismi", "zayif", "belirsiz"]
-ParticipationStatus = Literal["dogrulandi", "dogrulanmadi", "uygulanamaz"]
+ParticipationStatus = Literal[
+    "dogrulandi",
+    "dogrulanmadi",
+    "karsilanmiyor",
+    "uygulanamaz",
+]
 
 
 @dataclass(frozen=True)
@@ -143,6 +148,10 @@ class FinalTenderDecision:
     missing_mandatory_evidence: bool = False
     mandatory_missing_evidence: list[str] = field(default_factory=list)
     optional_missing_evidence: list[str] = field(default_factory=list)
+    # Üç katmanlı karar sözleşmesi:
+    # - activity_decision: yalnızca faaliyet kapsamı kararı
+    # - katilim_yeterliligi_durumu: gerçek ihale şartlarının durumu
+    # - final_decision: Python doğrulaması sonrası nihai yönlendirme
     katilim_yeterliligi_durumu: ParticipationStatus = "dogrulanmadi"
     dogrulanamayan_katilim_sartlari: list[str] = field(default_factory=list)
     participation_review_required: bool = False
@@ -173,17 +182,40 @@ def combine_validation_results(primary: ValidationResult, secondary: ValidationR
     invalid_refs = sorted(set(primary.invalid_evidence_references + secondary.invalid_evidence_references))
     external = primary.source_external_information_used or secondary.source_external_information_used
     blocking = primary.has_blocking_issue or secondary.has_blocking_issue or bool(invalid_refs) or external
+    missing_mandatory = (
+        primary.missing_mandatory_evidence
+        or secondary.missing_mandatory_evidence
+    )
 
     # Python yalnızca yapısal/kanıtsal güvenlik hatalarında güvenli geri dönüş uygular.
-    forced: DecisionLabel | None = "inceleme_gerekli" if blocking else None
+    forced_decisions = {
+        result.forced_decision
+        for result in (primary, secondary)
+        if result.forced_decision is not None
+    }
+    forced: DecisionLabel | None = None
+    if blocking:
+        forced = (
+            "uygun_degil"
+            if forced_decisions == {"uygun_degil"} and not invalid_refs and not external
+            else "inceleme_gerekli"
+        )
     return ValidationResult(
         passed=not blocking,
         forced_decision=forced,
         issues=issues,
         has_blocking_issue=blocking,
-        human_review_required=blocking,
-        verified_rejection=False,
-        missing_mandatory_evidence=False,
+        human_review_required=(
+            forced == "inceleme_gerekli"
+            or primary.human_review_required
+            or secondary.human_review_required
+        ),
+        verified_rejection=(
+            forced == "uygun_degil"
+            or primary.verified_rejection
+            or secondary.verified_rejection
+        ),
+        missing_mandatory_evidence=missing_mandatory,
         source_external_information_used=external,
         contradictions=sorted(set(primary.contradictions + secondary.contradictions)),
         missing_required_evidence=sorted(set(primary.missing_required_evidence + secondary.missing_required_evidence)),

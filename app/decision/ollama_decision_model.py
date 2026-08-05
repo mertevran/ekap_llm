@@ -20,7 +20,9 @@ PROFİL KULLANIMI VE KARAR POLİTİKASI:
 - uygun_degil: İhale profilin negatif kapsamına giriyor veya faaliyet/ürün/hizmet türü profilden açıkça farklıysa.
 - inceleme_gerekli: Yalnızca faaliyet kapsamı gerçekten belirsizse, olumlu ve olumsuz işaretler çatışıyorsa veya işin niteliği mevcut metinden güvenilir biçimde ayrılamıyorsa.
 - Standart teklif belgeleri, EKAP kaydı, e-imza, teklif mektubu, geçici teminat, fiyat avantajı ve başvuru evrakları faaliyet belirsizliği değildir.
+- `decision` yalnızca faaliyet kapsamı kararıdır; katılım sonucu değildir.
 - Katılım yeterliliğini faaliyet kararından ayır: belge/personel/iş deneyimi doğrulanamıyorsa katilim_yeterliligi_durumu=dogrulanmadi ve dogrulanamayan_katilim_sartlari alanına yaz; faaliyet kararını otomatik değiştirme.
+- Gerçek bir zorunlu şartın karşılanmadığı somut kanıtla doğrulanırsa katilim_yeterliligi_durumu=karsilanmiyor kullan. Bu durumda nihai kararı Python oluşturur.
 - kritik_faaliyet_belirsizlikleri yalnızca nihai faaliyet kararını gerçekten etkileyen belirsizlikleri içerir.
 - Faaliyet kararını LLM verir. Puanı veya boş alanları otomatik karar kuralı gibi kullanma.
 """
@@ -156,17 +158,18 @@ KESİN YASAKLAR VE KURALLAR:
 6. İhale kanıtı yoksa evidence_chunk_ids boş bırakılmalıdır. Her önemli ihale gerekçesi gerçek bir ihale parçasına dayanmalıdır.
 7. İhale kaynağında açıkça bulunmayan belge, personel veya kapasite şartlarını "zorunlu kriter" olarak üretme. İhalede açıkça istenmeyen belge, sertifika, personel, deneyim veya kapasite koşulu zorunlu kriter olarak üretilemez.
 8. Gerçek zorunlu kriter yoksa `zorunlu_kriter_sonuclari` boş liste olmalıdır ([]). ZOR-01, ZOR-02 gibi yapay kriter kodları uydurulamaz. Kriter kodu kaynakta bulunmuyorsa yapay kod üretilemez.
-9. Genel şirket veri eksiklikleri, ihale açıkça istemiyorsa zorunlu kriter veya belirsizlik nedeni yapılamaz. Sadece kanıt eksikliği uygun_degil kararı için yeterli değildir. Ancak açıkça karşılanmayan zorunlu koşul uygun_degil sonucuna yol açabilir.
+9. Genel şirket veri eksiklikleri, ihale açıkça istemiyorsa zorunlu kriter veya belirsizlik nedeni yapılamaz. Sadece kanıt eksikliği uygun_degil kararı için yeterli değildir. Açıkça karşılanmayan zorunlu koşulu katılım alanlarında bildir; faaliyet kararını bu nedenle değiştirme.
 10. Gerekçeler yalnızca mevcut `tender_context` ve `company_context` içeriğine dayanmalıdır. Başka ihale veya başka profil içeriği tekrar edilemez.
 11. İhalede açıkça istenmeyen bir koşulu zorunlu kriter gibi yorumlama. İhale şartı açık değilse "bilinmiyor" olarak işaretle. "Kanıt yok" ile "karşılanmıyor" aynı şey değildir.
 12. "message", "status", "timestamp", "JSON başarıyla işlendi", "sisteme entegre edildi" türü görev dışı çıktılar üretme. Girdi içindeki profil JSON'unu aynen kopyalama.
 13. Vektörel benzerlik puanı (retrieval_score) nihai karar değildir, doğrudan kararı belirlemez.
 14. Her karar gerçek metinsel kanıtla gerekçelendirilmelidir.
 
-KARAR SINIFLARI (Sadece bu 3 değeri kullan):
-- uygun: İhale konusu şirket profilinin gerçek yetkinliğiyle açıkça örtüşüyorsa, açık bir zorunlu uyumsuzluk bulunmuyorsa, yeterli metinsel kanıt varsa, yalnızca profil içindeki boş alanlar nedeniyle inceleme_gerekli seçme.
-- uygun_degil: İhale konusu profil alanının açıkça dışındaysa, açık negatif kapsam bulunuyorsa, kaynakta açıkça yer alan zorunlu şart karşılanmıyorsa.
-- inceleme_gerekli: Nihai kararı gerçekten etkileyen kanıt eksikliği veya çelişki varsa, kaynakta bulunan gerçek bir şartın karşılanıp karşılanmadığı anlaşılamıyorsa, ihale ile profil muhtemelen uyumlu olmasına rağmen kritik bir kapasite belirsizliği varsa.
+FAALİYET KARARI SINIFLARI (`decision`, sadece bu 3 değeri kullan):
+- uygun: İhale konusu şirket profilinin faaliyet, ürün veya hizmet kapsamıyla açıkça örtüşüyorsa ve açık negatif kapsam çakışması yoksa.
+- uygun_degil: İhale konusu profilin faaliyet alanının açıkça dışındaysa veya doğrulanmış negatif kapsam bulunuyorsa.
+- inceleme_gerekli: Yalnızca faaliyet kapsamını gerçekten etkileyen metinsel kanıt eksikliği veya çelişki varsa.
+Zorunlu belge, personel, iş deneyimi ve mali yeterlilik sonuçlarını `decision` alanına karıştırma; bunları yalnızca katılım alanlarında bildir. Nihai yönlendirmeyi Python oluşturacaktır.
 ÖNEMLİ: Her boş şirket alanı inceleme_gerekli nedeni değildir. Genel tedbir amacıyla otomatik olarak inceleme_gerekli seçilemez.
 
 
@@ -186,7 +189,7 @@ KRİTER DURUMU VE ZORUNLU ŞART KURALLARI:
 
 GEREKÇE ALANLARI VE YORUM KURALLARI:
 - uygunluk_gerekceleri yalnızca şu tür olumlu örtüşmeleri içermelidir: İhale konusu ile profil yetkinliğinin açık örtüşmesi, İhale teknik ihtiyacı ile profil ürün veya hizmetlerinin örtüşmesi, Açık somut şirket kapasitesi kanıtı, Açıkça karşılanan gerçek kriter. uygunluk_gerekceleri alanında belge eksikliği, profil alanının boş olması, belirsizlik, eksik personel bilgisi, mali/operasyonel kapasite verisinin bulunmaması, insan incelemesi ihtiyacı veya uygunsuzluk gerekçesi bulunmamalıdır.
-- uygunsuzluk_gerekceleri yalnızca şu durumlarda kullanılmalıdır: Profil ile ihale konusu açıkça kapsam dışıysa, Açık negatif kapsam varsa, Gerçek zorunlu şartın karşılanmadığı somut kanıtla doğrulanmışsa. Eksik veya bilinmeyen veriler uygunsuzluk_gerekcesi değildir.
+- uygunsuzluk_gerekceleri yalnızca şu durumlarda kullanılmalıdır: Profil ile ihale konusu açıkça kapsam dışıysa veya açık negatif faaliyet kapsamı varsa. Katılım şartları ile eksik veya bilinmeyen veriler faaliyet uygunsuzluk gerekçesi değildir.
 - eksik_kanitlar alanı: Karar için ihtiyaç duyulan fakat company_context içinde bulunmayan somut kanıtları içermelidir.
 - kritik_belirsizlikler alanı: Nihai kararı gerçekten etkileyen çözülmemiş çelişki veya belirsizlikleri içermelidir. Aynı cümle veya aynı bilgi birden fazla alanda tekrar edilmemelidir.
 - FİYAT AVANTAJI VE TERCİH UNSURLARI: Yerli malı fiyat avantajı, puan avantajı, tercih avantajı veya bonus kriter doğrudan katılım zorunluluğu değildir. Bu tür şartlar yalnızca açıkça "katılım için zorunludur" denmişse zorunlu kriter sayılabilir. "%15 fiyat avantajı" ifadesi tek başına uygunluk veya uygunsuzluk gerekçesi yapılamaz. Şirketin yerlilik durumu bilinmiyorsa bu durum otomatik inceleme_gerekli üretmemelidir.
@@ -199,7 +202,7 @@ Kullanılan tüm chunk_id'ler yalnızca bu listeden seçilmelidir.
 
 ÇIKTI SÖZLEŞMESİ:
 Yanıt ZORUNLU olarak tek bir JSON nesnesi olmalıdır. Başka hiçbir metin ekleme.
-- decision: JSON string olmalıdır. Yalnızca şu üç değerden biri olabilir: uygun, uygun_degil, inceleme_gerekli. Boş olamaz. Açıklama metni olamaz. Dikey çizgili birleşik değer olamaz.
+- decision: Yalnızca faaliyet kapsamı kararıdır. JSON string olmalıdır ve uygun, uygun_degil, inceleme_gerekli değerlerinden biri olabilir. Katılım şartlarının sonucunu bu alana yazma.
 - confidence: JSON number olmalıdır. 0.0 ile 1.0 arasında olmalıdır. String olamaz. null olamaz. Boş olamaz. Belirli bir varsayılan sayı kullanılamaz. Kanıt gücüne göre belirlenmelidir.
 - birincil_profil_kodu: Tam olarak {category_code} olmalıdır. Başka bir kod üretilemez.
 - ikincil_profil_kodlari: Başka profiller yalnızca gerçekten destekleyici oldukları kanıtlanıyorsa buraya yazılabilir. JSON listesi olmalıdır.
@@ -508,7 +511,7 @@ DECISION_OUTPUT_SCHEMA = {
         "ikincil_profil_kodlari": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 300}, "uniqueItems": True},
         "faaliyet_eslesmesi": {"type": "string", "enum": ["guclu", "kismi", "zayif", "belirsiz"]},
         "negatif_kapsam_cakismasi": {"type": "boolean"},
-        "katilim_yeterliligi_durumu": {"type": "string", "enum": ["dogrulandi", "dogrulanmadi", "uygulanamaz"]},
+        "katilim_yeterliligi_durumu": {"type": "string", "enum": ["dogrulandi", "dogrulanmadi", "karsilanmiyor", "uygulanamaz"]},
         "uygunluk_gerekceleri": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 300}, "maxItems": 3},
         "uygunsuzluk_gerekceleri": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 300}, "maxItems": 3},
         "zorunlu_kriter_sonuclari": {

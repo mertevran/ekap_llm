@@ -244,12 +244,29 @@ class IsbakDecisionPipeline:
 
         combined_validation = combine_validation_results(validation_primary, validation_secondary)
 
+        # Model(ler)in bu noktadaki kararı yalnızca faaliyet kapsamını temsil
+        # eder. Katılım şartlarına ait Python geçersiz kılmaları aşağıda nihai
+        # karara uygulanır; böylece faaliyet uygunluğu kaybolmaz.
+        activity_decision = final_decision
+
         # --- VALIDATION OVERRIDE ---
         if combined_validation.source_external_information_used:
             final_decision = "inceleme_gerekli"
             human_review_required = True
             merge_rule = "validation_override_external_information"
             human_review_reason = "Model dış bilgi kullandı."
+        elif combined_validation.forced_decision == "uygun_degil":
+            final_decision = "uygun_degil"
+            human_review_required = False
+            merge_rule = "validation_override_mandatory_rejection"
+            human_review_reason = ""
+        elif combined_validation.missing_mandatory_evidence:
+            final_decision = "inceleme_gerekli"
+            human_review_required = True
+            merge_rule = "validation_override_missing_evidence"
+            human_review_reason = (
+                "Gerçek zorunlu kriterlerin karşılandığı doğrulanamadı."
+            )
         elif combined_validation.has_blocking_issue:
             final_decision = "inceleme_gerekli"
             human_review_required = True
@@ -282,9 +299,18 @@ class IsbakDecisionPipeline:
             context_available=validation_context is not None,
         )
         final_confidence = calibration.calibrated_confidence
+        participation_status = primary.katilim_yeterliligi_durumu
+        if combined_validation.verified_rejection:
+            participation_status = "karsilanmiyor"
+        elif combined_validation.missing_mandatory_evidence:
+            participation_status = "dogrulanmadi"
+
         participation_review_required = bool(
-            primary.katilim_yeterliligi_durumu == "dogrulanmadi"
-            and primary.dogrulanamayan_katilim_sartlari
+            participation_status == "dogrulanmadi"
+            and (
+                combined_validation.missing_mandatory_evidence
+                or primary.dogrulanamayan_katilim_sartlari
+            )
         )
         evaluated_codes = list(
             dict.fromkeys(
@@ -345,13 +371,18 @@ class IsbakDecisionPipeline:
             ],
             missing_mandatory_evidence=combined_validation.missing_mandatory_evidence,
             mandatory_missing_evidence=[
-                i.message.split(": ")[-1] for i in combined_validation.issues if i.code == "missing_mandatory_evidence"
+                i.message.removeprefix(
+                    "Gerçek zorunlu kriterin şirket tarafından karşılandığı "
+                    "doğrulanamadı: "
+                )
+                for i in combined_validation.issues
+                if i.code == "missing_mandatory_evidence"
             ],
             optional_missing_evidence=list(primary.dogrulanamayan_katilim_sartlari),
-            katilim_yeterliligi_durumu=primary.katilim_yeterliligi_durumu,
+            katilim_yeterliligi_durumu=participation_status,
             dogrulanamayan_katilim_sartlari=list(primary.dogrulanamayan_katilim_sartlari),
             participation_review_required=participation_review_required,
-            activity_decision=final_decision,
+            activity_decision=activity_decision,
             activity_match=primary.faaliyet_eslesmesi,
             negative_scope_verified=combined_validation.negative_scope.verified,
             matched_negative_terms=list(
