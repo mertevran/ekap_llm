@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     phi_model: str = "phi4-mini:latest"
 
     ollama_connect_timeout_seconds: int = 10
-    ollama_decision_timeout_seconds: int = 120
+    ollama_decision_timeout_seconds: int = 600
     ollama_max_attempts: int = 2
     ollama_retry_backoff_seconds: float = 1.0
 
@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     ollama_num_thread: int = 4
     ollama_num_batch: int = 32
 
-    max_json_corrections: int = 0
+    max_json_corrections: int = 1
 
     max_tender_context_chars: int = 12000
     max_company_context_chars: int = 5000

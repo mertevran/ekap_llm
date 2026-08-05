@@ -382,6 +382,7 @@ def main() -> int:
         tender_vector_store=tender_store,
         profile_vector_store=profile_store,
         settings=rag_settings,
+        profile_loader=loader,
     )
 
     profile_codes = selected_profiles(loader, args.profile_code)

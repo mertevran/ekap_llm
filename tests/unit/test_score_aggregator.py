@@ -57,8 +57,37 @@ def test_negative_penalty_does_not_go_below_zero():
         okas_codes=[],
         query_terms=("hedef",),
         negative_terms=["hedef", "hedef2", "hedef3", "hedef4", "hedef5"],
+        tender_text="hedef hedef2 hedef3 hedef4 hedef5",
     )
     assert result.final_score >= 0.0
+
+
+def test_negative_penalty_uses_real_tender_text():
+    agg = _aggregator()
+    result = agg.compute(
+        raw_scores=[0.80],
+        section_types=["main"],
+        okas_codes=[],
+        query_terms=("bakım", "destek"),
+        tender_name="Araç bakım ve onarım hizmeti",
+        negative_terms=["araç bakım", "araç onarım"],
+        tender_text="Araç bakım ve araç onarım hizmeti alınacaktır.",
+    )
+    assert result.negative_term_penalty > 0.0
+
+
+def test_negative_term_in_profile_query_does_not_create_penalty():
+    agg = _aggregator()
+    result = agg.compute(
+        raw_scores=[0.80],
+        section_types=["main"],
+        okas_codes=[],
+        query_terms=("araç", "bakım"),
+        tender_name="Yazılım destek hizmeti",
+        negative_terms=["araç bakım"],
+        tender_text="Yazılım destek hizmeti alınacaktır.",
+    )
+    assert result.negative_term_penalty == 0.0
 
 
 def test_section_diversity_uses_known_section_types():

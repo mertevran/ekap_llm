@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol
 
 from app.config.isbak_rag_settings import get_isbak_rag_settings
-from app.retrieval.isbak_query_profile_router import IsbakQueryProfileRouter
+from app.matching.score_aggregator import ScoreAggregator
 
 
 class VectorStoreProtocol(Protocol):
@@ -144,37 +144,6 @@ def _query_terms(query: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(meaningful or tokens))
 
 
-def _term_overlap(query_terms: tuple[str, ...], value: str) -> float:
-    if not query_terms:
-        return 0.0
-    q_tokens = list(query_terms)
-    val_tokens = _tokenize(value)
-    if not val_tokens:
-        return 0.0
-    matched = sum(1 for t in q_tokens if t in val_tokens)
-    return matched / len(q_tokens)
-
-
-_router = IsbakQueryProfileRouter()
-
-
-def _profile_penalty(query: str, payload_profile_codes: list[str]) -> float:
-    signal = _router.analyze(query)
-    if not payload_profile_codes:
-        return 0.0
-    record_groups = {
-        str(code).strip()[:3].upper()
-        for code in payload_profile_codes
-        if str(code).strip()[:3].upper()
-    }
-    if not record_groups:
-        return 0.0
-    for rg in record_groups:
-        if rg in signal.negative_groups:
-            return 0.10
-    return 0.0
-
-
 def _resolve_tender_name(payload: dict[str, Any]) -> str:
     metadata = payload.get("metadata")
     if isinstance(metadata, dict) and isinstance(metadata.get("document_title"), str):
@@ -292,23 +261,17 @@ class IsbakTenderRetriever:
         chunks: list[dict[str, Any]],
         query: str,
         query_terms: tuple[str, ...],
+        profile_signals: dict[str, Any] | None = None,
     ) -> TenderSearchResult | None:
         if not chunks:
             return None
 
-        cfg = self.settings
+        signals = profile_signals or {}
         raw_scores = [float(c.get("score", 0.0)) for c in chunks]
-
-        max_chunk_score = max(raw_scores)
-        top_chunks_mean = sum(raw_scores) / len(raw_scores)
-
-        section_types = set()
-        for c in chunks:
-            stype = c.get("payload", {}).get("section_type")
-            if stype:
-                section_types.add(stype)
-
-        section_diversity_score = min(1.0, len(section_types) / 3.0)
+        section_types = [
+            str(c.get("payload", {}).get("section_type") or "")
+            for c in chunks
+        ]
 
         top_payload = chunks[0]["payload"]
         tender_name = _resolve_tender_name(top_payload)
@@ -319,33 +282,40 @@ class IsbakTenderRetriever:
                 _payload_list(dict(c.get("payload") or {}), "okas_codes")
             )
 
-        okas_support_score = _term_overlap(query_terms, " ".join(okas_codes))
-        title_support_score = _term_overlap(query_terms, tender_name)
-
         profile_codes = []
         p_codes = top_payload.get("profile_codes")
         if isinstance(p_codes, list):
             profile_codes = [str(x) for x in p_codes]
 
-        negative_penalty = _profile_penalty(query, profile_codes)
-
-        final_score = (
-            cfg.weight_max_chunk * max_chunk_score
-            + cfg.weight_top_chunks * top_chunks_mean
-            + cfg.weight_section_diversity * section_diversity_score
-            + cfg.weight_okas * okas_support_score
-            + cfg.weight_title * title_support_score
+        tender_text = "\n".join(
+            [
+                tender_name,
+                *(
+                    str(c.get("payload", {}).get("text") or "")
+                    for c in chunks
+                ),
+            ]
         )
-        final_score = max(0.0, final_score - negative_penalty)
+        aggregate = ScoreAggregator(self.settings).compute(
+            raw_scores=raw_scores,
+            section_types=section_types,
+            okas_codes=list(dict.fromkeys(okas_codes)),
+            query_terms=query_terms,
+            tender_name=tender_name,
+            profile_okas_prefixes=list(signals.get("okas_kod_on_ekleri") or []),
+            strong_terms=list(signals.get("guclu_terimler") or []),
+            negative_terms=list(signals.get("negatif_terimler") or []),
+            tender_text=tender_text,
+        )
 
         scores = ScoreBreakdown(
-            max_chunk=round(max_chunk_score, 4),
-            top_chunks_mean=round(top_chunks_mean, 4),
-            section_diversity=round(section_diversity_score, 4),
-            okas_support=round(okas_support_score, 4),
-            title_support=round(title_support_score, 4),
-            final=round(final_score, 4),
-            negative_penalty=round(negative_penalty, 4),
+            max_chunk=aggregate.max_similarity,
+            top_chunks_mean=aggregate.top_similarity_mean,
+            section_diversity=aggregate.section_diversity,
+            okas_support=aggregate.okas_support,
+            title_support=aggregate.title_support,
+            final=aggregate.final_score,
+            negative_penalty=aggregate.negative_term_penalty,
         )
 
         evidence_chunks = []
@@ -392,7 +362,7 @@ class IsbakTenderRetriever:
                 metadata.get("announcement_type"),
             ),
             okas_codes=list(dict.fromkeys(okas_codes)),
-            section_ids=list(section_types),
+            section_ids=list(dict.fromkeys(section_types)),
             scores=scores,
             evidence_chunks=evidence_chunks,
         )

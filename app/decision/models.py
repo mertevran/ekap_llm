@@ -18,6 +18,7 @@ ParticipationStatus = Literal[
     "karsilanmiyor",
     "uygulanamaz",
 ]
+NegativeScopeType = Literal["none", "full", "mixed", "ambiguous"]
 
 
 @dataclass(frozen=True)
@@ -105,6 +106,7 @@ class NegativeScopeAnalysis:
     matched_okas_codes: list[str] = field(default_factory=list)
     profile_okas_supported: bool = False
     matched_positive_terms: list[str] = field(default_factory=list)
+    scope_type: NegativeScopeType = "none"
 
 
 @dataclass(frozen=True)
@@ -195,6 +197,12 @@ class FinalTenderDecision:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+    def to_public_dict(self) -> dict[str, Any]:
+        """Arka uç ve ön yüz için sınırlı, temiz karar sözleşmesi."""
+        from app.decision.public_response import build_public_decision_response
+
+        return build_public_decision_response(self).to_dict()
 
 
 def combine_validation_results(primary: ValidationResult, secondary: ValidationResult | None) -> ValidationResult:

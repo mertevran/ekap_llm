@@ -283,6 +283,35 @@ class IsbakDeterministicValidator:
         if validation_context is not None:
             rules.append("verify_profile_signals_against_tender_sources")
 
+            if negative_scope.scope_type == "full":
+                rules.append("reject_full_negative_scope")
+                issues.append(
+                    ValidationIssue(
+                        code="full_negative_scope_verified",
+                        message=(
+                            "Negatif kapsam ihale başlığında açıkça doğrulandı ve "
+                            "karşıt olumlu faaliyet sinyali bulunmadı."
+                        ),
+                        severity="blocking",
+                        source=source,
+                        related_chunk_ids=negative_scope.evidence_chunk_ids,
+                    )
+                )
+            elif negative_scope.scope_type == "mixed":
+                rules.append("review_mixed_activity_scope")
+                issues.append(
+                    ValidationIssue(
+                        code="mixed_activity_scope_verified",
+                        message=(
+                            "İhale kaynaklarında olumlu ve negatif profil kapsamları "
+                            "birlikte bulundu."
+                        ),
+                        severity="blocking",
+                        source=source,
+                        related_chunk_ids=negative_scope.evidence_chunk_ids,
+                    )
+                )
+
             if primary_decision.negatif_kapsam_cakismasi and not negative_scope.verified:
                 issues.append(
                     ValidationIssue(
@@ -424,7 +453,11 @@ class IsbakDeterministicValidator:
         )
 
         forced_decision = None
-        if blocking:
+        if negative_scope.scope_type == "full":
+            forced_decision = "uygun_degil"
+        elif negative_scope.scope_type == "mixed":
+            forced_decision = "inceleme_gerekli"
+        elif blocking:
             # Yalnız kaynakta doğrulanmış ve şirketçe karşılanmadığı doğrulanmış
             # zorunlu kriter kesin ret üretir. Diğer güvenlik sorunları incelemedir.
             forced_decision = (
@@ -434,10 +467,14 @@ class IsbakDeterministicValidator:
             )
 
         activity_rejection_verified = bool(
-            decision == "uygun_degil"
-            and primary_decision.negatif_kapsam_cakismasi
-            and negative_scope.verified
-            and not blocking
+            negative_scope.scope_type == "full"
+            or (
+                decision == "uygun_degil"
+                and primary_decision.negatif_kapsam_cakismasi
+                and negative_scope.verified
+                and negative_scope.scope_type != "mixed"
+                and not blocking
+            )
         )
         source_missing_labels = [
             self._assessment_label(assessment)

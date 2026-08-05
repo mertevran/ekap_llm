@@ -180,6 +180,17 @@ def analyze_negative_scope(
         positive_terms,
     )
     matched_terms = list(dict.fromkeys([*title_matches, *evidence_terms]))
+    if not matched_terms:
+        scope_type = "none"
+    elif positive_matches:
+        scope_type = "mixed"
+    elif title_matches:
+        # İhale başlığı negatif kapsamı açıkça tanımlıyor ve aynı kaynaklarda
+        # olumlu profil sinyali bulunmuyorsa kapsam bütünüyle negatiftir.
+        scope_type = "full"
+    else:
+        # Yalnız gövde metnindeki eşleşme ihalenin tamamını temsil etmeyebilir.
+        scope_type = "ambiguous"
 
     return NegativeScopeAnalysis(
         verified=bool(matched_terms),
@@ -190,6 +201,7 @@ def analyze_negative_scope(
         matched_okas_codes=list(dict.fromkeys(matched_okas_codes)),
         profile_okas_supported=bool(matched_okas_codes),
         matched_positive_terms=list(dict.fromkeys(positive_matches)),
+        scope_type=scope_type,
     )
 
 

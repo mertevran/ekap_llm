@@ -248,6 +248,10 @@ class IsbakDecisionPipeline:
         # eder. Katılım şartlarına ait Python geçersiz kılmaları aşağıda nihai
         # karara uygulanır; böylece faaliyet uygunluğu kaybolmaz.
         activity_decision = final_decision
+        if combined_validation.negative_scope.scope_type == "full":
+            activity_decision = "uygun_degil"
+        elif combined_validation.negative_scope.scope_type == "mixed":
+            activity_decision = "inceleme_gerekli"
 
         # --- VALIDATION OVERRIDE ---
         if combined_validation.source_external_information_used:
