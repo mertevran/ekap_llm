@@ -105,12 +105,12 @@ class IsbakProfileLoader:
         )
         primary_code_upper = str(primary_code).strip().upper()
         supporting_codes = [c for c in profile_codes if c != primary_code_upper]
-        
+
         if include_supporting_profile_documents:
             loaded_profiles = [self.load_profile(code) for code in profile_codes]
         else:
             loaded_profiles = [self.load_profile(primary_code_upper)]
-            
+
         baglam_politikasi = {
             "birincil_profil_tek_karar_profili": True,
             "destekleyici_profiller_birincil_olamaz": True,

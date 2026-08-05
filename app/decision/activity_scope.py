@@ -10,6 +10,19 @@ from typing import Any
 from app.decision.models import DecisionValidationContext, NegativeScopeAnalysis
 
 _NON_ALNUM = re.compile(r"[^0-9a-zçğıöşü]+", re.IGNORECASE)
+_GENERIC_TRAILING_TOKENS = {
+    "alım",
+    "alımı",
+    "hizmet",
+    "hizmeti",
+    "kontrollük",
+    "kontrollüğü",
+    "satınalma",
+    "temin",
+    "temini",
+    "tedarik",
+    "tedariki",
+}
 
 
 def _normalize_text(value: Any) -> str:
@@ -42,12 +55,55 @@ def _contains_phrase(normalized_text: str, phrase: str) -> bool:
     return f" {normalized_phrase} " in f" {normalized_text} "
 
 
+def _token_matches(expected: str, actual: str) -> bool:
+    if expected == actual:
+        return True
+    if min(len(expected), len(actual)) < 5:
+        return False
+    common_prefix_length = 0
+    for expected_char, actual_char in zip(expected, actual, strict=False):
+        if expected_char != actual_char:
+            break
+        common_prefix_length += 1
+    return common_prefix_length >= max(5, min(len(expected), len(actual)) - 2)
+
+
+def _term_variants(term: str) -> list[list[str]]:
+    tokens = _normalize_text(term).split()
+    if not tokens:
+        return []
+    variants = [tokens]
+    shortened = list(tokens)
+    while len(shortened) > 2 and shortened[-1] in _GENERIC_TRAILING_TOKENS:
+        shortened = shortened[:-1]
+        variants.append(list(shortened))
+    return variants
+
+
+def _contains_term(normalized_text: str, term: str) -> bool:
+    if _contains_phrase(normalized_text, term):
+        return True
+
+    text_tokens = normalized_text.split()
+    for variant in _term_variants(term):
+        if len(variant) < 2 or len(text_tokens) < len(variant):
+            continue
+        for start in range(len(text_tokens) - len(variant) + 1):
+            window = text_tokens[start : start + len(variant)]
+            if all(
+                _token_matches(expected, actual)
+                for expected, actual in zip(variant, window, strict=True)
+            ):
+                return True
+    return False
+
+
 def _matching_terms(texts: Iterable[str], terms: list[str]) -> list[str]:
     normalized_texts = [_normalize_text(text) for text in texts if str(text).strip()]
     return [
         term
         for term in terms
-        if any(_contains_phrase(text, term) for text in normalized_texts)
+        if any(_contains_term(text, term) for text in normalized_texts)
     ]
 
 
@@ -79,7 +135,7 @@ def analyze_negative_scope(
     title_matches = [
         term
         for term in negative_terms
-        if _contains_phrase(normalized_title, term)
+        if _contains_term(normalized_title, term)
     ]
 
     evidence_terms: list[str] = []
@@ -89,7 +145,7 @@ def analyze_negative_scope(
         chunk_matches = [
             term
             for term in negative_terms
-            if _contains_phrase(normalized_evidence, term)
+            if _contains_term(normalized_evidence, term)
         ]
         if not chunk_matches:
             continue

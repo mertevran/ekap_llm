@@ -5,6 +5,12 @@ from typing import Any, Literal
 
 DecisionLabel = Literal["uygun", "uygun_degil", "inceleme_gerekli"]
 CriterionStatus = Literal["karsilaniyor", "karsilanmiyor", "bilinmiyor"]
+CriterionEvidenceState = Literal[
+    "mandatory",
+    "non_blocking",
+    "not_required",
+    "unverified",
+]
 ActivityMatch = Literal["guclu", "kismi", "zayif", "belirsiz"]
 ParticipationStatus = Literal[
     "dogrulandi",
@@ -21,6 +27,22 @@ class CriterionResult:
     status: CriterionStatus
     evidence_chunk_ids: list[str] = field(default_factory=list)
     explanation: str = ""
+
+
+@dataclass(frozen=True)
+class CriterionEvidenceAssessment:
+    """Modelin bildirdiği kriterin gerçek ihale kaynağındaki durumu."""
+
+    criterion_id: str
+    description: str
+    model_status: CriterionStatus
+    source_status: CriterionEvidenceState
+    source_available: bool = False
+    evidence_chunk_ids: list[str] = field(default_factory=list)
+    matched_chunk_ids: list[str] = field(default_factory=list)
+    matched_phrases: list[str] = field(default_factory=list)
+    source_excerpt: str = ""
+    reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -64,6 +86,7 @@ class DecisionValidationContext:
     """Python doğrulamasında kullanılan, model çıktısından bağımsız ihale verisi."""
 
     tender_name: str = ""
+    tender_type: str = ""
     tender_okas_codes: list[str] = field(default_factory=list)
     evidence_text_by_chunk: dict[str, str] = field(default_factory=dict)
     profile_signals: dict[str, Any] = field(default_factory=dict)
@@ -92,6 +115,7 @@ class ValidationResult:
     has_blocking_issue: bool = False
     human_review_required: bool = False
     verified_rejection: bool = False
+    mandatory_rejection_verified: bool = False
     missing_mandatory_evidence: bool = False
     source_external_information_used: bool = False
     contradictions: list[str] = field(default_factory=list)
@@ -99,6 +123,9 @@ class ValidationResult:
     invalid_evidence_references: list[str] = field(default_factory=list)
     deterministic_rules_applied: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    criterion_assessments: list[CriterionEvidenceAssessment] = field(
+        default_factory=list
+    )
     negative_scope: NegativeScopeAnalysis = field(
         default_factory=NegativeScopeAnalysis
     )
@@ -164,6 +191,7 @@ class FinalTenderDecision:
     confidence_calibration: ConfidenceCalibration = field(
         default_factory=ConfidenceCalibration
     )
+    validation_context: DecisionValidationContext | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -186,6 +214,20 @@ def combine_validation_results(primary: ValidationResult, secondary: ValidationR
         primary.missing_mandatory_evidence
         or secondary.missing_mandatory_evidence
     )
+    criterion_assessments_map: dict[tuple[Any, ...], CriterionEvidenceAssessment] = {}
+    for assessment in [
+        *primary.criterion_assessments,
+        *secondary.criterion_assessments,
+    ]:
+        key = (
+            assessment.criterion_id,
+            assessment.description,
+            assessment.model_status,
+            assessment.source_status,
+            tuple(assessment.evidence_chunk_ids),
+            tuple(assessment.matched_chunk_ids),
+        )
+        criterion_assessments_map.setdefault(key, assessment)
 
     # Python yalnızca yapısal/kanıtsal güvenlik hatalarında güvenli geri dönüş uygular.
     forced_decisions = {
@@ -215,6 +257,10 @@ def combine_validation_results(primary: ValidationResult, secondary: ValidationR
             or primary.verified_rejection
             or secondary.verified_rejection
         ),
+        mandatory_rejection_verified=(
+            primary.mandatory_rejection_verified
+            or secondary.mandatory_rejection_verified
+        ),
         missing_mandatory_evidence=missing_mandatory,
         source_external_information_used=external,
         contradictions=sorted(set(primary.contradictions + secondary.contradictions)),
@@ -222,6 +268,7 @@ def combine_validation_results(primary: ValidationResult, secondary: ValidationR
         invalid_evidence_references=invalid_refs,
         deterministic_rules_applied=sorted(set(primary.deterministic_rules_applied + secondary.deterministic_rules_applied)),
         warnings=sorted(set(primary.warnings + secondary.warnings)),
+        criterion_assessments=list(criterion_assessments_map.values()),
         negative_scope=(
             primary.negative_scope
             if primary.negative_scope.verified

@@ -1,6 +1,7 @@
 import pytest
+
 from app.decision.ollama_decision_model import OllamaDecisionModel
-from app.pipeline.exceptions import DecisionServiceError
+
 
 @pytest.fixture
 def model():

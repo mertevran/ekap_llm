@@ -1,8 +1,11 @@
-import pytest
 import json
-from unittest.mock import patch, MagicMock
-from app.decision.ollama_decision_model import OllamaDecisionModel, DECISION_OUTPUT_SCHEMA
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from app.decision.ollama_decision_model import DECISION_OUTPUT_SCHEMA, OllamaDecisionModel
 from app.pipeline.exceptions import TruncatedModelOutput
+
 
 def get_valid_json():
     return {
@@ -43,16 +46,16 @@ def test_qwen_compact_fallback_success(mock_client_class):
 
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
     assert model.prompt_version == "isbak_qwen_decision_v3"
-    
+
     result = model.analyze(
         tender_id="1", ikn="1", category_code="CAT1",
         tender_context="ctx", company_context="ctx", valid_chunk_ids=["c1"]
     )
-    
+
     assert result.decision == "uygun"
     assert model.prompt_version == "isbak_qwen_decision_v3" # prompt_version shouldn't change
     assert mock_client.post.call_count == 2
-    
+
     # İkinci çağrıda compact isteminin kullanıldığını kontrol edebiliriz
     second_call_kwargs = mock_client.post.call_args_list[1][1]
     assert "isbak_qwen_decision_compact" in second_call_kwargs["json"]["prompt"] or "kısa JSON üret" in second_call_kwargs["json"]["prompt"]
@@ -67,12 +70,12 @@ def test_qwen_compact_fallback_both_truncated(mock_client_class):
         "response": '{"decision": "uygun", "confidence":',
         "done_reason": "length"
     }
-    
+
     mock_client.post.return_value = mock_response
     mock_client_class.return_value.__enter__.return_value = mock_client
 
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    
+
     with pytest.raises(TruncatedModelOutput):
         model.analyze(
             tender_id="1", ikn="1", category_code="CAT1",
@@ -83,13 +86,13 @@ def test_schema_limits_present():
     props = DECISION_OUTPUT_SCHEMA["properties"]
     assert props["uygunluk_gerekceleri"]["items"]["maxLength"] == 300
     assert props["uygunluk_gerekceleri"]["maxItems"] == 3
-    
+
     assert props["zorunlu_kriter_sonuclari"]["maxItems"] == 5
     crit_props = props["zorunlu_kriter_sonuclari"]["items"]["properties"]
     assert crit_props["criterion_id"]["maxLength"] == 160
     assert crit_props["description"]["maxLength"] == 300
     assert crit_props["explanation"]["maxLength"] == 400
-    
+
     assert props["insan_incelemesi_gerekcesi"]["maxLength"] == 500
 
 def test_qwen_num_predict_default():

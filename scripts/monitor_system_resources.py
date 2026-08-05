@@ -8,11 +8,10 @@ import shutil
 import signal
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psutil
-
 
 STOP_REQUESTED = False
 
@@ -264,7 +263,7 @@ def main():
             current_gpu_stats = gpu_stats()
 
             row = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "elapsed_seconds": round(elapsed, 2),
                 "system_cpu_percent": psutil.cpu_percent(interval=None),
                 "load_1m": load_1m,
@@ -358,7 +357,7 @@ def main():
     summary = {
         "status": "completed",
         "started_at": rows[0]["timestamp"] if rows else None,
-        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": datetime.now(UTC).isoformat(),
         "elapsed_seconds": round(time.time() - start_time, 2),
         "sample_interval_seconds": args.interval,
         "sample_count": len(rows),

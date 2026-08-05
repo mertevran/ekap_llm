@@ -762,7 +762,7 @@ class OllamaDecisionModel:
                         "done_reason": done_reason,
                     }
                 }
-                
+
                 parsed_json = self._sanitize_semantic_fields(
                     parsed_json,
                     tender_context=tender_context,
@@ -788,7 +788,7 @@ class OllamaDecisionModel:
                         else:
                             active_prompt_version = "isbak_qwen_decision_compact"
                             logger.info("Kompakt birincil karar istemi ile (fallback) baştan çağrılıyor.")
-                        
+
                         active_base_prompt = PROMPTS[active_prompt_version].format(
                             tender_id=tender_id, ikn=ikn, category_code=category_code,
                             matching_mode=matching_mode, retrieval_score=retrieval_score,
@@ -841,7 +841,7 @@ class OllamaDecisionModel:
                             raise DecisionServiceError(f"Tüm düzeltme hakları bitti ve son çıktı geçerli JSON değil. Son Hata: {e}")
 
                         logger.warning(f"Birincil model tüm düzeltme haklarını tüketti. Güvenli temizleme (fallback) uygulanıyor. Son Hata: {e}")
-                        
+
                         # decision, confidence, birincil_profil_kodu sağlam mı kontrol et
                         try:
                             from app.decision.decision_normalizer import normalize_decision
@@ -855,16 +855,16 @@ class OllamaDecisionModel:
                                 raise ValueError("birincil_profil_kodu bozuk")
                         except ValueError as base_err:
                             raise DecisionServiceError(f"Temel alanlar bozuk olduğu için temizleme yapılamadı: {base_err}. Asıl Hata: {e}")
-                            
+
                         # ikincil_profil_kodlari temizleme
                         ikincil_k = fallback_json.get("ikincil_profil_kodlari", [])
                         if isinstance(ikincil_k, list) and len(ikincil_k) > 0:
                             try:
                                 self._validate_ikincil_profil_kodlari(fallback_json, ikincil_k)
                             except ValueError:
-                                logger.info(f"ikincil_profil_kodlari hataya sebep oldu, [] yapılıyor.")
+                                logger.info("ikincil_profil_kodlari hataya sebep oldu, [] yapılıyor.")
                                 fallback_json["ikincil_profil_kodlari"] = []
-                        
+
                         # zorunlu_kriter_sonuclari temizleme
                         raw_criteria = fallback_json.get("zorunlu_kriter_sonuclari", [])
                         if isinstance(raw_criteria, list):
@@ -877,7 +877,7 @@ class OllamaDecisionModel:
                                     except ValueError as crit_err:
                                         logger.info(f"Geçersiz kriter silindi: {crit.get('criterion_id', '')} - Hata: {crit_err}")
                             fallback_json["zorunlu_kriter_sonuclari"] = valid_criteria
-                        
+
                         # Son olarak güvenli alan temizliği ve tekrar doğrulama
                         try:
                             fallback_json = self._sanitize_semantic_fields(
@@ -1174,7 +1174,7 @@ class OllamaDecisionModel:
             ]
             for item in kritik_b:
                 text = str(item).lower()
-                
+
                 # Check price advantage / EKAP
                 if any(x in text for x in ["%15 fiyat avantajı", "yerli malı fiyat avantajı", "elektronik eksiltme", "ekap kaydı", "ekap üzerinden teklif", "teklif mektubu"]):
                     raise ValueError(f"Fiyat avantajı veya standart teklif süreci kritik belirsizlik yapılamaz: '{item}'")
@@ -1189,7 +1189,7 @@ class OllamaDecisionModel:
                                 raise ValueError(f"İhalede operasyonel şart yokken '{item}' kritik belirsizlik olamaz.")
                         else:
                             raise ValueError(f"Genel profil boşluğu ('{gap}') ihale şartı olmadan kritik belirsizlik olamaz.")
-                            
+
         # E: Faaliyet ve katılım alanlarının karar sözleşmesi
         activity_match = data.get("faaliyet_eslesmesi")
         decision = data.get("decision")
@@ -1225,29 +1225,29 @@ class OllamaDecisionModel:
         crit_id = str(crit.get("criterion_id", ""))
         if crit_id.startswith("chk_"):
             raise ValueError(f"criterion_id alanına ('{crit_id}') parça kimliği yazılamaz.")
-            
+
         desc = str(crit.get("description", "")).lower()
         expl = str(crit.get("explanation", "")).lower()
         crit_id_lower = crit_id.lower()
-        
+
         price_adv_phrases = ["fiyat avantajı", "%15 fiyat avantajı", "yerli malı fiyat avantajı", "yerli malı belgesi ile fiyat avantajı", "puan avantajı", "tercih avantajı"]
         for pa in price_adv_phrases:
             if pa in crit_id_lower or pa in desc or pa in expl:
                 raise ValueError(f"Fiyat avantajı kriteri eklenemez: '{pa}'")
-        
+
         if status == "karsilanmiyor":
             missing_phrases = ["bulunmamaktadır", "bulunmuyor", "bulunamadı", "sunulmamıştır", "eksik", "yetersiz", "kanıtlanmamıştır", "doğrulanmamıştır", "detaylandırılmamıştır", "bilgi yok", "veri yok"]
             for mp in missing_phrases:
                 if mp in desc or mp in expl:
                     raise ValueError(f"karsilanmiyor durumu için sadece '{mp}' yeterli değildir. Açık negatif kanıt yoksa bilinmiyor olmalıdır.")
-        
+
         evidence = crit.get("evidence_chunk_ids", [])
         if not evidence or not isinstance(evidence, list) or len(evidence) == 0:
             raise ValueError(f"Zorunlu kriter ({crit.get('criterion_id')}) için evidence_chunk_ids boş olamaz.")
-            
+
         if status == "karsilaniyor" and not evidence:
             raise ValueError("karsilaniyor olan kriterin evidence_chunk_ids alanı dolu olmalıdır")
-            
+
         if valid_chunk_ids:
             for cid in evidence:
                 if cid not in valid_chunk_ids:
@@ -1257,7 +1257,7 @@ class OllamaDecisionModel:
         birincil_k = str(data.get("birincil_profil_kodu", ""))
         if birincil_k in ikincil_k:
             raise ValueError("Birincil profil kodu ikincil_profil_kodlari listesine eklenemez.")
-        
+
         tum_gerekceler = []
         for field in ["uygunluk_gerekceleri", "uygunsuzluk_gerekceleri", "eksik_kanitlar", "kritik_belirsizlikler", "insan_incelemesi_gerekcesi"]:
             val = data.get(field)
@@ -1265,9 +1265,9 @@ class OllamaDecisionModel:
                 tum_gerekceler.extend([str(x).lower() for x in val])
             elif isinstance(val, str):
                 tum_gerekceler.append(str(val).lower())
-                
+
         tum_metin = " ".join(tum_gerekceler)
-        
+
         for kod in ikincil_k:
             kod_lower = str(kod).lower()
             if kod_lower not in tum_metin:

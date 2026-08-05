@@ -6,6 +6,7 @@ ENV/
 .env/
 env.bak/
 venv.bak/
+.venv_eski_*
 
 __pycache__/
 *.py[cod]

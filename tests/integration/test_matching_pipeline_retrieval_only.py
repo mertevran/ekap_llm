@@ -9,7 +9,6 @@ işlemi yapılmaz.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -27,8 +26,8 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def stores():
-    from app.vector_store.faiss_store import FaissVectorStore
     from app.config.isbak_rag_settings import get_isbak_rag_settings
+    from app.vector_store.faiss_store import FaissVectorStore
 
     settings = get_isbak_rag_settings()
     tender = FaissVectorStore(
@@ -62,7 +61,7 @@ def test_profile_index_loaded(stores):
     _, profile_store = stores
     count = profile_store.count()
     # 20 profil × ortalama 4 parça = ~80 vektör
-    assert count > 0, f"Profil indeksi boş!"
+    assert count > 0, "Profil indeksi boş!"
     assert count <= 200, f"Profil indeksinde beklenenden fazla vektör: {count}"
 
 
@@ -146,9 +145,10 @@ def test_tender_to_profile_retrieval_only(stores, settings):
 
 def test_retrieval_only_no_db_writes(stores, settings, monkeypatch):
     """retrieval-only modda DB yazma işlemi yapılmadığını doğrula."""
+    from unittest.mock import Mock
+
     from app.matching.tender_to_profile_matcher import TenderToProfileMatcher
     from app.vector_store.faiss_vector_reader import FaissVectorReader
-    from unittest.mock import Mock
 
     # DB bağlantısını mock'la
     mock_conn = Mock()

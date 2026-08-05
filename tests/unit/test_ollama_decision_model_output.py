@@ -79,23 +79,24 @@ def test_invalid_json_type_list(model):
 
 from app.decision.ollama_decision_model import DECISION_OUTPUT_SCHEMA
 
+
 def test_decision_output_schema_structure():
     # A. Modül seviyesinde import
     assert isinstance(DECISION_OUTPUT_SCHEMA, dict)
-    
+
     # B. required listesi decision ve confidence içermeli
     req = DECISION_OUTPUT_SCHEMA.get("required", [])
     assert "decision" in req
     assert "confidence" in req
-    
+
     props = DECISION_OUTPUT_SCHEMA.get("properties", {})
-    
+
     # C. decision
     dec = props.get("decision", {})
     assert dec.get("type") == "string"
     assert set(dec.get("enum", [])) == {"uygun", "uygun_degil", "inceleme_gerekli"}
     assert "default" not in dec
-    
+
     # D. confidence
     conf = props.get("confidence", {})
     assert conf.get("type") == "number"
@@ -106,16 +107,16 @@ def test_decision_output_schema_structure():
 def test_decision_output_schema_payload(monkeypatch):
     from app.decision.ollama_decision_model import OllamaDecisionModel
     model = OllamaDecisionModel(name="test")
-    
+
     payloads = []
-    
+
     class MockResponse:
         def __init__(self, data):
             self.data = data
             self.status_code = 200
         def json(self): return self.data
         def raise_for_status(self): pass
-        
+
     class MockClient:
         def __init__(self, *args, **kwargs): pass
         def __enter__(self): return self
@@ -126,32 +127,33 @@ def test_decision_output_schema_payload(monkeypatch):
                 "response": '{"decision": "uygun", "confidence": 0.8, "birincil_profil_kodu": "TEST", "zorunlu_kriter_sonuclari": []}',
                 "done_reason": "stop"
             })
-            
+
     import httpx
     monkeypatch.setattr(httpx, "Client", MockClient)
-    
+
     decision = model.analyze(
         tender_id="T", ikn="I", category_code="TEST", tender_context="t", company_context="c", primary_profile_code="TEST"
     )
-    
+
     # E. payload testinde format == DECISION_OUTPUT_SCHEMA
     assert payloads[0]["format"] == DECISION_OUTPUT_SCHEMA
-    
+
     # G. Geçerli şema yanıtı ModelDecision üretmeli
     assert decision.decision == "uygun"
 
 def test_decision_missing_fields_validation(monkeypatch):
-    from app.decision.ollama_decision_model import OllamaDecisionModel
     import pytest
+
+    from app.decision.ollama_decision_model import OllamaDecisionModel
     model = OllamaDecisionModel(name="test")
-    
+
     class MockResponse:
         def __init__(self, data):
             self.data = data
             self.status_code = 200
         def json(self): return self.data
         def raise_for_status(self): pass
-        
+
     class MockClient:
         def __init__(self, *args, **kwargs): pass
         def __enter__(self): return self
@@ -162,10 +164,10 @@ def test_decision_missing_fields_validation(monkeypatch):
                 "response": '{"confidence": 0.8, "birincil_profil_kodu": "TEST", "zorunlu_kriter_sonuclari": []}',
                 "done_reason": "stop"
             })
-            
+
     import httpx
     monkeypatch.setattr(httpx, "Client", MockClient)
-    
+
     # python_validator hala reddetmeli (decision eksik olunca normalize_decision patlar)
     from app.pipeline.exceptions import DecisionServiceError
     with pytest.raises(DecisionServiceError):
@@ -173,7 +175,7 @@ def test_decision_missing_fields_validation(monkeypatch):
 
 def test_criterion_schema_invalid_fields():
     props = DECISION_OUTPUT_SCHEMA["properties"]["zorunlu_kriter_sonuclari"]["items"]["properties"]
-    
+
     # H. Kriter nesnesinde eski alanlar olmamalı
     assert "kural_kodu" not in props
     assert "sonuc" not in props

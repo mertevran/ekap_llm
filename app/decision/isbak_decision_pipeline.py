@@ -5,8 +5,8 @@ from typing import Any, Protocol
 
 from app.decision.confidence_calibrator import calibrate_confidence
 from app.decision.models import (
-    DecisionValidationContext,
     DecisionLabel,
+    DecisionValidationContext,
     FinalTenderDecision,
     ModelDecision,
     ValidationResult,
@@ -272,6 +272,11 @@ class IsbakDecisionPipeline:
             human_review_required = True
             merge_rule = "validation_override_blocking_issue"
             human_review_reason = "Python doğrulama kuralları kritik hata (blocking issue) tespit etti."
+        elif (
+            combined_validation.verified_rejection
+            and final_decision == "uygun_degil"
+        ):
+            merge_rule = "validated_rejection"
 
         if combined_validation.human_review_required and not human_review_reason:
             issue_messages = [i.message for i in combined_validation.issues[:3]]
@@ -299,17 +304,38 @@ class IsbakDecisionPipeline:
             context_available=validation_context is not None,
         )
         final_confidence = calibration.calibrated_confidence
+        mandatory_assessments = [
+            assessment
+            for assessment in combined_validation.criterion_assessments
+            if assessment.source_status == "mandatory"
+        ]
+        validated_missing_requirements = list(
+            combined_validation.missing_required_evidence
+        )
         participation_status = primary.katilim_yeterliligi_durumu
-        if combined_validation.verified_rejection:
+        if combined_validation.mandatory_rejection_verified:
             participation_status = "karsilanmiyor"
         elif combined_validation.missing_mandatory_evidence:
             participation_status = "dogrulanmadi"
+        elif mandatory_assessments and all(
+            assessment.model_status == "karsilaniyor"
+            for assessment in mandatory_assessments
+        ):
+            participation_status = "dogrulandi"
+        elif (
+            combined_validation.criterion_assessments
+            and all(
+                assessment.source_status in {"not_required", "non_blocking"}
+                for assessment in combined_validation.criterion_assessments
+            )
+        ):
+            participation_status = "uygulanamaz"
 
         participation_review_required = bool(
-            participation_status == "dogrulanmadi"
-            and (
-                combined_validation.missing_mandatory_evidence
-                or primary.dogrulanamayan_katilim_sartlari
+            combined_validation.missing_mandatory_evidence
+            or any(
+                issue.code == "criterion_source_unavailable"
+                for issue in combined_validation.issues
             )
         )
         evaluated_codes = list(
@@ -380,7 +406,7 @@ class IsbakDecisionPipeline:
             ],
             optional_missing_evidence=list(primary.dogrulanamayan_katilim_sartlari),
             katilim_yeterliligi_durumu=participation_status,
-            dogrulanamayan_katilim_sartlari=list(primary.dogrulanamayan_katilim_sartlari),
+            dogrulanamayan_katilim_sartlari=validated_missing_requirements,
             participation_review_required=participation_review_required,
             activity_decision=activity_decision,
             activity_match=primary.faaliyet_eslesmesi,
@@ -391,6 +417,7 @@ class IsbakDecisionPipeline:
             evaluated_profile_codes=evaluated_codes,
             profile_match_scores=dict(profile_match_scores or {}),
             confidence_calibration=calibration,
+            validation_context=validation_context,
         )
 
     def _validate_model_decision(

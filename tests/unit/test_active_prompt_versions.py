@@ -1,9 +1,12 @@
-import pytest
 import os
-import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from app.decision.ollama_decision_model import OllamaDecisionModel, QWEN_CORRECTION_MSG, GEMMA_CORRECTION_MSG, PROMPTS
+from app.decision.ollama_decision_model import (
+    GEMMA_CORRECTION_MSG,
+    QWEN_CORRECTION_MSG,
+    OllamaDecisionModel,
+)
+
 
 def test_correction_messages_at_module_level():
     assert QWEN_CORRECTION_MSG is not None
@@ -30,7 +33,7 @@ def test_gemma_compact_fallback_does_not_mutate_prompt_version():
 
     mock_client_context = MagicMock()
     mock_client = MagicMock()
-    
+
     # First response: truncated (done_reason="length")
     resp1 = MagicMock()
     resp1.status_code = 200
@@ -39,7 +42,7 @@ def test_gemma_compact_fallback_does_not_mutate_prompt_version():
         "done_reason": "length",
         "eval_count": 100
     }
-    
+
     # Second response: valid compact response
     resp2 = MagicMock()
     resp2.status_code = 200
@@ -66,15 +69,15 @@ def test_gemma_compact_fallback_does_not_mutate_prompt_version():
 
 def test_scripts_use_correct_prompt():
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    
+
     chain_path = os.path.join(base_dir, "scripts", "run_tender_decision_chain.py")
-    with open(chain_path, "r", encoding="utf-8") as f:
+    with open(chain_path, encoding="utf-8") as f:
         chain_content = f.read()
     assert 'isbak_gemma_review_v3' in chain_content
     assert 'isbak_gemma_review_compact' not in chain_content
-    
+
     pipe_path = os.path.join(base_dir, "scripts", "run_matching_pipeline.py")
-    with open(pipe_path, "r", encoding="utf-8") as f:
+    with open(pipe_path, encoding="utf-8") as f:
         pipe_content = f.read()
     assert 'isbak_gemma_review_v3' in pipe_content
     assert 'isbak_gemma_review_compact' not in pipe_content
@@ -97,7 +100,7 @@ def test_compact_fallback_with_schema_correction(monkeypatch):
         host="http://localhost:11434",
         prompt_version="isbak_gemma_review_v3"
     )
-    
+
     call_prompts = []
 
     class MockResponse:
@@ -119,7 +122,7 @@ def test_compact_fallback_with_schema_correction(monkeypatch):
         def post(self, url, json, **kwargs):
             call_prompts.append(json.get("prompt", ""))
             call_idx = len(call_prompts)
-            
+
             if call_idx == 1:
                 # Truncation error
                 return MockResponse({
@@ -155,14 +158,14 @@ def test_compact_fallback_with_schema_correction(monkeypatch):
     )
 
     assert len(call_prompts) == 3
-    
+
     # 1. İlk çağrı v3 istemi olmalıdır
     assert "İSBAK A.Ş. için çalışan bağımsız ikinci görüş ve karar denetim modelisin" in call_prompts[0]
-    
+
     # 2. İkinci çağrı compact istemi olmalıdır (ve v3 içeriği barındırmamalıdır)
     assert "Sen bağımsız ikinci görüş modelisin. Uzun rapor yazma." in call_prompts[1]
     assert "İSBAK A.Ş. için çalışan bağımsız ikinci görüş ve karar denetim modelisin" not in call_prompts[1]
-    
+
     # 3. Üçüncü çağrı compact istemi + düzeltme mesajı olmalıdır
     assert "Sen bağımsız ikinci görüş modelisin. Uzun rapor yazma." in call_prompts[2]
     assert "ÖNCEKİ YANITINIZ GEÇERSİZDİ." in call_prompts[2]
@@ -170,7 +173,7 @@ def test_compact_fallback_with_schema_correction(monkeypatch):
 
     # Model versiyonu bozulmamalıdır
     assert model.prompt_version == "isbak_gemma_review_v3"
-    
+
     # Başarılı dönüş olmalıdır
     assert decision.decision == "uygun"
     assert decision.confidence == 0.9

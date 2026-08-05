@@ -60,9 +60,11 @@ class DecisionReporter:
                     "confidence_calibration_reasons",
                     "negative_scope_verified",
                     "matched_negative_terms",
+                    "criterion_source_assessments",
                     "participation_status",
                     "participation_review_required",
-                    "unverified_participation_requirements",
+                    "validated_unverified_participation_requirements",
+                    "model_reported_participation_gaps",
                     "missing_evidence",
                     "human_review_required",
                     "human_review_reason",
@@ -98,9 +100,23 @@ class DecisionReporter:
                         "|".join(d.confidence_calibration.reasons),
                         d.negative_scope_verified,
                         "|".join(d.matched_negative_terms),
+                        json.dumps(
+                            [
+                                {
+                                    "criterion_id": assessment.criterion_id,
+                                    "model_status": assessment.model_status,
+                                    "source_status": assessment.source_status,
+                                    "matched_chunk_ids": assessment.matched_chunk_ids,
+                                    "matched_phrases": assessment.matched_phrases,
+                                }
+                                for assessment in d.validation.criterion_assessments
+                            ],
+                            ensure_ascii=False,
+                        ),
                         d.katilim_yeterliligi_durumu,
                         d.participation_review_required,
                         "|".join(d.dogrulanamayan_katilim_sartlari),
+                        "|".join(d.optional_missing_evidence),
                         "|".join(missing),
                         d.human_review_required,
                         d.human_review_reason,

@@ -1,8 +1,11 @@
-import pytest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from app.decision.ollama_decision_model import OllamaDecisionModel
 from app.pipeline.exceptions import DecisionServiceError
+
 
 def get_valid_json():
     return {
@@ -39,12 +42,12 @@ def test_fallback_cleans_ikincil_profil_kodlari(mock_client_class):
     mock_client_class.return_value.__enter__.return_value = mock_client
 
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    
+
     result = model.analyze(
         tender_id="1", ikn="1", category_code="CAT1",
         tender_context="ctx", company_context="ctx", valid_chunk_ids=["c1"]
     )
-    
+
     # It should have cleaned ikincil_profil_kodlari and succeeded
     assert result.ikincil_profil_kodlari == []
     assert result.decision == "uygun"
@@ -83,12 +86,12 @@ def test_fallback_cleans_zorunlu_kriter(mock_client_class):
     mock_client_class.return_value.__enter__.return_value = mock_client
 
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    
+
     result = model.analyze(
         tender_id="1", ikn="1", category_code="CAT1",
         tender_context="ctx", company_context="ctx", valid_chunk_ids=["c1"]
     )
-    
+
     # Second criterion should be deleted, first should be kept
     assert len(result.zorunlu_kriter_sonuclari) == 1
     assert result.zorunlu_kriter_sonuclari[0].criterion_id == "test_ok"
@@ -111,7 +114,7 @@ def test_fallback_raises_error_if_decision_invalid(mock_client_class):
     mock_client_class.return_value.__enter__.return_value = mock_client
 
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    
+
     with pytest.raises(DecisionServiceError, match="Temel alanlar bozuk olduğu için temizleme yapılamadı"):
         model.analyze(
             tender_id="1", ikn="1", category_code="CAT1",

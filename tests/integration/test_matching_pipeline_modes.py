@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -19,8 +18,8 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def live_stores():
-    from app.vector_store.faiss_store import FaissVectorStore
     from app.config.isbak_rag_settings import get_isbak_rag_settings
+    from app.vector_store.faiss_store import FaissVectorStore
 
     settings = get_isbak_rag_settings()
     tender = FaissVectorStore(
@@ -92,7 +91,7 @@ def test_tender_mode_profiles_scanned(live_stores):
 
 def test_decision_normalizer_applied_in_validator():
     """IsbakRuleValidator eski karar değerlerini kabul etmez, normalizasyon gerekir."""
-    from app.decision.models import ModelDecision, CriterionResult
+    from app.decision.models import ModelDecision
     from app.validation.isbak_rule_validator import IsbakRuleValidator
 
     validator = IsbakRuleValidator()

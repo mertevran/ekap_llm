@@ -546,6 +546,7 @@ def main() -> int:
                 profile_signals = {}
             validation_context = DecisionValidationContext(
                 tender_name=candidate.tender_name,
+                tender_type=candidate.ihale_turu,
                 tender_okas_codes=list(candidate.okas_codes),
                 evidence_text_by_chunk={
                     chunk.chunk_id: chunk.text

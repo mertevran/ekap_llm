@@ -5,7 +5,7 @@ import csv
 import json
 import subprocess
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import psutil
@@ -175,7 +175,7 @@ def main() -> int:
             network = psutil.net_io_counters()
 
             row: dict[str, float | str | None] = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "elapsed_seconds": round(time.time() - started, 2),
                 "system_cpu_percent": psutil.cpu_percent(interval=None),
                 "ram_used_gb": memory.used / (1024**3),
@@ -238,9 +238,9 @@ def main() -> int:
         "status": "completed",
         "started_at": datetime.fromtimestamp(
             started,
-            tz=timezone.utc,
+            tz=UTC,
         ).isoformat(),
-        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": datetime.now(UTC).isoformat(),
         "elapsed_seconds": round(time.time() - started, 2),
         "sample_interval_seconds": args.interval,
         "sample_count": len(samples),

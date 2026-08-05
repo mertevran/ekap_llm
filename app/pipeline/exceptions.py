@@ -30,5 +30,5 @@ class ProfileRoutingError(TenderAnalysisError):
 
 class TruncatedModelOutput(DecisionServiceError):
     """Model çıktısının yarıda kesildiği durumu ifade eder."""
-    
+
     pass
