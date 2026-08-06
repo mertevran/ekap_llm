@@ -4,7 +4,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from httpx import Response
 
-from app.decision.ollama_decision_model import OllamaDecisionModel
+from app.decision.ollama_decision_model import (
+    DECISION_OUTPUT_SCHEMA,
+    OllamaDecisionModel,
+)
 from app.pipeline.exceptions import DecisionServiceError
 
 
@@ -76,9 +79,6 @@ def test_invalid_json_type_list(model):
                 tender_context="", company_context="", valid_chunk_ids=["chunk-1"]
             )
         assert "JSON kök elemanı obje (dict) olmalıdır" in str(exc.value)
-
-from app.decision.ollama_decision_model import DECISION_OUTPUT_SCHEMA
-
 
 def test_decision_output_schema_structure():
     # A. Modül seviyesinde import

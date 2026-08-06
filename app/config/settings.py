@@ -21,10 +21,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     database_host: str = ""
-    database_port: int = 5432
+    database_port: int = 5433
     database_name: str = ""
     database_user: str = ""
     database_password: str = ""
+    database_sslmode: str = ""
+    database_connect_timeout_seconds: int = 10
+    database_statement_timeout_ms: int = 60_000
+    database_application_name: str = "ekap-isbak-decision"
 
     qdrant_path: Path = Field(default=Path("storage/qdrant"))
     model_cache_path: Path = Field(default=Path("storage/model_cache"))
@@ -39,23 +43,25 @@ class Settings(BaseSettings):
     phi_model: str = "phi4-mini:latest"
 
     ollama_connect_timeout_seconds: int = 10
-    ollama_decision_timeout_seconds: int = 600
-    ollama_max_attempts: int = 2
-    ollama_retry_backoff_seconds: float = 1.0
+    ollama_decision_timeout_seconds: int = 3600
+    ollama_max_attempts: int = 3
+    ollama_retry_backoff_seconds: float = 2.0
 
     gemma_decision_num_ctx: int = 12288
-    qwen_decision_num_ctx: int = 12288
+    qwen_decision_num_ctx: int = 8192
 
     gemma_decision_num_predict: int = 1100
-    qwen_decision_num_predict: int = 1000
+    qwen_decision_num_predict: int = 512
 
     ollama_num_thread: int = 4
     ollama_num_batch: int = 32
 
-    max_json_corrections: int = 1
+    max_json_corrections: int = 0
 
-    max_tender_context_chars: int = 12000
+    max_tender_context_chars: int = 30000
     max_company_context_chars: int = 5000
+    automatic_positive_decisions_enabled: bool = False
+    max_runtime_swap_growth_mb: int = 512
 
     active_tender_status_values: list[str] = Field(
         default_factory=lambda: ["İhale İlanı Yayımlanmış, Katılıma Açık"]
@@ -96,6 +102,9 @@ class Settings(BaseSettings):
         "ollama_num_batch",
         "max_tender_context_chars",
         "max_company_context_chars",
+        "database_connect_timeout_seconds",
+        "database_statement_timeout_ms",
+        "max_runtime_swap_growth_mb",
     )
     @classmethod
     def validate_positive_integers(cls, v: int) -> int:

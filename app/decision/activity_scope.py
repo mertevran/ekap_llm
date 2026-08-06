@@ -23,6 +23,16 @@ _GENERIC_TRAILING_TOKENS = {
     "tedarik",
     "tedariki",
 }
+_SEMANTIC_TOKEN_GROUPS = (
+    frozenset({"araç", "arac", "taşıt", "tasit", "otomobil", "minibüs", "minibus", "otobüs", "otobus", "kamyon", "ambulans"}),
+    frozenset({"bakım", "bakim", "onarım", "onarim", "tamir", "servis"}),
+    frozenset({"kiralama", "kiralık", "kiralik", "kira"}),
+    frozenset({"yapım", "yapim", "inşaat", "insaat"}),
+    frozenset({"taşıma", "tasima", "taşımacılık", "tasimacilik", "nakliye"}),
+    frozenset({"levha", "tabela"}),
+    frozenset({"organizasyon", "etkinlik", "festival"}),
+    frozenset({"klima", "iklimlendirme"}),
+)
 
 
 def _normalize_text(value: Any) -> str:
@@ -58,6 +68,8 @@ def _contains_phrase(normalized_text: str, phrase: str) -> bool:
 def _token_matches(expected: str, actual: str) -> bool:
     if expected == actual:
         return True
+    if any(expected in group and actual in group for group in _SEMANTIC_TOKEN_GROUPS):
+        return True
     if min(len(expected), len(actual)) < 5:
         return False
     common_prefix_length = 0
@@ -86,13 +98,29 @@ def _contains_term(normalized_text: str, term: str) -> bool:
 
     text_tokens = normalized_text.split()
     for variant in _term_variants(term):
+        # Tek genel sözcük anlamsal ret üretmek için yeterli değildir.
         if len(variant) < 2 or len(text_tokens) < len(variant):
             continue
-        for start in range(len(text_tokens) - len(variant) + 1):
-            window = text_tokens[start : start + len(variant)]
-            if all(
-                _token_matches(expected, actual)
-                for expected, actual in zip(variant, window, strict=True)
+        maximum_window = len(variant) + 4
+        for start in range(len(text_tokens)):
+            search_from = start
+            matched_positions: list[int] = []
+            for expected in variant:
+                position = next(
+                    (
+                        index
+                        for index in range(search_from, len(text_tokens))
+                        if _token_matches(expected, text_tokens[index])
+                    ),
+                    None,
+                )
+                if position is None:
+                    break
+                matched_positions.append(position)
+                search_from = position + 1
+            if (
+                len(matched_positions) == len(variant)
+                and matched_positions[-1] - matched_positions[0] <= maximum_window
             ):
                 return True
     return False
@@ -185,11 +213,8 @@ def analyze_negative_scope(
     elif positive_matches:
         scope_type = "mixed"
     elif title_matches:
-        # İhale başlığı negatif kapsamı açıkça tanımlıyor ve aynı kaynaklarda
-        # olumlu profil sinyali bulunmuyorsa kapsam bütünüyle negatiftir.
         scope_type = "full"
     else:
-        # Yalnız gövde metnindeki eşleşme ihalenin tamamını temsil etmeyebilir.
         scope_type = "ambiguous"
 
     return NegativeScopeAnalysis(

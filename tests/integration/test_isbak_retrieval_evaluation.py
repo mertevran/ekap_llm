@@ -20,7 +20,7 @@ from app.evaluation.retrieval_metrics import (
     profile_precision_at_k,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.external]
 
 # Proje kökünden göreceli
 _QUERY_FILE = Path(__file__).parents[2] / "evaluation" / "isbak_retrieval_queries.json"

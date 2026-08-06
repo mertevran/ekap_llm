@@ -97,5 +97,5 @@ def test_schema_limits_present():
 
 def test_qwen_num_predict_default():
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    # If not overridden by environment settings, should be 2400
-    assert model.qwen_num_predict == 2400
+    # Kısa v4 sözleşmesi için varsayılan üretim bütçesi düşürülmüştür.
+    assert model.qwen_num_predict == 700

@@ -24,6 +24,10 @@ class TenderNotFoundError(LookupError):
         super().__init__(f"İhale bulunamadı: {ikn}")
 
 
+class DatabaseSchemaError(RuntimeError):
+    """Karar hattının gerektirdiği EKAP kaynak şeması eksik olduğunda üretilir."""
+
+
 def _validate_model(model_class: type[ModelT], row: dict[str, Any]) -> ModelT:
     processed_row = {}
     for k, v in row.items():
@@ -46,6 +50,102 @@ class TenderRepository:
     toplu sorgularla alınır; böylece her ihale için ayrı ayrı sorgu çalıştıran
     N+1 sorgu sorunu önlenir.
     """
+
+    REQUIRED_SOURCE_COLUMNS: dict[str, frozenset[str]] = {
+        "tenders": frozenset(
+            {
+                "id",
+                "ikn",
+                "adi",
+                "idare_adi",
+                "il",
+                "ihale_tarihi",
+                "ihale_turu",
+                "ihale_usulu",
+                "ihale_durumu",
+                "kapsam",
+                "e_ihale",
+                "kismi_teklif",
+                "ihale_yeri",
+                "isin_yeri",
+                "dokuman_sayisi",
+                "created_at",
+                "updated_at",
+                "takip_durumu",
+            }
+        ),
+        "tender_announcements": frozenset(
+            {
+                "id",
+                "tender_id",
+                "ilan_tipi",
+                "ilan_tarihi",
+                "baslik",
+                "icerik",
+                "created_at",
+            }
+        ),
+        "tender_characteristics": frozenset({"id", "tender_id", "ozellik"}),
+        "tender_okas_codes": frozenset({"id", "tender_id", "kod", "ad"}),
+    }
+
+    def validate_required_schema(self) -> dict[str, Any]:
+        """Canlı karar öncesi gerekli tablo ve sütunların varlığını doğrular."""
+
+        table_names = list(self.REQUIRED_SOURCE_COLUMNS)
+        with get_connection() as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(
+                    """
+                    SELECT table_name, column_name, data_type
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND table_name = ANY(%s::text[])
+                    ORDER BY table_name, ordinal_position
+                    """,
+                    (table_names,),
+                )
+                rows = cursor.fetchall()
+                cursor.execute(
+                    "SELECT current_database() AS database_name, "
+                    "current_user AS database_user"
+                )
+                identity = cursor.fetchone()
+
+        actual: dict[str, set[str]] = defaultdict(set)
+        column_types: dict[str, dict[str, str]] = defaultdict(dict)
+        for row in rows:
+            table = str(row["table_name"])
+            column = str(row["column_name"])
+            actual[table].add(column)
+            column_types[table][column] = str(row["data_type"])
+
+        missing = {
+            table: sorted(required - actual.get(table, set()))
+            for table, required in self.REQUIRED_SOURCE_COLUMNS.items()
+            if required - actual.get(table, set())
+        }
+        if missing:
+            detail = "; ".join(
+                f"{table}: {', '.join(columns)}"
+                for table, columns in missing.items()
+            )
+            raise DatabaseSchemaError(
+                "EKAP kaynak şeması karar hattı için eksik: " + detail
+            )
+
+        return {
+            "database_name": str(identity["database_name"]),
+            "database_user": str(identity["database_user"]),
+            "schema": "public",
+            "tables": {
+                table: {
+                    "required_columns": sorted(required),
+                    "column_types": column_types.get(table, {}),
+                }
+                for table, required in self.REQUIRED_SOURCE_COLUMNS.items()
+            },
+        }
 
     @staticmethod
     def _active_where_sql() -> str:
@@ -73,7 +173,8 @@ class TenderRepository:
                 isin_yeri,
                 dokuman_sayisi,
                 created_at,
-                updated_at
+                updated_at,
+                takip_durumu
             FROM public.tenders
         """
 

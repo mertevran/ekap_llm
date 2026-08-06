@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""
-Hazır profil ve ihale FAISS indeksleri üzerinde tek modelli karar zinciri.
+"""Hazır profil ve ihale dizinleri üzerinde tek modelli karar zinciri.
 
 Akış:
   Profil FAISS vektörleri
   → ihale FAISS aday araması
-  → ihale bazında kanıt birleştirme
+  → isteğe bağlı PostgreSQL kaynak yenilemesi
+  → ihale bazında kanıt seçimi
   → Qwen karar
   → Python doğrulama
   → JSONL/CSV raporları
@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import random
 import sys
 import time
 from collections import Counter
@@ -33,15 +34,22 @@ import httpx
 from app.company_profiles.isbak_profile_loader import IsbakProfileLoader
 from app.config import get_settings
 from app.config.isbak_rag_settings import get_isbak_rag_settings
+from app.database.tender_repository import TenderRepository
 from app.decision.isbak_decision_pipeline import IsbakDecisionPipeline
 from app.decision.models import DecisionValidationContext
 from app.decision.ollama_decision_model import OllamaDecisionModel
 from app.decision.tender_batch import (
     ProfileCandidateMatch,
+    UniqueTenderCandidate,
     group_unique_tenders,
     tender_identity,
 )
+from app.decision.tender_source_context import (
+    TenderSourceContextBuilder,
+    render_database_tender_context,
+)
 from app.decision.validator import IsbakDeterministicValidator
+from app.domain import TenderRecord
 from app.reporting.decision_reporter import DecisionReporter
 from app.retrieval.profile_vector_tender_matcher import (
     ProfileVectorTenderMatcher,
@@ -81,8 +89,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-decisions",
         type=int,
-        default=None,
+        default=5,
         help="Tüm çalışma için üretilecek azami karar sayısı.",
+    )
+    parser.add_argument(
+        "--random-seed",
+        type=int,
+        default=42,
+        help=(
+            "Benzersiz aday ihaleleri verilen tohumla karıştırır. Aynı tohum "
+            "aynı aday havuzunda aynı test grubunu üretir."
+        ),
     )
     parser.add_argument(
         "--tender-faiss-path",
@@ -118,6 +135,24 @@ def parse_args() -> argparse.Namespace:
         "--retrieval-only",
         action="store_true",
         help="Yalnızca adayları getir; LLM karar zincirini çalıştırma.",
+    )
+    parser.add_argument(
+        "--source-mode",
+        choices=("faiss", "database"),
+        default="faiss",
+        help=(
+            "Model karar bağlamının kaynağı. database seçildiğinde aday FAISS'ten "
+            "bulunur, fakat gerçek ihale alanları model çağrısından önce PostgreSQL'den "
+            "yeniden okunur."
+        ),
+    )
+    parser.add_argument(
+        "--allow-inactive-database-records",
+        action="store_true",
+        help=(
+            "Yalnız geçmişe dönük karşılaştırma testlerinde PostgreSQL kaydının "
+            "aktif durum denetimini atlar. Canlı çalışmada kullanılmamalıdır."
+        ),
     )
     parser.add_argument(
         "--log-level",
@@ -164,7 +199,7 @@ def validate_ollama(
     required_models: list[str],
 ) -> None:
     try:
-        with httpx.Client(timeout=10.0) as client:
+        with httpx.Client(timeout=10.0, trust_env=False) as client:
             response = client.get(f"{base_url.rstrip('/')}/api/tags")
             response.raise_for_status()
     except httpx.HTTPError as exc:
@@ -287,7 +322,7 @@ def render_company_context(
     evaluation_context = loader.build_evaluation_context(
         primary_code=profile_code,
         secondary_codes=supporting_profile_codes or [],
-        include_supporting_profiles=False,
+        include_supporting_profiles=True,
         recursive_supporting_profiles=False,
         include_supporting_profile_documents=False,
     )
@@ -340,11 +375,111 @@ def write_retrieval_report(
     return path
 
 
+def normalize_ikn(value: Any) -> str:
+    """İKN değerini kaynaklar arası eşleştirme için tek biçime getirir."""
+
+    return "".join(str(value or "").upper().split())
+
+
+def prepare_database_sources(
+    *,
+    repository: TenderRepository,
+    candidates: list[UniqueTenderCandidate],
+    report_dir: Path,
+    active_status_values: list[str],
+    allow_inactive: bool,
+) -> tuple[dict[str, TenderRecord], Path, list[dict[str, str]]]:
+    """Karar adaylarını toplu okur ve güvenli kaynak ön kontrolü üretir."""
+
+    schema = repository.validate_required_schema()
+    requested_ikns = list(
+        dict.fromkeys(
+            str(item.candidate.ikn).strip()
+            for item in candidates
+            if str(item.candidate.ikn).strip()
+        )
+    )
+    records = repository.get_by_ikns(requested_ikns)
+    records_by_ikn = {
+        normalize_ikn(record.ikn): record
+        for record in records
+        if normalize_ikn(record.ikn)
+    }
+    normalized_active_statuses = {
+        " ".join(str(value).split()).casefold()
+        for value in active_status_values
+        if str(value).strip()
+    }
+
+    eligible: dict[str, TenderRecord] = {}
+    missing_ikns: list[str] = []
+    inactive_ikns: list[str] = []
+    failures: list[dict[str, str]] = []
+    for candidate in candidates:
+        ikn = str(candidate.candidate.ikn or "").strip()
+        key = normalize_ikn(ikn)
+        record = records_by_ikn.get(key)
+        if record is None:
+            missing_ikns.append(ikn or candidate.tender_key)
+            failures.append(
+                {
+                    "profile_code": candidate.primary_profile_code,
+                    "ikn": ikn,
+                    "stage": "database_source",
+                    "error": "Aday ihale PostgreSQL kaynak tablolarında bulunamadı.",
+                }
+            )
+            continue
+
+        status = " ".join(str(record.ihale_durumu or "").split()).casefold()
+        if (
+            not allow_inactive
+            and normalized_active_statuses
+            and status not in normalized_active_statuses
+        ):
+            inactive_ikns.append(ikn)
+            failures.append(
+                {
+                    "profile_code": candidate.primary_profile_code,
+                    "ikn": ikn,
+                    "stage": "database_active_status",
+                    "error": (
+                        "PostgreSQL kaydının ihale durumu aktif durum listesinde "
+                        f"değil: {record.ihale_durumu or 'boş'}"
+                    ),
+                }
+            )
+            continue
+        eligible[key] = record
+
+    schema_tables = dict(schema.get("tables") or {})
+    preflight = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "source_mode": "database",
+        "schema": str(schema.get("schema") or "public"),
+        "validated_tables": sorted(schema_tables),
+        "requested_tenders": len(candidates),
+        "requested_ikns": len(requested_ikns),
+        "loaded_tenders": len(records),
+        "eligible_tenders": len(eligible),
+        "missing_ikns": missing_ikns,
+        "inactive_ikns": inactive_ikns,
+        "inactive_records_allowed": allow_inactive,
+        "credentials_written_to_report": False,
+    }
+    preflight_path = report_dir / "database_source_preflight.json"
+    preflight_path.write_text(
+        json.dumps(preflight, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return eligible, preflight_path, failures
+
+
 def release_ollama_model(*, base_url: str, model_name: str) -> None:
     """Toplu kararlar tamamlandığında Qwen modelini Ollama belleğinden çıkarır."""
 
     try:
-        with httpx.Client(timeout=15.0) as client:
+        with httpx.Client(timeout=15.0, trust_env=False) as client:
             response = client.post(
                 f"{base_url.rstrip('/')}/api/generate",
                 json={"model": model_name, "keep_alive": 0},
@@ -364,6 +499,11 @@ def main() -> int:
     report_dir.mkdir(parents=True, exist_ok=True)
 
     settings = get_settings()
+    if settings.automatic_positive_decisions_enabled:
+        raise RuntimeError(
+            "AUTOMATIC_POSITIVE_DECISIONS_ENABLED güvenlik nedeniyle true "
+            "olamaz; uygun kararlarında insan onayı zorunludur."
+        )
     rag_settings = get_isbak_rag_settings()
     loader = IsbakProfileLoader()
 
@@ -382,7 +522,6 @@ def main() -> int:
         tender_vector_store=tender_store,
         profile_vector_store=profile_store,
         settings=rag_settings,
-        profile_loader=loader,
     )
 
     profile_codes = selected_profiles(loader, args.profile_code)
@@ -402,7 +541,7 @@ def main() -> int:
         primary_model = OllamaDecisionModel(
             name=settings.qwen_model,
             host=settings.ollama_base_url,
-            prompt_version="isbak_qwen_decision_v3",
+            prompt_version="isbak_qwen_decision_v4_compact",
         )
 
         pipeline = IsbakDecisionPipeline(
@@ -476,6 +615,8 @@ def main() -> int:
             int(rag_settings.faiss_max_chunks_per_tender),
         ),
     )
+    if args.random_seed is not None:
+        random.Random(args.random_seed).shuffle(unique_candidates)
     unique_rows = [
         {
             "tender_key": item.tender_key,
@@ -501,20 +642,42 @@ def main() -> int:
         len(unique_candidates),
     )
 
-    decision_candidates = unique_candidates
+    decision_candidates = (
+        unique_candidates[: args.max_decisions]
+        if args.max_decisions is not None
+        else unique_candidates
+    )
     submitted_to_model = 0
+    database_records: dict[str, TenderRecord] = {}
+    database_preflight_path: Path | None = None
+    evidence_selection_distribution: Counter[str] = Counter()
+
+    if args.source_mode == "database":
+        repository = TenderRepository()
+        (
+            database_records,
+            database_preflight_path,
+            database_failures,
+        ) = prepare_database_sources(
+            repository=repository,
+            candidates=decision_candidates,
+            report_dir=report_dir,
+            active_status_values=settings.active_tender_status_values,
+            allow_inactive=args.allow_inactive_database_records,
+        )
+        failures.extend(database_failures)
+        LOGGER.info(
+            "PostgreSQL kaynak ön kontrolü tamamlandı | aday=%s | uygun_kayıt=%s",
+            len(decision_candidates),
+            len(database_records),
+        )
 
     if not args.retrieval_only:
         if pipeline is None:
             raise RuntimeError("Karar hattı oluşturulamadı.")
 
+        context_builder = TenderSourceContextBuilder()
         for unique_item in decision_candidates:
-            if (
-                args.max_decisions is not None
-                and len(decisions) >= args.max_decisions
-            ):
-                break
-
             candidate = unique_item.candidate
             profile_code = unique_item.primary_profile_code
             company_context, evaluation_rules, loaded_support_codes = (
@@ -532,12 +695,6 @@ def main() -> int:
                     ]
                 )
             )
-            tender_context = render_tender_context(matcher, candidate)
-            valid_chunk_ids = [
-                chunk.chunk_id
-                for chunk in candidate.evidence_chunks
-                if chunk.chunk_id
-            ]
             profile_data = loader.load_profile(profile_code)
             profile_signals = profile_data.get(
                 "ihale_kategori_sinyalleri",
@@ -545,33 +702,96 @@ def main() -> int:
             )
             if not isinstance(profile_signals, dict):
                 profile_signals = {}
-            validation_context = DecisionValidationContext(
-                tender_name=candidate.tender_name,
-                tender_type=candidate.ihale_turu,
-                tender_okas_codes=list(candidate.okas_codes),
-                evidence_text_by_chunk={
-                    chunk.chunk_id: chunk.text
+
+            if args.source_mode == "database":
+                source_record = database_records.get(
+                    normalize_ikn(candidate.ikn)
+                )
+                if source_record is None:
+                    continue
+                try:
+                    source_context = context_builder.build(
+                        source_record,
+                        profile_signals=profile_signals,
+                    )
+                    tender_context = render_database_tender_context(
+                        source_context,
+                        max_chars=settings.max_tender_context_chars,
+                    )
+                except Exception as exc:
+                    LOGGER.exception(
+                        "%s / %s PostgreSQL karar bağlamı hatası",
+                        profile_code,
+                        candidate.ikn,
+                    )
+                    failures.append(
+                        {
+                            "profile_code": profile_code,
+                            "ikn": candidate.ikn,
+                            "stage": "database_context",
+                            "error": str(exc),
+                        }
+                    )
+                    continue
+
+                valid_chunk_ids = [
+                    chunk.chunk_id
+                    for chunk in source_context.selected_evidence_chunks
+                    if chunk.chunk_id
+                ]
+                validation_context = source_context.validation_context(
+                    profile_signals=profile_signals,
+                    retrieval_score=candidate.scores.final,
+                )
+                evidence_count = len(
+                    source_context.selected_evidence_chunks
+                )
+                evidence_selection_distribution[
+                    source_context.selection.case_type
+                ] += 1
+                tender_id = str(source_record.id)
+                tender_ikn = str(source_record.ikn)
+                tender_name = str(source_record.adi or "")
+                authority_name = str(source_record.idare_adi or "")
+            else:
+                tender_context = render_tender_context(matcher, candidate)
+                valid_chunk_ids = [
+                    chunk.chunk_id
                     for chunk in candidate.evidence_chunks
-                    if chunk.chunk_id and chunk.text.strip()
-                },
-                profile_signals=profile_signals,
-                retrieval_score=candidate.scores.final,
-            )
+                    if chunk.chunk_id
+                ]
+                validation_context = DecisionValidationContext(
+                    tender_name=candidate.tender_name,
+                    tender_type=candidate.ihale_turu,
+                    tender_okas_codes=list(candidate.okas_codes),
+                    evidence_text_by_chunk={
+                        chunk.chunk_id: chunk.text
+                        for chunk in candidate.evidence_chunks
+                        if chunk.chunk_id and chunk.text.strip()
+                    },
+                    profile_signals=profile_signals,
+                    retrieval_score=candidate.scores.final,
+                )
+                evidence_count = len(candidate.evidence_chunks)
+                tender_id = candidate.tender_id
+                tender_ikn = candidate.ikn
+                tender_name = candidate.tender_name
+                authority_name = candidate.idare_adi
             submitted_to_model += 1
 
             try:
                 decision = pipeline.run(
-                    tender_id=candidate.tender_id,
-                    ikn=candidate.ikn,
-                    tender_name=candidate.tender_name,
-                    authority_name=candidate.idare_adi,
+                    tender_id=tender_id,
+                    ikn=tender_ikn,
+                    tender_name=tender_name,
+                    authority_name=authority_name,
                     category_code=profile_code,
                     primary_profile_code=profile_code,
                     secondary_profile_codes=supporting_codes,
                     tender_context=tender_context,
                     company_context=company_context,
                     evaluation_rules=evaluation_rules,
-                    evidence_count=len(candidate.evidence_chunks),
+                    evidence_count=evidence_count,
                     retrieval_score=candidate.scores.final,
                     score_breakdown=candidate.scores.__dict__,
                     valid_chunk_ids=valid_chunk_ids,
@@ -635,6 +855,8 @@ def main() -> int:
             else "completed_with_errors"
         ),
         "timestamp": datetime.now(UTC).isoformat(),
+        "source_mode": args.source_mode,
+        "random_seed": args.random_seed,
         "elapsed_seconds": round(elapsed, 3),
         "profiles_requested": len(profile_codes),
         "candidate_rows": len(retrieval_rows),
@@ -660,6 +882,17 @@ def main() -> int:
             ),
             "secondary": None,
         },
+        "database_source": {
+            "preflight_report": (
+                str(database_preflight_path)
+                if database_preflight_path is not None
+                else None
+            ),
+            "eligible_records": len(database_records),
+        },
+        "evidence_selection_distribution": dict(
+            evidence_selection_distribution
+        ),
         "indexes": {
             "tender_vectors": tender_store.count(),
             "profile_vectors": profile_store.count(),

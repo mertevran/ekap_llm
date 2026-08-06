@@ -47,6 +47,7 @@ class TenderRecord(BaseModel):
     ihale_yeri: str | None = None
     isin_yeri: str | None = None
     dokuman_sayisi: int | None = None
+    takip_durumu: str | None = None
 
     created_at: datetime | None = None
     updated_at: datetime | None = None

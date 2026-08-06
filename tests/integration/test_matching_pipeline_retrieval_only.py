@@ -84,12 +84,10 @@ def test_tender_index_payload_consistency(stores):
 def test_profile_to_tender_retrieval_only(stores, settings):
     """Profil odaklı bilgi getirme: retrieval-only çalışır (LLM çağrısı yok)."""
     from app.matching.profile_to_tender_matcher import ProfileToTenderMatcher
-    from app.vector_store.faiss_vector_reader import FaissVectorReader
 
     tender_store, profile_store = stores
 
     # İlk aktif profile_code'u bul
-    reader = FaissVectorReader()
     all_profiles: set[str] = set()
     for _, payload in profile_store.payloads.items():
         code = str(payload.get("profile_code") or "").strip()
@@ -115,10 +113,8 @@ def test_profile_to_tender_retrieval_only(stores, settings):
 def test_tender_to_profile_retrieval_only(stores, settings):
     """İhale odaklı bilgi getirme: retrieval-only çalışır (LLM çağrısı yok)."""
     from app.matching.tender_to_profile_matcher import TenderToProfileMatcher
-    from app.vector_store.faiss_vector_reader import FaissVectorReader
 
     tender_store, profile_store = stores
-    reader = FaissVectorReader()
 
     # İlk ihale ikn'ini bul
     first_ikn = None
@@ -148,14 +144,12 @@ def test_retrieval_only_no_db_writes(stores, settings, monkeypatch):
     from unittest.mock import Mock
 
     from app.matching.tender_to_profile_matcher import TenderToProfileMatcher
-    from app.vector_store.faiss_vector_reader import FaissVectorReader
 
     # DB bağlantısını mock'la
     mock_conn = Mock()
     monkeypatch.setattr("app.database.connection.get_connection", mock_conn)
 
     tender_store, profile_store = stores
-    reader = FaissVectorReader()
 
     first_ikn = None
     for _, payload in tender_store.payloads.items():
@@ -173,7 +167,7 @@ def test_retrieval_only_no_db_writes(stores, settings, monkeypatch):
         settings=settings,
     )
     # retrieval-only — matcher.match() DB'ye yazmaz
-    results = matcher.match(ikn=first_ikn, top_k=3, minimum_score=0.0)
+    matcher.match(ikn=first_ikn, top_k=3, minimum_score=0.0)
 
     # get_connection çağrılmamalı (retrieval-only)
     mock_conn.assert_not_called()

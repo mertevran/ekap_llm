@@ -106,9 +106,7 @@ storage/qdrant_isbak/*
 storage/faiss*/*
 !storage/faiss*/.gitkeep
 
-# .env.example şablon dosyası Git tarafından izlenir (gerçek gizlilik dosyaları yukarıda dışlandı)
-!.env.example
-
+.env.example
 
 arsiv/
 

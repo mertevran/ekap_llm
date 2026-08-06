@@ -73,8 +73,8 @@ def test_scripts_use_correct_prompt():
     chain_path = os.path.join(base_dir, "scripts", "run_tender_decision_chain.py")
     with open(chain_path, encoding="utf-8") as f:
         chain_content = f.read()
-    assert 'isbak_gemma_review_v3' in chain_content
-    assert 'isbak_gemma_review_compact' not in chain_content
+    assert 'isbak_qwen_decision_v4_compact' in chain_content
+    assert 'isbak_gemma_review_v3' not in chain_content
 
     pipe_path = os.path.join(base_dir, "scripts", "run_matching_pipeline.py")
     with open(pipe_path, encoding="utf-8") as f:
@@ -100,6 +100,7 @@ def test_compact_fallback_with_schema_correction(monkeypatch):
         host="http://localhost:11434",
         prompt_version="isbak_gemma_review_v3"
     )
+    model.max_json_corrections = 1
 
     call_prompts = []
 
@@ -177,4 +178,3 @@ def test_compact_fallback_with_schema_correction(monkeypatch):
     # Başarılı dönüş olmalıdır
     assert decision.decision == "uygun"
     assert decision.confidence == 0.9
-

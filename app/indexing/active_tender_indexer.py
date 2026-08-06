@@ -8,12 +8,11 @@ import unicodedata
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.database.tender_repository import TenderRepository
 from app.indexing.chunker import SectionAwareChunker
 from app.indexing.document_builder import TenderDocumentBuilder
-from app.indexing.embedder import BgeM3Embedder
 from app.indexing.hash_generator import generate_source_hash
 from app.indexing.index_state_repository import IndexStateRepository
 from app.vector_store import (
@@ -22,6 +21,9 @@ from app.vector_store import (
     deterministic_point_id,
 )
 from app.vector_store.faiss_cache import FaissVectorCache
+
+if TYPE_CHECKING:
+    from app.indexing.embedder import BgeM3Embedder
 
 INDEX_VERSION = "1.0"
 

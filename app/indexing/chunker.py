@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from hashlib import sha256
 from typing import Any
 
@@ -111,8 +111,30 @@ class SectionAwareChunker:
             "source_hash": sha256(text.encode("utf-8")).hexdigest(),
             "chunk_hash": chunk_hash,
             "chunking_version": self.chunking_version,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
+
+        # Kanıt hangi bölümden gelirse gelsin gerçek ihale üst verisini taşı.
+        # Böylece bir ilan parçası en yüksek skoru aldığında ``ilan_tipi`` yanlışlıkla
+        # ``ihale_turu`` yerine kullanılmaz.
+        document_metadata = document.get("metadata", {})
+        if isinstance(document_metadata, dict):
+            for key in (
+                "ihale_tarihi",
+                "ihale_turu",
+                "ihale_usulu",
+                "ihale_durumu",
+                "takip_durumu",
+                "kismi_teklif",
+                "e_ihale",
+                "kapsam",
+                "idare_adi",
+                "il",
+                "updated_at",
+                "okas_codes",
+            ):
+                if key in document_metadata:
+                    metadata[key] = document_metadata[key]
 
         if section_type == "announcement":
             metadata["announcement_type"] = section.get("metadata", {}).get("announcement_type", "")

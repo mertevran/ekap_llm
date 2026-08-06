@@ -26,7 +26,7 @@ def get_valid_json():
 @patch('app.decision.ollama_decision_model.httpx.Client')
 def test_fallback_cleans_ikincil_profil_kodlari(mock_client_class):
     mock_client = MagicMock()
-    # All 3 attempts return the same invalid ikincil_profil_kodlari (e.g. contains birincil_profil_kodu)
+    # Geçersiz ikincil profil aynı yanıt üzerinde güvenli biçimde temizlenir.
     bad_json = get_valid_json()
     bad_json["ikincil_profil_kodlari"] = ["CAT1"]  # Invalid because CAT1 is primary
 
@@ -37,7 +37,6 @@ def test_fallback_cleans_ikincil_profil_kodlari(mock_client_class):
         "done_reason": "stop"
     }
 
-    # max_json_corrections is 2, so it makes 3 calls (attempt 0, 1, 2)
     mock_client.post.return_value = mock_response
     mock_client_class.return_value.__enter__.return_value = mock_client
 
@@ -51,7 +50,7 @@ def test_fallback_cleans_ikincil_profil_kodlari(mock_client_class):
     # It should have cleaned ikincil_profil_kodlari and succeeded
     assert result.ikincil_profil_kodlari == []
     assert result.decision == "uygun"
-    assert mock_client.post.call_count == 3
+    assert mock_client.post.call_count == 1
 
 
 @patch('app.decision.ollama_decision_model.httpx.Client')

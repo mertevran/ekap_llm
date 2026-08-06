@@ -61,40 +61,6 @@ def _context(
     )
 
 
-def test_full_negative_scope_forces_unsuitable() -> None:
-    context = DecisionValidationContext(
-        tender_name="Araç bakım ve onarım hizmeti",
-        tender_type="Hizmet Alımı",
-        evidence_text_by_chunk={
-            "chk_1": "Binek araçların periyodik bakım ve onarımı yapılacaktır."
-        },
-        profile_signals={
-            "negatif_terimler": ["araç bakım", "araç onarım"],
-            "guclu_terimler": ["yazılım bakım"],
-        },
-    )
-    result = _validate_with_context(_decision(), context)
-    assert result.negative_scope.scope_type == "full"
-    assert result.forced_decision == "uygun_degil"
-
-
-def test_mixed_negative_scope_forces_review() -> None:
-    context = DecisionValidationContext(
-        tender_name="Yazılım desteği ve araç bakım hizmeti",
-        tender_type="Hizmet Alımı",
-        evidence_text_by_chunk={
-            "chk_1": "Yazılım desteği ile araç bakım hizmeti birlikte alınacaktır."
-        },
-        profile_signals={
-            "negatif_terimler": ["araç bakım"],
-            "guclu_terimler": ["yazılım desteği"],
-        },
-    )
-    result = _validate_with_context(_decision(), context)
-    assert result.negative_scope.scope_type == "mixed"
-    assert result.forced_decision == "inceleme_gerekli"
-
-
 def _validate_with_context(
     decision: ModelDecision,
     context: DecisionValidationContext,
@@ -228,6 +194,20 @@ def test_negative_scope_does_not_match_on_one_generic_word() -> None:
     )
 
     assert result.verified is False
+
+
+def test_negative_scope_recognizes_semantic_and_morphological_variants() -> None:
+    result = analyze_negative_scope(
+        _context(
+            "Ambulans klimalarının periyodik bakımı ve onarımı yapılacaktır.",
+            title="Ambulans Klima Bakım Hizmeti",
+            negative_terms=["araç klima bakımı"],
+        )
+    )
+
+    assert result.verified is True
+    assert result.scope_type == "full"
+    assert result.matched_terms == ["araç klima bakımı"]
 
 
 class _StaticModel:

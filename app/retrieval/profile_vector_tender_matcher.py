@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.company_profiles.isbak_profile_loader import IsbakProfileLoader
 from app.retrieval.isbak_tender_retriever import (
     IsbakTenderRetriever,
     TenderSearchResult,
@@ -26,7 +25,6 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
         tender_vector_store: FaissVectorStore,
         profile_vector_store: FaissVectorStore,
         settings: Any | None = None,
-        profile_loader: IsbakProfileLoader | None = None,
     ) -> None:
         # Üst sınıfın metin tabanlı retrieve() yöntemi bu sınıfta kullanılmaz.
         # Protocol gereksinimi için embedder=None verilmiyor; bunun yerine
@@ -34,7 +32,6 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
         self.embedder = None
         self.vector_store = tender_vector_store
         self.profile_vector_store = profile_vector_store
-        self.profile_loader = profile_loader or IsbakProfileLoader()
 
         if settings is None:
             from app.config.isbak_rag_settings import get_isbak_rag_settings
@@ -92,10 +89,6 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
         )
 
         query_terms = self._query_terms_for_subclass(composite_query)
-        profile = self.profile_loader.load_profile(normalized_code)
-        profile_signals = profile.get("ihale_kategori_sinyalleri", {})
-        if not isinstance(profile_signals, dict):
-            profile_signals = {}
         candidates: list[TenderSearchResult] = []
 
         for tender_key, chunks in groups.items():
@@ -104,7 +97,6 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
                 chunks=chunks,
                 query=composite_query,
                 query_terms=query_terms,
-                profile_signals=profile_signals,
             )
             if (
                 candidate is not None

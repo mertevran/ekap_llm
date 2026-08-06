@@ -36,10 +36,8 @@ def live_stores():
 def test_profile_mode_returns_sorted_results(live_stores):
     """Profil modu sonuçları azalan sırada sıralanmış olmalı."""
     from app.matching.profile_to_tender_matcher import ProfileToTenderMatcher
-    from app.vector_store.faiss_vector_reader import FaissVectorReader
 
     tender_store, profile_store, settings = live_stores
-    reader = FaissVectorReader()
 
     # İlk profil kodunu al
     codes: set[str] = set()
@@ -64,10 +62,8 @@ def test_profile_mode_returns_sorted_results(live_stores):
 def test_tender_mode_profiles_scanned(live_stores):
     """İhale modu tüm profil vektörlerini taramalı."""
     from app.matching.tender_to_profile_matcher import TenderToProfileMatcher
-    from app.vector_store.faiss_vector_reader import FaissVectorReader
 
     tender_store, profile_store, settings = live_stores
-    reader = FaissVectorReader()
 
     first_ikn = None
     for _, p in tender_store.payloads.items():

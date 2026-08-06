@@ -248,10 +248,6 @@ class IsbakDecisionPipeline:
         # eder. Katılım şartlarına ait Python geçersiz kılmaları aşağıda nihai
         # karara uygulanır; böylece faaliyet uygunluğu kaybolmaz.
         activity_decision = final_decision
-        if combined_validation.negative_scope.scope_type == "full":
-            activity_decision = "uygun_degil"
-        elif combined_validation.negative_scope.scope_type == "mixed":
-            activity_decision = "inceleme_gerekli"
 
         # --- VALIDATION OVERRIDE ---
         if combined_validation.source_external_information_used:
@@ -359,6 +355,10 @@ class IsbakDecisionPipeline:
                 or primary.insan_incelemesi_gerekcesi
                 or " | ".join(review_reasons)
             )
+        human_approval_required = final_decision == "uygun"
+        human_approval_status = (
+            "bekliyor" if human_approval_required else "gerekli_degil"
+        )
 
         return FinalTenderDecision(
             tender_id=tender_id,
@@ -414,6 +414,12 @@ class IsbakDecisionPipeline:
             participation_review_required=participation_review_required,
             activity_decision=activity_decision,
             activity_match=primary.faaliyet_eslesmesi,
+            partial_offer=bool(
+                validation_context.partial_offer
+                if validation_context is not None
+                else False
+            ),
+            suitable_parts=list(primary.uygun_kisimlar),
             negative_scope_verified=combined_validation.negative_scope.verified,
             matched_negative_terms=list(
                 combined_validation.negative_scope.matched_terms
@@ -422,6 +428,9 @@ class IsbakDecisionPipeline:
             profile_match_scores=dict(profile_match_scores or {}),
             confidence_calibration=calibration,
             validation_context=validation_context,
+            human_approval_required=human_approval_required,
+            human_approval_status=human_approval_status,
+            automatic_action_allowed=False,
         )
 
     def _validate_model_decision(

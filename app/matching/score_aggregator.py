@@ -106,7 +106,6 @@ class ScoreAggregator:
         profile_okas_prefixes: list[str] | None = None,
         strong_terms: list[str] | None = None,
         negative_terms: list[str] | None = None,
-        tender_text: str = "",
     ) -> MatchScoreBreakdown:
         """Puan kırılımını hesaplar.
 
@@ -119,7 +118,6 @@ class ScoreAggregator:
             profile_okas_prefixes: Profil OKAS ön ekleri (örn. "48", "72").
             strong_terms: Profil güçlü terimleri.
             negative_terms: Profil negatif terimleri.
-            tender_text: Negatif terimlerin aranacağı gerçek ihale metni.
         """
         s = self._s
 
@@ -154,20 +152,10 @@ class ScoreAggregator:
 
         # Negatif ceza
         neg_penalty = 0.0
-        if negative_terms and tender_text:
-            normalized_tender = f" {_normalize(tender_text)} "
-            matched_negative_terms = [
-                term
-                for term in negative_terms
-                if _negative_term_matches(normalized_tender, term)
-            ]
-            if matched_negative_terms:
-                # Tek doğrulanmış negatif ifade dahi aday sırasını etkilemelidir.
-                # Birden fazla eşleşmede ceza artar fakat 0,30'u geçmez.
-                neg_penalty = min(
-                    0.30,
-                    0.15 + (len(matched_negative_terms) - 1) * 0.05,
-                )
+        if negative_terms:
+            combined_neg = " ".join(negative_terms)
+            neg_overlap = _term_overlap(query_terms, combined_neg)
+            neg_penalty = min(0.30, neg_overlap * 0.30)
 
         raw_final = (
             s.weight_max_chunk * max_sim
@@ -229,17 +217,6 @@ class ScoreAggregator:
 def build_query_terms(text: str) -> tuple[str, ...]:
     """Harici kullanım için sorgu terimi üreteci."""
     return _query_terms(text)
-
-
-def _negative_term_matches(normalized_tender: str, term: str) -> bool:
-    """Negatif terimi profil sorgusunda değil gerçek ihale metninde arar."""
-    tokens = _tokenize(term)
-    if not tokens:
-        return False
-    if len(tokens) == 1 and (tokens[0] in _STOPWORDS or len(tokens[0]) < 5):
-        return False
-    normalized_term = " ".join(tokens)
-    return f" {normalized_term} " in normalized_tender
 
 
 __all__ = ["ScoreAggregator", "build_query_terms"]

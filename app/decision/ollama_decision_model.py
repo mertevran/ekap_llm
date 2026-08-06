@@ -4,7 +4,11 @@ from typing import Any
 
 import httpx
 
-from app.decision.models import CriterionResult, ModelDecision
+from app.decision.models import (
+    CriterionResult,
+    ModelDecision,
+    SuitableTenderPart,
+)
 from app.pipeline.exceptions import DecisionServiceError
 
 logger = logging.getLogger(__name__)
@@ -77,6 +81,60 @@ Score Breakdown:
 {tender_context}
 
 ŞİRKET BAĞLAMI (Profil ve Kanıtlar):
+{company_context}
+""",
+    "isbak_qwen_decision_v4_compact": """Sen İSBAK A.Ş. için çalışan tek ihale faaliyet karar modelisin.
+
+GÖREV:
+- Gerçek ihale kaydı ile birincil şirket profilinin faaliyet kapsamını karşılaştır.
+- Yalnız sunulan [KAYNAK] parçalarını ve şirket bağlamını kullan; dış bilgi veya tahmin kullanma.
+- decision yalnız faaliyet kararıdır: uygun, uygun_degil veya inceleme_gerekli.
+- Belge, personel, iş deneyimi ve mali yeterlik sonuçlarını faaliyet kararına karıştırma.
+- Profilde boş alan olması yokluk veya uygunsuzluk değildir.
+- retrieval_score yalnız aday getirme sinyalidir; karar değildir.
+
+KISA ÇIKTI SÖZLEŞMESİ:
+- Tek JSON nesnesi dışında hiçbir metin üretme.
+- decision, confidence, birincil_profil_kodu, faaliyet_eslesmesi,
+  negatif_kapsam_cakismasi, gerekceler, faaliyet_belirsizlikleri,
+  katilim_belirsizlikleri, zorunlu_kriter_sonuclari, uygun_kisimlar,
+  kullanilan_chunk_idleri ve kaynak_disinda_bilgi_var_mi alanlarını üret.
+- confidence 0.0-1.0 arası JSON number olmalıdır; sabit varsayılan değer kullanma.
+- birincil_profil_kodu tam olarak {category_code} olmalıdır.
+- Gerekçeler en fazla üç kısa cümle olmalı ve aynı bilgi tekrarlanmamalıdır.
+- Kesin karar gerçek bir chunk_id ile desteklenmelidir.
+- Bütün kanıt kimlikleri yalnız GEÇERLİ KANIT KİMLİKLERİ listesinden seçilmelidir.
+
+FAALİYET VE KATILIM:
+- uygun: İhale işi profilin faaliyet/ürün/hizmet kapsamıyla açıkça örtüşür ve açık negatif çakışma yoktur.
+- uygun_degil: İhale işi açıkça profil dışıdır veya tam negatif kapsam doğrulanmıştır.
+- inceleme_gerekli: Faaliyet kapsamı metinsel olarak belirsiz, karma veya çelişkilidir.
+- Gerçek zorunlu şart yoksa zorunlu_kriter_sonuclari boş liste olmalıdır.
+- Gerçek şart var ama şirket kanıtı yoksa status=bilinmiyor kullan; karsilanmiyor kullanma.
+- Zorunlu kriterde criterion_id, description, status, evidence_chunk_ids ve explanation dışında alan üretme.
+
+KISMİ İHALE:
+- Kısmi teklif=Evet ise ihalenin tamamını tek parça gibi değerlendirme.
+- Yalnız faaliyet kapsamıyla eşleşen kısımları uygun_kisimlar alanında yaz.
+- kisim_no ve kisim_adi değerlerini KISIM LİSTESİNDEN aynen al; kısım uydurma.
+- Her uygun kısım gerçek evidence_chunk_ids ve kısa gerekçe içermelidir.
+- Kısmi teklif değilse uygun_kisimlar boş liste olmalıdır.
+- Kısım listesi çıkarılamamışsa uygun kararı verme; faaliyet_belirsizlikleri alanında belirt ve inceleme_gerekli seç.
+
+GEÇERLİ KANIT KİMLİKLERİ:
+{valid_chunk_ids}
+
+İHALE ID: {tender_id}
+İKN: {ikn}
+KATEGORİ: {category_code}
+MATCHING MODE: {matching_mode}
+RETRIEVAL SCORE: {retrieval_score}
+SCORE BREAKDOWN: {score_breakdown}
+
+İHALE BAĞLAMI:
+{tender_context}
+
+ŞİRKET BAĞLAMI:
 {company_context}
 """,
     "isbak_qwen_decision_v2": """Sen İSBAK A.Ş. için çalışan bir ihale değerlendirme asistanısın.
@@ -492,8 +550,111 @@ Yanıt DECISION_OUTPUT_SCHEMA tarafından teknik olarak sınırlandırılmışt�
 Şemadaki bütün required alanları eksiksiz üret. Hiçbir zorunlu anahtarı atlama.
 """
 
+COMPACT_DECISION_OUTPUT_SCHEMA = {
+    "type": "object",
+    "required": [
+        "decision",
+        "confidence",
+        "birincil_profil_kodu",
+        "faaliyet_eslesmesi",
+        "negatif_kapsam_cakismasi",
+        "gerekceler",
+        "faaliyet_belirsizlikleri",
+        "katilim_belirsizlikleri",
+        "zorunlu_kriter_sonuclari",
+        "uygun_kisimlar",
+        "kullanilan_chunk_idleri",
+        "kaynak_disinda_bilgi_var_mi",
+    ],
+    "properties": {
+        "decision": {
+            "type": "string",
+            "enum": ["uygun", "uygun_degil", "inceleme_gerekli"],
+        },
+        "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+        "birincil_profil_kodu": {"type": "string", "minLength": 1},
+        "faaliyet_eslesmesi": {
+            "type": "string",
+            "enum": ["guclu", "kismi", "zayif", "belirsiz"],
+        },
+        "negatif_kapsam_cakismasi": {"type": "boolean"},
+        "gerekceler": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": 300},
+            "maxItems": 3,
+        },
+        "faaliyet_belirsizlikleri": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": 300},
+            "maxItems": 2,
+        },
+        "katilim_belirsizlikleri": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": 300},
+            "maxItems": 3,
+        },
+        "zorunlu_kriter_sonuclari": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "criterion_id",
+                    "description",
+                    "status",
+                    "evidence_chunk_ids",
+                    "explanation",
+                ],
+                "properties": {
+                    "criterion_id": {"type": "string", "minLength": 1, "maxLength": 160},
+                    "description": {"type": "string", "minLength": 1, "maxLength": 300},
+                    "status": {
+                        "type": "string",
+                        "enum": ["karsilaniyor", "karsilanmiyor", "bilinmiyor"],
+                    },
+                    "evidence_chunk_ids": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1, "maxLength": 300},
+                        "uniqueItems": True,
+                        "minItems": 1,
+                    },
+                    "explanation": {"type": "string", "minLength": 1, "maxLength": 300},
+                },
+            },
+        },
+        "uygun_kisimlar": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["kisim_no", "kisim_adi", "evidence_chunk_ids", "gerekce"],
+                "properties": {
+                    "kisim_no": {"type": "string", "minLength": 1, "maxLength": 40},
+                    "kisim_adi": {"type": "string", "minLength": 1, "maxLength": 300},
+                    "evidence_chunk_ids": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1, "maxLength": 300},
+                        "uniqueItems": True,
+                        "minItems": 1,
+                    },
+                    "gerekce": {"type": "string", "minLength": 1, "maxLength": 300},
+                },
+            },
+        },
+        "kullanilan_chunk_idleri": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1, "maxLength": 300},
+            "uniqueItems": True,
+        },
+        "kaynak_disinda_bilgi_var_mi": {"type": "boolean"},
+    },
+    "additionalProperties": False,
+}
 
 
+# v3 deneylerinin yeniden üretilebilmesi için eski ayrıntılı şema korunur.
 DECISION_OUTPUT_SCHEMA = {
     "type": "object",
     "required": [
@@ -616,7 +777,11 @@ class OllamaDecisionModel:
         sb_str = json.dumps(score_breakdown or {}, ensure_ascii=False, indent=2, default=str)
         vc_str = json.dumps(valid_chunk_ids or [], ensure_ascii=False, indent=2, default=str)
 
-        if "v3" in active_prompt_version or "compact" in active_prompt_version:
+        if (
+            "v3" in active_prompt_version
+            or "v4" in active_prompt_version
+            or "compact" in active_prompt_version
+        ):
             active_base_prompt = prompt_template.format(
                 tender_id=tender_id,
                 ikn=ikn,
@@ -637,13 +802,17 @@ class OllamaDecisionModel:
                 company_context=company_context,
             )
 
-        if "v3" in active_prompt_version or "compact" in active_prompt_version:
+        if (
+            "v3" in active_prompt_version
+            or ("compact" in active_prompt_version and "v4" not in active_prompt_version)
+        ):
             active_base_prompt += PROFILE_ACTIVITY_POLICY
 
         current_prompt = active_base_prompt
         json_correction_attempts = 0
         max_json_corrections = self.max_json_corrections
-        has_run_compact_fallback = False
+        # v4 zaten kısa sözleşmedir; aynı istemi yedek adıyla tekrar çağırma.
+        has_run_compact_fallback = "v4" in active_prompt_version
 
         import time
 
@@ -665,10 +834,15 @@ class OllamaDecisionModel:
                 options["num_ctx"] = self.qwen_num_ctx
                 options["num_predict"] = self.qwen_num_predict
 
+            active_schema = (
+                COMPACT_DECISION_OUTPUT_SCHEMA
+                if "v4" in active_prompt_version
+                else DECISION_OUTPUT_SCHEMA
+            )
             payload = {
                 "model": self.name,
                 "prompt": current_prompt,
-                "format": DECISION_OUTPUT_SCHEMA,
+                "format": active_schema,
                 "stream": False,
                 "think": False,
                 "keep_alive": "10m",
@@ -685,7 +859,10 @@ class OllamaDecisionModel:
 
             for attempt in range(1, self.max_attempts + 1):
                 try:
-                    with httpx.Client(timeout=self.timeout_seconds) as client:
+                    with httpx.Client(
+                        timeout=self.timeout_seconds,
+                        trust_env=False,
+                    ) as client:
                         response = client.post(f"{self.host}/api/generate", json=payload)
                         if response.status_code == 404:
                             raise DecisionServiceError(f"Model '{self.name}' bulunamadı (404).")
@@ -896,6 +1073,81 @@ class OllamaDecisionModel:
         raise DecisionServiceError(f"Geçersiz JSON formatı veya şema hatası: {last_error}")
 
 
+    @staticmethod
+    def _expand_compact_contract(data: dict[str, Any]) -> dict[str, Any]:
+        """v4 kısa çıktısını geriye uyumlu iç karar alanlarına dönüştürür."""
+
+        expanded = dict(data)
+        decision = str(expanded.get("decision", "")).strip()
+        reasons = expanded.get("gerekceler", [])
+        if not isinstance(reasons, list):
+            reasons = []
+        activity_uncertainties = expanded.get("faaliyet_belirsizlikleri", [])
+        if not isinstance(activity_uncertainties, list):
+            activity_uncertainties = []
+        participation_gaps = expanded.get("katilim_belirsizlikleri", [])
+        if not isinstance(participation_gaps, list):
+            participation_gaps = []
+
+        expanded.setdefault("ikincil_profil_kodlari", [])
+        expanded.setdefault(
+            "faaliyet_eslesmesi",
+            {
+                "uygun": "guclu",
+                "uygun_degil": "zayif",
+            }.get(decision, "belirsiz"),
+        )
+        expanded.setdefault("negatif_kapsam_cakismasi", False)
+        expanded.setdefault(
+            "uygunluk_gerekceleri",
+            reasons if decision == "uygun" else [],
+        )
+        expanded.setdefault(
+            "uygunsuzluk_gerekceleri",
+            reasons if decision == "uygun_degil" else [],
+        )
+        expanded.setdefault("kritik_faaliyet_belirsizlikleri", activity_uncertainties)
+        expanded.setdefault("dogrulanamayan_katilim_sartlari", participation_gaps)
+        expanded.setdefault("eksik_kanitlar", [])
+        expanded.setdefault("kritik_belirsizlikler", activity_uncertainties)
+        expanded.setdefault("zorunlu_kriter_sonuclari", [])
+        expanded.setdefault("uygun_kisimlar", [])
+        expanded.setdefault("kullanilan_chunk_idleri", [])
+        expanded.setdefault("kaynak_disinda_bilgi_var_mi", False)
+        expanded.setdefault(
+            "insan_incelemesi_gerekcesi",
+            str(activity_uncertainties[0])
+            if decision == "inceleme_gerekli" and activity_uncertainties
+            else "",
+        )
+
+        criteria = expanded.get("zorunlu_kriter_sonuclari", [])
+        statuses = (
+            {
+                str(item.get("status") or "")
+                for item in criteria
+                if isinstance(item, dict)
+            }
+            if isinstance(criteria, list)
+            else set()
+        )
+        if "karsilanmiyor" in statuses:
+            participation_status = "karsilanmiyor"
+        elif "bilinmiyor" in statuses or participation_gaps:
+            participation_status = "dogrulanmadi"
+        elif statuses and statuses == {"karsilaniyor"}:
+            participation_status = "dogrulandi"
+        else:
+            participation_status = "uygulanamaz"
+        expanded.setdefault("katilim_yeterliligi_durumu", participation_status)
+
+        if decision == "inceleme_gerekli" and not activity_uncertainties and reasons:
+            expanded["kritik_faaliyet_belirsizlikleri"] = reasons[:1]
+            expanded["kritik_belirsizlikler"] = reasons[:1]
+            expanded["insan_incelemesi_gerekcesi"] = str(reasons[0])
+
+        return expanded
+
     def _sanitize_semantic_fields(
         self,
         data: dict[str, Any],
@@ -904,7 +1156,7 @@ class OllamaDecisionModel:
         valid_chunk_ids: list[str] | None,
     ) -> dict[str, Any]:
         """Modeli yeniden çağırmadan güvenli alan temizliği yapar."""
-        cleaned = dict(data)
+        cleaned = self._expand_compact_contract(data)
 
         ignored_process_phrases = (
             "%15 fiyat avantajı",
@@ -975,11 +1227,54 @@ class OllamaDecisionModel:
                 blocked_phrases=ignored_process_phrases,
             )
 
-        cleaned["kullanilan_chunk_idleri"] = [
-            chunk_id
-            for chunk_id in clean_string_list("kullanilan_chunk_idleri")
-            if not valid_chunk_ids or chunk_id in valid_chunk_ids
-        ]
+        cleaned["kullanilan_chunk_idleri"] = list(
+            dict.fromkeys(
+                chunk_id
+                for chunk_id in clean_string_list("kullanilan_chunk_idleri")
+                if not valid_chunk_ids or chunk_id in valid_chunk_ids
+            )
+        )
+
+        raw_parts = cleaned.get("uygun_kisimlar", [])
+        safe_parts: list[dict[str, Any]] = []
+        if isinstance(raw_parts, list):
+            for raw_part in raw_parts:
+                if not isinstance(raw_part, dict):
+                    continue
+                part_number = " ".join(
+                    str(raw_part.get("kisim_no") or "").split()
+                ).strip()
+                part_name = " ".join(
+                    str(raw_part.get("kisim_adi") or "").split()
+                ).strip()
+                reason = " ".join(
+                    str(raw_part.get("gerekce") or "").split()
+                ).strip()
+                evidence = raw_part.get("evidence_chunk_ids", [])
+                if not isinstance(evidence, list):
+                    evidence = []
+                evidence = list(
+                    dict.fromkeys(
+                        str(chunk_id).strip()
+                        for chunk_id in evidence
+                        if str(chunk_id).strip()
+                        and (
+                            not valid_chunk_ids
+                            or str(chunk_id).strip() in valid_chunk_ids
+                        )
+                    )
+                )
+                if not part_number or not part_name or not reason or not evidence:
+                    continue
+                safe_parts.append(
+                    {
+                        "kisim_no": part_number,
+                        "kisim_adi": part_name,
+                        "evidence_chunk_ids": evidence,
+                        "gerekce": reason,
+                    }
+                )
+        cleaned["uygun_kisimlar"] = safe_parts
 
         raw_criteria = cleaned.get("zorunlu_kriter_sonuclari", [])
         safe_criteria: list[dict[str, Any]] = []
@@ -1335,6 +1630,33 @@ class OllamaDecisionModel:
                 )
             )
 
+        suitable_parts: list[SuitableTenderPart] = []
+        raw_parts = data.get("uygun_kisimlar", [])
+        if not isinstance(raw_parts, list):
+            raise ValueError("uygun_kisimlar liste olmalıdır")
+        for part in raw_parts:
+            if not isinstance(part, dict):
+                continue
+            evidence = part.get("evidence_chunk_ids", [])
+            if not isinstance(evidence, list):
+                evidence = []
+            evidence = [str(chunk_id).strip() for chunk_id in evidence if str(chunk_id).strip()]
+            if valid_chunk_ids:
+                for chunk_id in evidence:
+                    if chunk_id not in valid_chunk_ids:
+                        raise ValueError(
+                            "Uygun kısım içinde uydurma chunk_id kullanıldı: "
+                            f"{chunk_id}"
+                        )
+            suitable_parts.append(
+                SuitableTenderPart(
+                    part_number=str(part.get("kisim_no") or "").strip(),
+                    part_name=str(part.get("kisim_adi") or "").strip(),
+                    evidence_chunk_ids=evidence,
+                    reason=str(part.get("gerekce") or "").strip(),
+                )
+            )
+
         return ModelDecision(
             model_name=self.name,
             decision=decision_val,
@@ -1349,6 +1671,7 @@ class OllamaDecisionModel:
             katilim_yeterliligi_durumu=data.get("katilim_yeterliligi_durumu", "dogrulanmadi"),
             kritik_faaliyet_belirsizlikleri=data.get("kritik_faaliyet_belirsizlikleri", []),
             dogrulanamayan_katilim_sartlari=data.get("dogrulanamayan_katilim_sartlari", []),
+            uygun_kisimlar=suitable_parts,
             eksik_kanitlar=data.get("eksik_kanitlar", []),
             kritik_belirsizlikler=data.get("kritik_belirsizlikler", []),
             kullanilan_chunk_idleri=kullanilan_chunk_idleri,

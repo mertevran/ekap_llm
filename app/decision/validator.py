@@ -131,6 +131,8 @@ class IsbakDeterministicValidator:
         used_ids = set(primary_decision.kullanilan_chunk_idleri)
         for criterion in criteria:
             used_ids.update(criterion.evidence_chunk_ids)
+        for part in primary_decision.uygun_kisimlar:
+            used_ids.update(part.evidence_chunk_ids)
 
         if valid_ids_were_provided:
             invalid_refs = sorted(
@@ -283,34 +285,32 @@ class IsbakDeterministicValidator:
         if validation_context is not None:
             rules.append("verify_profile_signals_against_tender_sources")
 
-            if negative_scope.scope_type == "full":
-                rules.append("reject_full_negative_scope")
+            if (
+                validation_context.source_origin == "postgresql"
+                and not validation_context.source_complete
+            ):
+                missing_fields = ", ".join(
+                    validation_context.source_missing_fields
+                ) or "bilinmeyen alan"
                 issues.append(
                     ValidationIssue(
-                        code="full_negative_scope_verified",
+                        code="incomplete_database_source",
                         message=(
-                            "Negatif kapsam ihale başlığında açıkça doğrulandı ve "
-                            "karşıt olumlu faaliyet sinyali bulunmadı."
+                            "PostgreSQL ihale kaydında karar için zorunlu kaynak "
+                            f"alanları eksik: {missing_fields}."
                         ),
                         severity="blocking",
                         source=source,
-                        related_chunk_ids=negative_scope.evidence_chunk_ids,
                     )
                 )
-            elif negative_scope.scope_type == "mixed":
-                rules.append("review_mixed_activity_scope")
-                issues.append(
-                    ValidationIssue(
-                        code="mixed_activity_scope_verified",
-                        message=(
-                            "İhale kaynaklarında olumlu ve negatif profil kapsamları "
-                            "birlikte bulundu."
-                        ),
-                        severity="blocking",
-                        source=source,
-                        related_chunk_ids=negative_scope.evidence_chunk_ids,
-                    )
-                )
+
+            self._append_partial_tender_issues(
+                primary_decision=primary_decision,
+                validation_context=validation_context,
+                source=source,
+                issues=issues,
+                warnings=warnings,
+            )
 
             if primary_decision.negatif_kapsam_cakismasi and not negative_scope.verified:
                 issues.append(
@@ -325,7 +325,10 @@ class IsbakDeterministicValidator:
                     )
                 )
 
-            if negative_scope.verified and not primary_decision.negatif_kapsam_cakismasi:
+            if (
+                negative_scope.scope_type == "full"
+                and not primary_decision.negatif_kapsam_cakismasi
+            ):
                 issues.append(
                     ValidationIssue(
                         code="verified_negative_scope_omitted",
@@ -346,6 +349,23 @@ class IsbakDeterministicValidator:
                         message=(
                             "Uygun kararı, ihale kaynaklarında doğrulanan negatif "
                             "profil kapsamıyla çelişiyor."
+                        ),
+                        severity="blocking",
+                        source=source,
+                        related_chunk_ids=negative_scope.evidence_chunk_ids,
+                    )
+                )
+
+            if (
+                decision == "uygun_degil"
+                and negative_scope.scope_type in {"mixed", "ambiguous"}
+            ):
+                issues.append(
+                    ValidationIssue(
+                        code="non_full_negative_scope_rejection",
+                        message=(
+                            "Negatif kapsam yalnız karma veya belirsiz kaynakta bulundu; "
+                            "ihalenin tamamı otomatik olarak uygun_degil sayılamaz."
                         ),
                         severity="blocking",
                         source=source,
@@ -441,6 +461,11 @@ class IsbakDeterministicValidator:
             "activity_participation_decision_conflict",
             "missing_suitability_reason",
             "missing_unsuitability_reason",
+            "partial_tender_parts_unavailable",
+            "partial_suitable_parts_missing",
+            "invalid_suitable_part",
+            "non_full_negative_scope_rejection",
+            "incomplete_database_source",
         }
         has_safety_blocker = any(
             issue.severity == "blocking" and issue.code in safety_blocking_codes
@@ -453,11 +478,7 @@ class IsbakDeterministicValidator:
         )
 
         forced_decision = None
-        if negative_scope.scope_type == "full":
-            forced_decision = "uygun_degil"
-        elif negative_scope.scope_type == "mixed":
-            forced_decision = "inceleme_gerekli"
-        elif blocking:
+        if blocking:
             # Yalnız kaynakta doğrulanmış ve şirketçe karşılanmadığı doğrulanmış
             # zorunlu kriter kesin ret üretir. Diğer güvenlik sorunları incelemedir.
             forced_decision = (
@@ -467,14 +488,10 @@ class IsbakDeterministicValidator:
             )
 
         activity_rejection_verified = bool(
-            negative_scope.scope_type == "full"
-            or (
-                decision == "uygun_degil"
-                and primary_decision.negatif_kapsam_cakismasi
-                and negative_scope.verified
-                and negative_scope.scope_type != "mixed"
-                and not blocking
-            )
+            decision == "uygun_degil"
+            and primary_decision.negatif_kapsam_cakismasi
+            and negative_scope.scope_type == "full"
+            and not blocking
         )
         source_missing_labels = [
             self._assessment_label(assessment)
@@ -512,6 +529,11 @@ class IsbakDeterministicValidator:
                     "suitable_with_verified_negative_scope",
                     "verified_negative_scope_omitted",
                     "unverified_negative_scope_claim",
+                    "non_full_negative_scope_rejection",
+                    "partial_tender_parts_unavailable",
+                    "partial_suitable_parts_missing",
+                    "invalid_suitable_part",
+                    "incomplete_database_source",
                 }
             ],
             missing_required_evidence=list(
@@ -536,6 +558,98 @@ class IsbakDeterministicValidator:
             criterion_assessments=criterion_assessments,
             negative_scope=negative_scope,
         )
+
+    @staticmethod
+    def _append_partial_tender_issues(
+        *,
+        primary_decision: ModelDecision,
+        validation_context: DecisionValidationContext,
+        source: str,
+        issues: list[ValidationIssue],
+        warnings: list[str],
+    ) -> None:
+        """Kısmi teklif kararını gerçek kısım listesine bağlar."""
+
+        if not validation_context.partial_offer:
+            if primary_decision.uygun_kisimlar:
+                message = "Kısmi teklif olmayan ihalede uygun_kisimlar üretildi."
+                warnings.append(message)
+                issues.append(
+                    ValidationIssue(
+                        code="parts_reported_for_non_partial_tender",
+                        message=message,
+                        severity="warning",
+                        source=source,
+                    )
+                )
+            return
+
+        if not validation_context.tender_parts:
+            issues.append(
+                ValidationIssue(
+                    code="partial_tender_parts_unavailable",
+                    message=(
+                        "İhale kısmi teklife açık, ancak kısım listesi gerçek kaynak "
+                        "metninden güvenilir biçimde çıkarılamadı."
+                    ),
+                    severity="blocking",
+                    source=source,
+                )
+            )
+            return
+
+        if (
+            primary_decision.decision in {"uygun", "inceleme_gerekli"}
+            and not primary_decision.uygun_kisimlar
+        ):
+            issues.append(
+                ValidationIssue(
+                    code="partial_suitable_parts_missing",
+                    message=(
+                        "Kısmi ihalede olumlu veya incelemelik faaliyet sonucu verildi, "
+                        "ancak uygun_kisimlar belirtilmedi."
+                    ),
+                    severity="blocking",
+                    source=source,
+                )
+            )
+
+        known_numbers = {
+            str(item.get("kisim_no") or "").strip().casefold()
+            for item in validation_context.tender_parts
+            if str(item.get("kisim_no") or "").strip()
+        }
+        known_names = {
+            " ".join(str(item.get("kisim_adi") or "").split()).strip().casefold()
+            for item in validation_context.tender_parts
+            if str(item.get("kisim_adi") or "").strip()
+        }
+        for part in primary_decision.uygun_kisimlar:
+            part_number = part.part_number.strip().casefold()
+            part_name = " ".join(part.part_name.split()).strip().casefold()
+            matches_source = (
+                bool(part_number and part_number in known_numbers)
+                or bool(
+                    part_name
+                    and any(
+                        part_name in known_name or known_name in part_name
+                        for known_name in known_names
+                    )
+                )
+            )
+            if not matches_source:
+                issues.append(
+                    ValidationIssue(
+                        code="invalid_suitable_part",
+                        message=(
+                            "Modelin uygun gösterdiği kısım gerçek kısım listesinde "
+                            f"bulunamadı: {part.part_number} {part.part_name}".strip()
+                        ),
+                        severity="blocking",
+                        source=source,
+                        related_chunk_ids=list(part.evidence_chunk_ids),
+                    )
+                )
 
     def _assess_criteria(
         self,

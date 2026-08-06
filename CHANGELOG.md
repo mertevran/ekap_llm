@@ -2,6 +2,12 @@
 
 ## Güncel geliştirmeler
 
+- Karar bağlamı için PostgreSQL kaynak yenilemesi eklendi; gerçek ihale türü, bütün OKAS kayıtları, kısmi teklif bilgisi, kaynak izli kısımlar ve teknik özellikler modele taşınıyor.
+- Kısmi ihalelerde `uygun_kisimlar` sözleşmesi ve kaynak kısım doğrulaması eklendi.
+- Olumlu kararlar zorunlu insan onayına bağlandı; bütün otomatik işlem izinleri kapatıldı.
+- Düzenli ifade ön filtresi sonrasında açık vakada 1, belirsiz vakada 3, karma/kısmi vakada 4 kanıt seçimi eklendi.
+- Kısa v4 model çıktı sözleşmesi, insan etiketli karar ölçümü ve hedef sunucu kapasite/dayanıklılık koşucusu eklendi.
+
 - Ana karar zinciri Qwen + Python doğrulaması kullanan tek modelli yapıya geçirildi; Gemma artık Aşama 4 çalıştırıcısında yüklenmiyor.
 - Profil negatif terimleri ihale başlığı, OKAS ve gerçek kanıt parçalarıyla Python katmanında doğrulanır hâle getirildi.
 - Faaliyet uygunluğu ile belge/personel/iş deneyimi gibi katılım yeterliliği alanları karar ve raporlarda ayrıldı.

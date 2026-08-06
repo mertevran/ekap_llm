@@ -86,9 +86,22 @@ class TenderDocumentBuilder:
                 "ihale_turu": display_value(getattr(tender, "ihale_turu", None)),
                 "ihale_usulu": display_value(getattr(tender, "ihale_usulu", None)),
                 "ihale_durumu": display_value(getattr(tender, "ihale_durumu", None)),
+                "takip_durumu": display_value(getattr(tender, "takip_durumu", None)),
+                "kismi_teklif": getattr(tender, "kismi_teklif", None),
+                "e_ihale": getattr(tender, "e_ihale", None),
+                "kapsam": normalize_text(getattr(tender, "kapsam", "")),
                 "idare_adi": authority_name,
                 "il": display_value(getattr(tender, "il", None)),
                 "updated_at": iso_value(getattr(tender, "updated_at", None)),
+                "okas_codes": [
+                    {
+                        "kod": normalize_text(getattr(item, "kod", "")),
+                        "ad": normalize_text(getattr(item, "ad", "")),
+                    }
+                    for item in (getattr(tender, "okas_codes", []) or [])
+                    if normalize_text(getattr(item, "kod", ""))
+                    or normalize_text(getattr(item, "ad", ""))
+                ],
             },
         }
 

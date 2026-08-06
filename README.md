@@ -42,7 +42,8 @@ Sistem, yapay zeka halüsinasyonlarını (uydurmalarını) en aza indirmek ve ku
 graph TD
     A[PostgreSQL - Ham Veri] --> B(Parçalama & FAISS İndeksleme)
     B -->|BGE-M3 & FAISS IndexFlatIP| C[İSBAK Profil Yönlendirici]
-    C -->|Bağlam & Yeterlilikler| D(Karar Motoru: qwen3.5:4b-q4_K_M)
+    C -->|Aday İKN| H[PostgreSQL - Gerçek Kaynak Yenilemesi]
+    H -->|Tür, OKAS, Kısım, Teknik Özellik| D(Karar Motoru: qwen3.5:4b-q4_K_M)
     
     D -->|Qwen Çıktısı| E{Python İş Kuralları Doğrulayıcısı}
     E -->|Doğrulama Geçti| F[Nihai Karar Raporu]
@@ -63,12 +64,13 @@ graph TD
 1. **Veri Okuma Katmanı:** PostgreSQL'den ihaleye ait ham özellik, OKAS ve onay verilerini okur (Salt-Okunur).
 2. **İndeksleme Katmanı:** Doğal veritabanı yapısı korunarak (Özet, Kapsam, Karakteristikler vb.) bölüm farkındalıklı parçalama yapılır ve `BAAI/bge-m3` modeliyle vektörize edilerek atomik şekilde **FAISS** indeksine yazılır.
 3. **Profil Arama (Retrieval):** İSBAK profilleri (YAZILIM, DONANIM, ARGE vb.) üzerinden FAISS'te anlamsal arama yapılarak ilgili aday ihaleler bulunur.
-4. **Karar Motoru (qwen3.5:4b-q4_K_M):** İlgili profildeki kurumsal yeterliliklerin, ihalenin şartlarını karşılayıp karşılamadığını değerlendirir.
-5. **Python Kural Doğrulayıcısı (IsbakDeterministicValidator):** Model kararını geçerli parça kimlikleriyle denetler; negatif profil terimlerini ihale başlığı, OKAS kodları ve gerçek kanıt parçaları üzerinden bağımsız olarak doğrular.
-6. **Güven Kalibrasyonu:** Modelin ham güven puanı; kanıt sayısı, kullanılan kanıtlar, faaliyet eşleşmesi, aday getirme puanı ve doğrulama sorunlarına göre yalnızca aşağı yönlü sınırlandırılır.
-7. **Faaliyet–Katılım Ayrımı:** Nihai etiket faaliyet kapsamını gösterir. Belge, personel ve iş deneyimi gibi doğrulanamayan katılım şartları ayrı alanlarda tutulur ve tek başına faaliyet kararını değiştirmez.
-8. **İnsan İncelemesi:** Qwen kararsız kaldığında veya Python doğrulaması kritik sorun bulduğunda karar `inceleme_gerekli` olur.
-9. **Raporlama:** Profil–ihale adayları, benzersiz ihale adayları, kararlar ve insan inceleme kayıtları ayrı **JSONL/CSV** çıktılarında saklanır.
+4. **Kaynak Yenilemesi:** Aday İKN model çağrısından önce PostgreSQL'den yeniden okunur. Gerçek ihale türü, bütün OKAS kodları, kısmi teklif bilgisi, çıkarılabilen kısım listesi ve bütün teknik özellikler karar bağlamına eklenir.
+5. **Karar Motoru (qwen3.5:4b-q4_K_M):** Faaliyet uygunluğunu değerlendirir; katılım yeterliliğini ayrı alanlarda raporlar.
+6. **Python Kural Doğrulayıcısı (IsbakDeterministicValidator):** Model kararını geçerli parça kimlikleriyle denetler; negatif profil terimlerini ihale başlığı, OKAS kodları ve gerçek kanıt parçaları üzerinden bağımsız olarak doğrular.
+7. **Güven Kalibrasyonu:** Modelin ham güven puanı; kanıt sayısı, kullanılan kanıtlar, faaliyet eşleşmesi, aday getirme puanı ve doğrulama sorunlarına göre yalnızca aşağı yönlü sınırlandırılır.
+8. **Faaliyet–Katılım Ayrımı:** Nihai etiket faaliyet kapsamını gösterir. Belge, personel ve iş deneyimi gibi doğrulanamayan katılım şartları ayrı alanlarda tutulur ve tek başına faaliyet kararını değiştirmez.
+9. **İnsan Kapısı:** `inceleme_gerekli` kararları insan incelemesine, `uygun` kararları zorunlu insan onayına gider. Otomatik işlem izni bütün sonuçlarda kapalıdır.
+10. **Raporlama:** Profil–ihale adayları, benzersiz ihale adayları, iç kararlar, kısa dış sözleşme ve insan işlem kuyruğu ayrı dosyalarda saklanır.
 
 ---
 
@@ -146,13 +148,13 @@ pip install -e ".[dev]"
 ```bash
 cp .env.example .env
 ```
-`.env` dosyanızı kendi ortamınıza (PostgreSQL ve Ollama host bilgileri) göre düzenleyin. 
+`.env` dosyanızı kendi ortamınıza (PostgreSQL ve Ollama sunucu bilgileri) göre düzenleyin. 
 
 ---
 
 ## 💻 Kullanım
 
-## 2. PostgreSQL to FAISS İndeksleme (Aktif İhaleler)
+### 1. PostgreSQL'den FAISS'e Aktif İhale İndeksleme
 
 Ekap ihalelerinin güncel aktif listesi PostgreSQL'den okunarak `BGE-M3` modelinden geçirilir ve **FAISS** indeksine aktarılır. `SectionAwareChunker` ile parçalanan ihale verileri `faiss-cpu` kullanılarak depolanır. İndeksleme süreci durumları (processing, indexed, vb.) PostgreSQL'deki `software_tender_index_state` tablosu üzerinde tutulmaktadır.
 
@@ -161,7 +163,7 @@ Kullanımı:
 python scripts/build_active_tenders_faiss.py --recreate
 ```
 
-## 3. Kurulum ve Çalıştırmaur:
+İndeksi yeniden oluşturmadan güncellemek için:
 ```bash
 python scripts/build_active_tenders_faiss.py
 ```
@@ -173,12 +175,27 @@ python scripts/test_faiss_retrieval.py
 ```
 
 ### 3. Model Karar Zincirini Çalıştırma
-Aday ihaleleri LLM doğrulama zincirine sokarak nihai uygunluk kararlarını üretir:
+Aday ihaleleri gerçek PostgreSQL kayıtlarıyla yenileyerek karar zincirine sokar:
 ```bash
-python scripts/run_tender_decision_chain.py
+PYTHONPATH=. python scripts/run_database_tender_decision_chain.py \
+  --limit-per-profile 10 \
+  --max-decisions 10 \
+  --random-seed 20260806 \
+  --report-dir reports/database_decision_test
 ```
 
 `--max-decisions` benzersiz ihale kararlarını sınırlar; aynı İKN farklı profillerde görünse bile bir kez modele gönderilir.
+
+Yalnız bağlantı, şema ve kaynak yenilemesini model çağrısı olmadan denetlemek için:
+
+```bash
+PYTHONPATH=. python scripts/run_database_tender_decision_chain.py \
+  --retrieval-only \
+  --max-decisions 10 \
+  --report-dir reports/database_source_preflight
+```
+
+Eski `--source-mode faiss` yolu yalnız geçmiş karşılaştırmalarının yeniden üretimi için korunmuştur. Yeni karar testlerinde veritabanı giriş noktası kullanılmalıdır.
 
 ### Rapor Çıktıları
 Analiz tamamlandığında `reports/` klasörü altında şu temel çıktılar oluşur:
@@ -186,7 +203,10 @@ Analiz tamamlandığında `reports/` klasörü altında şu temel çıktılar ol
 - `profile_tender_candidates.jsonl`: profil bazlı ham aday satırları,
 - `unique_tender_candidates.jsonl`: birleştirilmiş benzersiz ihale adayları,
 - `tender_model_decisions.jsonl/csv`: tek ihale başına nihai karar,
-- `tender_review_required.csv`: yalnızca gerçek insan incelemesi gereken kararlar.
+- `tender_public_decisions.jsonl`: kısa ve insan onay kapılı dış çıktı,
+- `tender_review_required.csv`: yalnızca gerçek insan incelemesi gereken kararlar,
+- `tender_human_action_queue.csv`: insan incelemesi veya olumlu karar onayı bekleyen bütün kayıtlar,
+- `database_source_preflight.json`: kullanılan kaynak şeması ve eksik/aktif olmayan İKN denetimi.
 
 ---
 
@@ -194,13 +214,21 @@ Analiz tamamlandığında `reports/` klasörü altında şu temel çıktılar ol
 
 Kod kalitesini ve iş kurallarını test etmek için:
 
-**Uçtan Uca (E2E) ve Birim (Unit) Testleri:**
-*(Tüm testler FAISS mock'laması ve veritabanı yalıtımı ile çalışır)*
+**Uçtan uca ve birim testleri:**
+*(Temel testler FAISS taklidi ve veritabanı yalıtımı ile çalışır.)*
 ```bash
 PYTHONPATH=. pytest -q tests/unit/
 ```
 
-**Linter ve Tip Kontrolleri (Ruff & Mypy):**
+Canlı PostgreSQL kaynak bağlamı testi:
+
+```bash
+PYTHONPATH=. pytest -q tests/integration/test_database_decision_context_v4.py
+```
+
+İnsan etiketli karar ölçümü ve hedef sunucu kapasite koşuları için [veritabanı kaynaklı karar hattı belgesine](docs/DB_KAYNAKLI_KARAR_HATTI_V4.md) bakın.
+
+**Kod biçimi ve tür kontrolleri:**
 ```bash
 ruff check app scripts tests
 mypy app scripts tests
@@ -243,3 +271,5 @@ ekap_rag_3model/
 - **Ollama Bağımlılığı:** Qwen (`qwen3.5:4b-q4_K_M`) modelinin ilgili Ollama sunucusunda kurulu ve çalışır durumda olması zorunludur.
 - **Donanım İhtiyacı:** Sistem tamamen RAM (CPU) üzerinde çalışacak şekilde yapılandırılmıştır. Ekran kartı (GPU) kullanımı tamamen devredışı bırakılmıştır (`EMBEDDING_DEVICE=cpu`). BGE-M3 gömme modelinin çalışabilmesi için yeterli miktarda sistem belleğine (RAM) ihtiyaç vardır.
 - **Ağ İhtiyacı:** Güncel verilerin alınması için PostgreSQL sunucusuna erişim zorunludur (Testler hariç). Qdrant bağımlılığı kaldırılmış olup yalnızca FAISS kullanılmaktadır.
+- **Kısım Kaynağı:** Mevcut veritabanında ayrı bir kısım tablosu yoktur. Kısım başlıkları kapsam, ilan ve teknik özellik metinlerinden kaynak kimliği korunarak çıkarılır. Kısmi teklif açık olduğu hâlde liste güvenilir çıkarılamazsa sonuç `inceleme_gerekli` olur.
+- **Olumlu Karar Güvenliği:** `uygun` sonucu otomatik teklif veya başka bir işleme bağlanamaz; insan onayı zorunludur.

@@ -19,6 +19,7 @@ ParticipationStatus = Literal[
     "uygulanamaz",
 ]
 NegativeScopeType = Literal["none", "full", "mixed", "ambiguous"]
+HumanApprovalStatus = Literal["bekliyor", "gerekli_degil", "onaylandi", "reddedildi"]
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,16 @@ class CriterionResult:
     status: CriterionStatus
     evidence_chunk_ids: list[str] = field(default_factory=list)
     explanation: str = ""
+
+
+@dataclass(frozen=True)
+class SuitableTenderPart:
+    """Kısmi ihalede faaliyet kapsamıyla eşleşen kaynak izli kısım."""
+
+    part_number: str
+    part_name: str
+    evidence_chunk_ids: list[str] = field(default_factory=list)
+    reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -63,6 +74,7 @@ class ModelDecision:
     katilim_yeterliligi_durumu: ParticipationStatus = "dogrulanmadi"
     kritik_faaliyet_belirsizlikleri: list[str] = field(default_factory=list)
     dogrulanamayan_katilim_sartlari: list[str] = field(default_factory=list)
+    uygun_kisimlar: list[SuitableTenderPart] = field(default_factory=list)
 
     # Geriye dönük alanlar. Yeni kararda belirleyici olan alanlar yukarıdakilerdir.
     eksik_kanitlar: list[str] = field(default_factory=list)
@@ -92,6 +104,14 @@ class DecisionValidationContext:
     evidence_text_by_chunk: dict[str, str] = field(default_factory=dict)
     profile_signals: dict[str, Any] = field(default_factory=dict)
     retrieval_score: float = 0.0
+    partial_offer: bool = False
+    tender_parts: list[dict[str, str]] = field(default_factory=list)
+    technical_specifications: list[str] = field(default_factory=list)
+    source_origin: str = "faiss"
+    source_complete: bool = True
+    source_missing_fields: list[str] = field(default_factory=list)
+    evidence_strategy: str = "legacy"
+    selected_evidence_limit: int = 0
 
 
 @dataclass(frozen=True)
@@ -186,6 +206,8 @@ class FinalTenderDecision:
     participation_review_required: bool = False
     activity_decision: DecisionLabel = "inceleme_gerekli"
     activity_match: ActivityMatch = "belirsiz"
+    partial_offer: bool = False
+    suitable_parts: list[SuitableTenderPart] = field(default_factory=list)
     negative_scope_verified: bool = False
     matched_negative_terms: list[str] = field(default_factory=list)
     evaluated_profile_codes: list[str] = field(default_factory=list)
@@ -194,12 +216,16 @@ class FinalTenderDecision:
         default_factory=ConfidenceCalibration
     )
     validation_context: DecisionValidationContext | None = None
+    # ``uygun`` bir model sonucu olsa bile hiçbir otomatik aksiyon alınmaz.
+    human_approval_required: bool = False
+    human_approval_status: HumanApprovalStatus = "gerekli_degil"
+    automatic_action_allowed: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     def to_public_dict(self) -> dict[str, Any]:
-        """Arka uç ve ön yüz için sınırlı, temiz karar sözleşmesi."""
+        """Arka uç ve ön yüz için sınırlı, insan onay kapılı sözleşme."""
         from app.decision.public_response import build_public_decision_response
 
         return build_public_decision_response(self).to_dict()

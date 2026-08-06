@@ -18,6 +18,7 @@ class DecisionReporter:
         public_jsonl_path = self.output_dir / "tender_public_decisions.jsonl"
         csv_path = self.output_dir / "tender_model_decisions.csv"
         review_path = self.output_dir / "tender_review_required.csv"
+        human_action_path = self.output_dir / "tender_human_action_queue.csv"
 
         with open(jsonl_path, "w", encoding="utf-8") as f:
             for d in decisions:
@@ -25,7 +26,9 @@ class DecisionReporter:
 
         with open(public_jsonl_path, "w", encoding="utf-8") as f:
             for d in decisions:
-                f.write(json.dumps(d.to_public_dict(), ensure_ascii=False) + "\n")
+                f.write(
+                    json.dumps(d.to_public_dict(), ensure_ascii=False) + "\n"
+                )
 
         self._write_csv(csv_path, decisions)
         self._write_csv(
@@ -34,6 +37,14 @@ class DecisionReporter:
                 d
                 for d in decisions
                 if d.human_review_required or d.final_decision == "inceleme_gerekli"
+            ],
+        )
+        self._write_csv(
+            human_action_path,
+            [
+                d
+                for d in decisions
+                if d.human_review_required or d.human_approval_required
             ],
         )
 
@@ -50,6 +61,7 @@ class DecisionReporter:
                     "tender_name",
                     "authority_name",
                     "final_decision",
+                    "activity_decision",
                     "activity_match",
                     "primary_decision",
                     "secondary_decision",
@@ -68,11 +80,16 @@ class DecisionReporter:
                     "criterion_source_assessments",
                     "participation_status",
                     "participation_review_required",
+                    "partial_offer",
+                    "suitable_parts",
                     "validated_unverified_participation_requirements",
                     "model_reported_participation_gaps",
                     "missing_evidence",
                     "human_review_required",
                     "human_review_reason",
+                    "human_approval_required",
+                    "human_approval_status",
+                    "automatic_action_allowed",
                     "evaluated_at",
                 ]
             )
@@ -86,6 +103,7 @@ class DecisionReporter:
                         d.tender_name,
                         d.authority_name,
                         d.final_decision,
+                        d.activity_decision,
                         d.activity_match,
                         d.primary_model.decision,
                         sec_dec,
@@ -120,11 +138,27 @@ class DecisionReporter:
                         ),
                         d.katilim_yeterliligi_durumu,
                         d.participation_review_required,
+                        d.partial_offer,
+                        json.dumps(
+                            [
+                                {
+                                    "kisim_no": part.part_number,
+                                    "kisim_adi": part.part_name,
+                                    "evidence_chunk_ids": part.evidence_chunk_ids,
+                                    "gerekce": part.reason,
+                                }
+                                for part in d.suitable_parts
+                            ],
+                            ensure_ascii=False,
+                        ),
                         "|".join(d.dogrulanamayan_katilim_sartlari),
                         "|".join(d.optional_missing_evidence),
                         "|".join(missing),
                         d.human_review_required,
                         d.human_review_reason,
+                        d.human_approval_required,
+                        d.human_approval_status,
+                        d.automatic_action_allowed,
                         d.evaluated_at,
                     ]
                 )
