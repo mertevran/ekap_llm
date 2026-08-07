@@ -44,6 +44,7 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
         *,
         profile_code: str,
         limit: int | None = None,
+        allowed_ikns: set[str] | None = None,
     ) -> list[TenderSearchResult]:
         normalized_code = str(profile_code).strip().upper()
         if not normalized_code:
@@ -67,14 +68,39 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
                 f"Profil FAISS yük verisinde metin bulunamadı: {normalized_code}"
             )
 
+        subset_ids: list[int] | None = None
+        if allowed_ikns is not None:
+            normalized_allowed = {
+                self._normalize_ikn(value)
+                for value in allowed_ikns
+                if self._normalize_ikn(value)
+            }
+            if not normalized_allowed:
+                return []
+            subset_ids = [
+                int(faiss_id)
+                for faiss_id, payload in self.vector_store.payloads.items()
+                if self._normalize_ikn(payload.get("ikn")) in normalized_allowed
+            ]
+            if not subset_ids:
+                return []
+
         raw_by_chunk: dict[str, dict[str, Any]] = {}
         for faiss_id, _payload in profile_entries:
             vector = self._reconstruct_profile_vector(faiss_id)
-            raw_results = self.vector_store.search(
-                query_vector=vector,
-                limit=self.settings.faiss_search_top_k,
-                score_threshold=None,
-            )
+            if subset_ids is None:
+                raw_results = self.vector_store.search(
+                    query_vector=vector,
+                    limit=self.settings.faiss_search_top_k,
+                    score_threshold=None,
+                )
+            else:
+                raw_results = self.vector_store.search_subset(
+                    query_vector=vector,
+                    allowed_ids=subset_ids,
+                    limit=len(subset_ids),
+                    score_threshold=None,
+                )
             for result in raw_results:
                 chunk_key = self._chunk_key(result)
                 current = raw_by_chunk.get(chunk_key)
@@ -100,7 +126,10 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
             )
             if (
                 candidate is not None
-                and candidate.scores.final >= self.settings.minimum_final_score
+                and (
+                    subset_ids is not None
+                    or candidate.scores.final >= self.settings.minimum_final_score
+                )
             ):
                 candidates.append(candidate)
 
@@ -111,6 +140,10 @@ class ProfileVectorTenderMatcher(IsbakTenderRetriever):
             else self.settings.faiss_max_tenders_per_profile
         )
         return candidates[:effective_limit]
+
+    @staticmethod
+    def _normalize_ikn(value: Any) -> str:
+        return "".join(str(value or "").upper().split())
 
     def _validate_stores(self) -> None:
         if not self.vector_store.collection_exists():

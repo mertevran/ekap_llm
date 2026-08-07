@@ -97,5 +97,5 @@ def test_schema_limits_present():
 
 def test_qwen_num_predict_default():
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    # Kısa v4 sözleşmesi için varsayılan üretim bütçesi düşürülmüştür.
-    assert model.qwen_num_predict == 700
+    # Bu sürümün kısa v4 sözleşmesi 512 token üretim bütçesi kullanır.
+    assert model.qwen_num_predict == 512

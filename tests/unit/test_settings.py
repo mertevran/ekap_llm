@@ -11,7 +11,7 @@ def test_settings_load_successfully() -> None:
     settings = get_settings()
 
     assert settings.app_name
-    assert settings.database_port == 5432
+    assert settings.database_port == 5433
     assert settings.embedding_model == "BAAI/bge-m3"
     assert settings.qwen_model == "qwen3.5:4b-q4_K_M"
     assert settings.gemma_model == "gemma4:e2b-it-q4_K_M"

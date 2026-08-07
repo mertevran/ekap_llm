@@ -16,6 +16,7 @@
 ## 📖 İçindekiler
 - [Projenin Amacı](#-projenin-amacı)
 - [Mimari ve Akış](#-mimari-ve-akış)
+- [SQL Encoder](#-sql-encoder)
 - [Temel Özellikler](#-temel-özellikler)
 - [Karar Sınıfları](#-karar-sınıfları)
 - [Kurulum](#-kurulum)
@@ -40,8 +41,11 @@ Sistem, yapay zeka halüsinasyonlarını (uydurmalarını) en aza indirmek ve ku
 
 ```mermaid
 graph TD
+    J[Doğal dilde ihale seçme isteği] --> K[SQL Encoder]
+    K --> L[PostgreSQL - Salt okunur seçim]
     A[PostgreSQL - Ham Veri] --> B(Parçalama & FAISS İndeksleme)
     B -->|BGE-M3 & FAISS IndexFlatIP| C[İSBAK Profil Yönlendirici]
+    L -->|Seçilen İKN kümesi| C
     C -->|Aday İKN| H[PostgreSQL - Gerçek Kaynak Yenilemesi]
     H -->|Tür, OKAS, Kısım, Teknik Özellik| D(Karar Motoru: qwen3.5:4b-q4_K_M)
     
@@ -71,6 +75,29 @@ graph TD
 8. **Faaliyet–Katılım Ayrımı:** Nihai etiket faaliyet kapsamını gösterir. Belge, personel ve iş deneyimi gibi doğrulanamayan katılım şartları ayrı alanlarda tutulur ve tek başına faaliyet kararını değiştirmez.
 9. **İnsan Kapısı:** `inceleme_gerekli` kararları insan incelemesine, `uygun` kararları zorunlu insan onayına gider. Otomatik işlem izni bütün sonuçlarda kapalıdır.
 10. **Raporlama:** Profil–ihale adayları, benzersiz ihale adayları, iç kararlar, kısa dış sözleşme ve insan işlem kuyruğu ayrı dosyalarda saklanır.
+
+---
+
+## 🔐 SQL Encoder
+
+SQL Encoder (SQL kodlayıcı), kullanıcının doğal dildeki ihale seçme isteğini güvenli bir PostgreSQL sorgusuna dönüştürür. Ayrı sunucu veya istemci katmanı yoktur; karar zinciri `app/sql_encoder` servisini aynı Python süreci içinde doğrudan çağır.
+
+Qwen serbest SQL yazmaz. Yalnız durum, sonuç sayısı, rastgele sıralama, il, ihale türü, idare, anahtar kelime, OKAS ön eki ve tarih aralığından oluşan tipli arama niyetini üretir. Python bu niyetten parametreli `SELECT` sorgusu derler; SQLGlot AST (soyut sözdizim ağacı) denetimi ve salt okunur PostgreSQL işlemi sorguyu ikinci kez sınırlar.
+
+Aktif seçimde durum filtresine ek olarak `ihale_tarihi >= CURRENT_TIMESTAMP` koşulu zorunludur. SQL ile seçilen İKN'ler FAISS içindeki alt kümeye uygulanır; seçili bir İKN indekste yoksa karar zinciri başlatılmaz.
+
+### Eski tam FAISS indeksini kullanma
+
+Bulduğunuz tam ihale indeksi ile ona ait payload (yük/metadata) dosyası birlikte şu konumda bulunmalıdır:
+
+```text
+storage/faiss/ekap_tender_chunks.index
+storage/faiss/ekap_tender_chunks_payloads.pkl
+```
+
+Yalnız `.index` dosyası yeterli değildir. Profil araması için `storage/faiss_profiles/isbak_company_profiles.index` ve eş payload dosyası da korunmalıdır. Mevcut tam indeks kullanılıyorsa `--recreate` çalıştırılmamalıdır.
+
+Ayrıntılı mimari ve kabul testleri: [SQL Encoder V1](docs/SQL_ENCODER_V1.md).
 
 ---
 
@@ -197,6 +224,29 @@ PYTHONPATH=. python scripts/run_database_tender_decision_chain.py \
 
 Eski `--source-mode faiss` yolu yalnız geçmiş karşılaştırmalarının yeniden üretimi için korunmuştur. Yeni karar testlerinde veritabanı giriş noktası kullanılmalıdır.
 
+### 4. SQL Encoder ile İhale Seçme
+
+Yalnız güvenli SQL seçimini doğrulamak için:
+
+```bash
+PYTHONPATH=. python -u scripts/check_sql_encoder.py \
+  --request "Aktif durumdaki 5 rastgele ihaleyi getir." \
+  --random-seed 20260806
+```
+
+Seçilen ihaleleri mevcut tek-model karar hattına aktarmak için:
+
+```bash
+RUN_TIME=$(date +%Y%m%d_%H%M%S)
+PYTHONPATH=. python -u scripts/run_sql_encoder_tender_decision_chain.py \
+  --request "Aktif durumdaki 5 rastgele ihaleyi getir." \
+  --selection-random-seed 20260806 \
+  --report-dir "reports/sql_encoder_full_${RUN_TIME}" \
+  -- --log-level INFO
+```
+
+Model kararını çalıştırmadan PostgreSQL → SQL Encoder → FAISS aktarımını denetlemek için son komuta `-- --retrieval-only --log-level INFO` ekleyin.
+
 ### Rapor Çıktıları
 Analiz tamamlandığında `reports/` klasörü altında şu temel çıktılar oluşur:
 
@@ -207,6 +257,8 @@ Analiz tamamlandığında `reports/` klasörü altında şu temel çıktılar ol
 - `tender_review_required.csv`: yalnızca gerçek insan incelemesi gereken kararlar,
 - `tender_human_action_queue.csv`: insan incelemesi veya olumlu karar onayı bekleyen bütün kayıtlar,
 - `database_source_preflight.json`: kullanılan kaynak şeması ve eksik/aktif olmayan İKN denetimi.
+- `sql_encoder_selection.json`: parametreli SQL ve seçilen İKN'ler,
+- `sql_encoder_selection_coverage.json`: seçilen İKN'lerin FAISS kapsamı.
 
 ---
 
@@ -226,12 +278,18 @@ Canlı PostgreSQL kaynak bağlamı testi:
 PYTHONPATH=. pytest -q tests/integration/test_database_decision_context_v4.py
 ```
 
+SQL Encoder canlı PostgreSQL bütünleşme testi:
+
+```bash
+PYTHONPATH=. pytest -q -m external tests/integration/test_sql_encoder_database.py
+```
+
 İnsan etiketli karar ölçümü ve hedef sunucu kapasite koşuları için [veritabanı kaynaklı karar hattı belgesine](docs/DB_KAYNAKLI_KARAR_HATTI_V4.md) bakın.
 
 **Kod biçimi ve tür kontrolleri:**
 ```bash
 ruff check app scripts tests
-mypy app scripts tests
+mypy --follow-imports silent app/sql_encoder
 ```
 
 ---
@@ -245,6 +303,7 @@ ekap_rag_3model/
 │   ├── database/            # PostgreSQL repository sınıfları
 │   ├── decision/            # LLM Karar modelleri ve Python Doğrulayıcısı
 │   ├── indexing/            # Parçalama ve Hash üreteçleri
+│   ├── sql_encoder/         # Güvenli doğal dil → SQL seçim katmanı
 │   ├── pipeline/            # Ana analiz akışını yöneten servisler
 │   ├── profiles/            # İSBAK Şirket Profil yöneticileri
 │   ├── reporting/           # JSON ve CSV rapor çıktı üreticileri
@@ -254,6 +313,8 @@ ekap_rag_3model/
 │   ├── audit_chunking.py                # Parçalama denetim aracı
 │   ├── audit_postgresql_tenders.py      # PostgreSQL veri şeması analiz aracı
 │   ├── build_active_tenders_faiss.py    # İhaleleri vektörize eden ana betik
+│   ├── check_sql_encoder.py              # SQL Encoder duman testi
+│   ├── run_sql_encoder_tender_decision_chain.py  # SQL seçimi + karar zinciri
 │   ├── run_tender_decision_chain.py     # LLM karar zincirini çalıştıran betik
 │   └── test_faiss_retrieval.py          # Arama algoritmalarını test eden betik
 ├── tests/

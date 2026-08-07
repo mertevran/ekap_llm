@@ -46,6 +46,12 @@ def main() -> int:
     parser.add_argument("--start-offset", type=int, default=0, help="Başlangıç ofseti")
     parser.add_argument("--collection", default="ekap_tender_chunks", help="FAISS koleksiyon adı")
     parser.add_argument("--faiss-path", default="storage/faiss", help="FAISS depolama dizini")
+    parser.add_argument(
+        "--device",
+        choices=["cpu", "cuda"],
+        default=None,
+        help="Embedding (gömme) cihazı: cpu veya cuda. Belirtilmezse ayarlardaki değer kullanılır.",
+    )
     args = parser.parse_args()
 
     # Çevre kontrolü
@@ -73,7 +79,22 @@ def main() -> int:
 
         settings = get_settings()
         model_name = settings.embedding_model
-        device = settings.embedding_device
+        device = args.device or settings.embedding_device
+
+        if device == "cuda" and not args.dry_run:
+            try:
+                import torch
+            except ImportError as exc:
+                raise RuntimeError(
+                    "CUDA istendi ancak PyTorch kurulu değil."
+                ) from exc
+
+            if not torch.cuda.is_available():
+                raise RuntimeError(
+                    "CUDA istendi ancak PyTorch kullanılabilir bir CUDA GPU göremiyor."
+                )
+
+            print(f"  CUDA GPU: {torch.cuda.get_device_name(0)}")
 
         repository = TenderRepository()
         document_builder = TenderDocumentBuilder()
@@ -97,6 +118,7 @@ def main() -> int:
 
         print(f"[{datetime.now().isoformat()}] FAISS indeksleme başlıyor...")
         print(f"  Limit: {args.limit}, Dry-run: {args.dry_run}, Recreate: {args.recreate}")
+        print(f"  Embedding cihazı: {device}")
 
         stats = indexer.run(
             limit=args.limit,

@@ -1,5 +1,13 @@
 # Değişiklik Günlüğü
 
+## 1.1.0 — Doğrudan SQL Encoder
+
+- Doğal dildeki ihale seçme isteğini tipli arama niyetine dönüştüren SQL Encoder eklendi.
+- Python tarafında parametreli `SELECT` derleyicisi, SQLGlot AST (soyut sözdizim ağacı) denetimi ve salt okunur PostgreSQL işlemi eklendi.
+- Ayrı sunucu veya istemci katmanı olmadan SQL Encoder doğrudan mevcut karar zincirine bağlandı.
+- SQL ile seçilen İKN'leri mevcut FAISS indeksi içinde sınırlayan alt-küme araması ve eksiksiz kapsam kapısı eklendi.
+- Mevcut tek-model karar mantığı, profil yapısı, PostgreSQL kaynak yenilemesi ve FAISS dosya biçimi korunmuştur.
+
 ## Güncel geliştirmeler
 
 - Karar bağlamı için PostgreSQL kaynak yenilemesi eklendi; gerçek ihale türü, bütün OKAS kayıtları, kısmi teklif bilgisi, kaynak izli kısımlar ve teknik özellikler modele taşınıyor.

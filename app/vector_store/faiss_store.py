@@ -207,6 +207,87 @@ class FaissVectorStore:
             self.index.remove_ids(id_selector)
             self._save()
 
+    def reconstruct_vector(self, faiss_id: int) -> list[float]:
+        """Dış FAISS kimliğine ait vektörü güvenli biçimde yeniden oluşturur."""
+
+        if self.index is None:
+            raise RuntimeError("Koleksiyon belleğe yüklenemedi.")
+        if faiss_id not in self.payloads:
+            raise KeyError(f"FAISS kimliği yük verisinde bulunamadı: {faiss_id}")
+
+        if hasattr(self.index, "id_map"):
+            external_ids = faiss.vector_to_array(self.index.id_map)
+            positions = np.flatnonzero(external_ids == int(faiss_id))
+            if positions.size == 0:
+                raise KeyError(f"FAISS kimliği indeks içinde bulunamadı: {faiss_id}")
+            vector = self.index.index.reconstruct(int(positions[0]))
+        else:
+            vector = self.index.reconstruct(int(faiss_id))
+
+        return np.asarray(vector, dtype=np.float32).tolist()
+
+    def search_subset(
+        self,
+        *,
+        query_vector: list[float],
+        allowed_ids: Iterable[int],
+        limit: int,
+        score_threshold: float | None = None,
+    ) -> list[dict[str, Any]]:
+        """Yalnız verilen FAISS kimlikleri içinde tam kosinüs araması yapar."""
+
+        if limit <= 0:
+            raise ValueError("limit pozitif olmalıdır.")
+        if self.index is None or self.index.ntotal == 0:
+            return []
+
+        normalized_ids = list(
+            dict.fromkeys(
+                int(faiss_id)
+                for faiss_id in allowed_ids
+                if int(faiss_id) in self.payloads
+            )
+        )
+        if not normalized_ids:
+            return []
+
+        query = np.asarray(query_vector, dtype=np.float32).reshape(1, -1)
+        if query.shape[1] != self.index.d:
+            raise ValueError(
+                "Sorgu vektör boyutu koleksiyonla uyuşmuyor: "
+                f"sorgu={query.shape[1]}, koleksiyon={self.index.d}"
+            )
+        faiss.normalize_L2(query)
+
+        matrix = np.vstack(
+            [
+                np.asarray(self.reconstruct_vector(faiss_id), dtype=np.float32)
+                for faiss_id in normalized_ids
+            ]
+        )
+        faiss.normalize_L2(matrix)
+        scores = matrix @ query[0]
+        ranked = sorted(
+            zip(normalized_ids, scores, strict=True),
+            key=lambda item: (-float(item[1]), item[0]),
+        )
+
+        results: list[dict[str, Any]] = []
+        for faiss_id, score_value in ranked:
+            score = float(score_value)
+            if score_threshold is not None and score < score_threshold:
+                continue
+            results.append(
+                {
+                    "id": str(faiss_id),
+                    "score": score,
+                    "payload": self.payloads[faiss_id],
+                }
+            )
+            if len(results) >= limit:
+                break
+        return results
+
     def search(
         self,
         *,

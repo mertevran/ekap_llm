@@ -398,6 +398,93 @@ class TenderRepository:
             if detailed:
                 yield detailed
 
+    def count_unindexed_active_tenders(self) -> int:
+        """
+        Aktif olup llm_rag.tender_index_state tablosunda henüz kaydı
+        bulunmayan ihale sayısını döndürür.
+        """
+        from app.config import get_settings
+
+        settings = get_settings()
+        statuses = settings.active_tender_status_values
+
+        query = """
+            SELECT COUNT(*)
+            FROM public.tenders t
+            LEFT JOIN llm_rag.tender_index_state s
+                ON s.tender_id = t.id
+            WHERE t.ihale_durumu = ANY(%s::text[])
+              AND s.tender_id IS NULL
+        """
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, (statuses,))
+                row = cursor.fetchone()
+
+        return int(row[0])
+
+    def iter_unindexed_active_tender_batches(
+        self,
+        *,
+        batch_size: int = 25,
+        limit: int | None = None,
+        start_offset: int = 0,
+    ) -> Iterator[list[TenderRecord]]:
+        """
+        Aktif olup llm_rag.tender_index_state tablosunda hiç kaydı bulunmayan
+        ihaleleri ayrıntılarıyla birlikte gruplar hâlinde döndürür.
+        """
+        if batch_size <= 0:
+            raise ValueError("batch_size pozitif olmalıdır.")
+        if limit is not None and limit <= 0:
+            raise ValueError("limit pozitif olmalıdır.")
+        if start_offset < 0:
+            raise ValueError("start_offset negatif olamaz.")
+
+        from app.config import get_settings
+
+        settings = get_settings()
+        statuses = settings.active_tender_status_values
+
+        query = """
+            SELECT t.ikn
+            FROM public.tenders t
+            LEFT JOIN llm_rag.tender_index_state s
+                ON s.tender_id = t.id
+            WHERE t.ihale_durumu = ANY(%s::text[])
+              AND s.tender_id IS NULL
+            ORDER BY
+                t.updated_at DESC NULLS LAST,
+                t.ihale_tarihi DESC NULLS LAST,
+                t.ikn ASC,
+                t.id ASC
+            OFFSET %s
+        """
+
+        parameters: list[object] = [statuses, start_offset]
+
+        if limit is not None:
+            query += "\nLIMIT %s"
+            parameters.append(limit)
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query, parameters)
+                rows = cursor.fetchall()
+
+        ikns = [
+            str(row[0]).strip()
+            for row in rows
+            if row and row[0] is not None and str(row[0]).strip()
+        ]
+
+        for start in range(0, len(ikns), batch_size):
+            group_ikns = ikns[start : start + batch_size]
+            detailed = self.get_by_ikns(group_ikns)
+            if detailed:
+                yield detailed
+
     @staticmethod
     def _read_announcements_for_tenders(
         *,
