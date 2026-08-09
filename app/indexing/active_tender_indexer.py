@@ -165,6 +165,7 @@ class ActiveTenderIndexer:
             )
 
             batch_number = 0
+            collection_ensured = False
 
             for tenders in self.repository.iter_active_tender_batches(
                 batch_size=self.database_batch_size,
@@ -172,6 +173,11 @@ class ActiveTenderIndexer:
                 start_offset=start_offset,
             ):
                 batch_number += 1
+
+                # Sınırlı bellek optimizasyonu (Bounded-memory)
+                successful_tenders_to_mark = []
+                all_records_for_faiss = []
+                tenders_to_delete = []
 
                 for tender in tenders:
                     source_hash = generate_source_hash(tender)
@@ -337,6 +343,40 @@ class ActiveTenderIndexer:
                             if not self.continue_on_error:
                                 raise
 
+                # Batch FAISS commit
+                if not dry_run and self.vector_store is not None:
+                    try:
+                        if tenders_to_delete or all_records_for_faiss:
+                            if not collection_ensured:
+                                self.vector_store.ensure_collection(
+                                    vector_size=self.embedder.vector_size if self.embedder else 1024,
+                                    recreate=recreate,
+                                )
+                                collection_ensured = True
+
+                            points_count = self.vector_store.replace_tenders_records(
+                                tender_ids_to_remove=tenders_to_delete,
+                                new_records=all_records_for_faiss,
+                            )
+                            stats.indexed_point_count += len(all_records_for_faiss)
+
+                        # Yalnızca FAISS yazımı başarılı olduğunda indexed işaretle
+                        for t_id, c_count, e_model, v_coll in successful_tenders_to_mark:
+                            state_repo.mark_indexed(
+                                tender_id=t_id,
+                                chunk_count=c_count,
+                                embedding_model=e_model,
+                                vector_collection=v_coll,
+                            )
+                    except Exception as faiss_exc:
+                        print(f"Batch FAISS yazımı başarısız oldu: {faiss_exc}")
+                        # FAISS hatasında state indexed yapılmaz, failed işaretlenir.
+                        for t_id, _, _, _ in successful_tenders_to_mark:
+                            state_repo.mark_failed(tender_id=t_id, error_message=str(faiss_exc))
+                            stats.failed_tender_count += 1
+                        if not self.continue_on_error:
+                            raise
+
                 stats.elapsed_seconds = round(time.perf_counter() - started, 3)
                 self._write_manifest(
                     stats=stats,
@@ -362,26 +402,12 @@ class ActiveTenderIndexer:
                     f"Parça: {stats.chunk_count}"
                 )
 
-            if not dry_run:
-                assert self.vector_store is not None
-                if all_records_for_faiss:
-                    self.vector_store.ensure_collection(
-                        vector_size=self.embedder.vector_size,
-                        recreate=recreate,
-                    )
+                # RAM Serbest Bırakma
+                successful_tenders_to_mark.clear()
+                all_records_for_faiss.clear()
+                tenders_to_delete.clear()
 
-                    if tenders_to_delete or all_records_for_faiss:
-                        stats.indexed_point_count = self.vector_store.replace_tenders_records(
-                            tender_ids_to_remove=tenders_to_delete,
-                            new_records=all_records_for_faiss,
-                        )
-                    for t_id, c_count, e_model, v_coll in successful_tenders_to_mark:
-                        state_repo.mark_indexed(
-                            tender_id=t_id,
-                            chunk_count=c_count,
-                            embedding_model=e_model,
-                            vector_collection=v_coll,
-                        )
+            if not dry_run and self.vector_store is not None:
                 self.vector_store.close()
                 stats.faiss_total_count = self.vector_store.count()
 

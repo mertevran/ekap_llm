@@ -1,0 +1,18 @@
+ActiveTenderIndexer için sınırlı bellekli grup işleme yapısını ekle
+
+- İhale indeksleme süreci batch (grup) bazlı çalışacak şekilde yeniden düzenlendi
+- Tüm VectorRecord kayıtlarının işlem sonuna kadar RAM'de tutulması engellendi
+- Varsayılan 25 ihalelik gruplar halinde FAISS yazımı uygulanmaya başlandı
+- Her grup tamamlandıktan sonra geçici kayıt listeleri temizlenerek RAM tüketimi düşürüldü
+- FAISS replace_tenders_records işlemi her grup sonunda çalışacak şekilde taşındı
+- Eski FAISS kayıtlarının yalnızca yeni kayıtlar başarıyla hazırlandığında değiştirilmesi korundu
+- Chunk veya embedding başarısızlığında mevcut FAISS kayıtlarının korunması devam ettirildi
+- FAISS yazımı başarısız olan grupların indexed olarak işaretlenmesi engellendi
+- Başarılı FAISS yazımı sonrasında index state güncellemesi yapılarak senkronizasyon güvenliği korundu
+- dry_run modunda ensure_collection, FAISS yazımı ve index state güncellemeleri engellendi
+- ensure_collection yalnızca gerçekten yazılacak kayıt bulunduğunda ve bir kez çağrılacak şekilde düzenlendi
+- Mevcut atomik FAISS değiştirme ve rollback güvenlik mekanizmaları korunarak RAM optimizasyonu uygulandı
+
+Tam test paketi 382 passed, 19 skipped, 0 failed sonucu verdi
+compileall kontrolü başarıyla tamamlandı
+git diff --check temiz sonuç verdi
