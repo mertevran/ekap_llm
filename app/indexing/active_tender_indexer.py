@@ -20,6 +20,7 @@ from app.vector_store import (
     VectorRecord,
     deterministic_point_id,
 )
+from app.vector_store.faiss_cache import FaissVectorCache
 
 if TYPE_CHECKING:
     from app.indexing.embedder import BgeM3Embedder
@@ -128,19 +129,19 @@ class ActiveTenderIndexer:
         stats = IndexingStats()
 
         state_repo = IndexStateRepository()
+        vector_cache = FaissVectorCache()
         successful_tenders_to_mark = []
         all_records_for_faiss: list[VectorRecord] = []
+        tenders_to_delete: list[str] = []
 
         try:
             active_snapshot_count = self.repository.count_active_tenders()
             stats.active_snapshot_count = active_snapshot_count
 
-            if recreate:
-                selected_count = max(0, active_snapshot_count - start_offset)
-            else:
-                unindexed_count = self.repository.count_unindexed_active_tenders()
-                selected_count = max(0, unindexed_count - start_offset)
-
+            selected_count = max(
+                0,
+                active_snapshot_count - start_offset,
+            )
             if limit is not None:
                 selected_count = min(selected_count, limit)
             stats.selected_tender_count = selected_count
@@ -165,20 +166,11 @@ class ActiveTenderIndexer:
 
             batch_number = 0
 
-            if recreate:
-                tender_batches = self.repository.iter_active_tender_batches(
-                    batch_size=self.database_batch_size,
-                    limit=limit,
-                    start_offset=start_offset,
-                )
-            else:
-                tender_batches = self.repository.iter_unindexed_active_tender_batches(
-                    batch_size=self.database_batch_size,
-                    limit=limit,
-                    start_offset=start_offset,
-                )
-
-            for tenders in tender_batches:
+            for tenders in self.repository.iter_active_tender_batches(
+                batch_size=self.database_batch_size,
+                limit=limit,
+                start_offset=start_offset,
+            ):
                 batch_number += 1
 
                 for tender in tenders:
@@ -218,15 +210,44 @@ class ActiveTenderIndexer:
                         continue
 
                     needs_processing = True
-
                     if (
                         not recreate
                         and state
                         and state.index_status == "indexed"
+                        and state.source_hash == source_hash
                     ):
-                        # Bu ihale daha önce başarıyla embedding edilip
-                        # FAISS'e yazılmıştır. Tekrar işleme alma.
-                        needs_processing = False
+                        if (
+                            state.chunking_version == self.chunker.chunking_version
+                            and state.embedding_model == model_name
+                            and state.embedding_version == "1.0"
+                            and state.index_version == INDEX_VERSION
+                            and state.cache_version == "1.0"
+                        ):
+                            cache_data = vector_cache.load(tender.id)
+                            if cache_data:
+                                manifest, chunks, vectors = cache_data
+                                if len(chunks) == len(vectors):
+                                    for chunk, vector in zip(chunks, vectors):
+                                        payload = {
+                                            **chunk,
+                                            "embedding_model": model_name,
+                                            "indexed_at": state.indexed_at.isoformat()
+                                            if state.indexed_at
+                                            else datetime.now(UTC).isoformat(),
+                                        }
+                                        all_records_for_faiss.append(
+                                            VectorRecord(
+                                                point_id=deterministic_point_id(
+                                                    "ekap_tender_chunk", chunk["chunk_id"]
+                                                ),
+                                                vector=vector.tolist(),
+                                                payload=payload,
+                                            )
+                                        )
+                                    stats.processed_tender_count += 1
+                                    stats.chunk_count += len(chunks)
+                                    needs_processing = False
+                                    tenders_to_delete.append(tender.id)
 
                     if needs_processing:
                         try:
@@ -253,14 +274,37 @@ class ActiveTenderIndexer:
                             chunks = self.chunker.chunk_document(document)
 
                             vectors = []
+                            if not chunks:
+                                raise ValueError(f"İhale {tender.ikn} için 0 chunk üretildi.")
+
                             if chunks and not dry_run:
                                 assert self.embedder is not None
                                 texts = [self._embedding_text(chunk) for chunk in chunks]
                                 vectors = self.embedder.embed(texts)
 
+                                if self.vector_store and self.vector_store.index:
+                                    if len(vectors[0]) != self.vector_store.index.d:
+                                        raise ValueError(
+                                            f"Vektör boyutu uyuşmazlığı: beklenen "
+                                            f"{self.vector_store.index.d}, alınan {len(vectors[0])}"
+                                        )
+
+                                vector_cache.save(
+                                    tender_id=tender.id,
+                                    ikn=tender.ikn,
+                                    source_hash=source_hash,
+                                    chunking_version=self.chunker.chunking_version,
+                                    embedding_model=model_name,
+                                    embedding_version="1.0",
+                                    vector_dimension=self.embedder.vector_size,
+                                    chunks=chunks,
+                                    vectors=vectors,
+                                )
+
                             successful_tenders_to_mark.append(
                                 (tender.id, len(chunks), model_name, collection_name)
                             )
+                            tenders_to_delete.append(tender.id)
 
                             for chunk, vector in zip(chunks, vectors):
                                 payload = {
@@ -325,9 +369,12 @@ class ActiveTenderIndexer:
                         vector_size=self.embedder.vector_size,
                         recreate=recreate,
                     )
-                    stats.indexed_point_count = self.vector_store.upsert_records(
-                        all_records_for_faiss, batch_size=self.faiss_batch_size
-                    )
+
+                    if tenders_to_delete or all_records_for_faiss:
+                        stats.indexed_point_count = self.vector_store.replace_tenders_records(
+                            tender_ids_to_remove=tenders_to_delete,
+                            new_records=all_records_for_faiss,
+                        )
                     for t_id, c_count, e_model, v_coll in successful_tenders_to_mark:
                         state_repo.mark_indexed(
                             tender_id=t_id,
@@ -383,6 +430,7 @@ class ActiveTenderIndexer:
                 },
             )
             raise
+
     def _log_exclusion(self, tender: Any, path_str: str, reason: str) -> None:
         path = Path(path_str)
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,34 +1,47 @@
-"""Unit testler — TenderProfileDecisionRepository (harici — DB gerektiriyor)."""
+"""Unit testler — TenderProfileDecisionRepository (mocked)."""
 
 from __future__ import annotations
 
 import pytest
-
-pytestmark = pytest.mark.external
-
+from unittest.mock import MagicMock, patch
 
 @pytest.fixture
-def repo():
+def mock_db_connection():
+    with patch("app.database.tender_profile_decision_repository.get_connection") as mock_get_conn:
+        mock_conn = MagicMock()
+        mock_get_conn.return_value.__enter__.return_value = mock_conn
+
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+
+        yield mock_cursor
+
+@pytest.fixture
+def repo(mock_db_connection):
     from app.database.tender_profile_decision_repository import (
         TenderProfileDecisionRepository,
     )
     return TenderProfileDecisionRepository()
 
+def test_get_existing_decision_not_found(repo, mock_db_connection):
+    mock_db_connection.fetchone.return_value = None
 
-def test_get_existing_decision_not_found(repo):
     result = repo.get_existing_decision(
         tender_id="NONEXISTENT_TENDER",
         profile_code="AUS-99",
         decision_version="v1",
     )
     assert result is None
+    mock_db_connection.execute.assert_called_once()
 
-
-def test_save_and_retrieve_completed(repo):
+def test_save_and_retrieve_completed(repo, mock_db_connection):
     from app.config.isbak_rag_settings import DECISION_VERSION
 
     tender_id = "TEST_TENDER_REPO_001"
     profile_code = "AUS-99"
+
+    # Simulate INSERT returning an ID
+    mock_db_connection.fetchone.return_value = (1,)
 
     row_id = repo.save_completed(
         tender_id=tender_id,
@@ -49,7 +62,13 @@ def test_save_and_retrieve_completed(repo):
         prompt_version="isbak_qwen_decision_v2",
         decision_version=DECISION_VERSION,
     )
-    assert row_id > 0
+    assert row_id == 1
+
+    # Simulate SELECT returning a row
+    mock_db_connection.fetchone.return_value = {
+        "final_decision": "uygun",
+        "processing_status": "completed"
+    }
 
     result = repo.get_existing_decision(
         tender_id=tender_id,
@@ -64,34 +83,17 @@ def test_save_and_retrieve_completed(repo):
     assert result["final_decision"] == "uygun"
     assert result["processing_status"] == "completed"
 
-    # Temizle
-    from app.database.connection import get_connection
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM llm_rag.tender_profile_decision WHERE tender_id = %s",
-                (tender_id,),
-            )
-            conn.commit()
-
-
-def test_save_failed(repo):
+def test_save_failed(repo, mock_db_connection):
     tender_id = "TEST_TENDER_FAILED_001"
+
+    # Simulate INSERT returning an ID
+    mock_db_connection.fetchone.return_value = (2,)
+
     row_id = repo.save_failed(
         tender_id=tender_id,
         profile_code="AUS-99",
         matching_mode="tender",
         error_message="Test hatası",
     )
-    # Satır oluşturulmuş olmalı (id > 0) veya zaten var (-1)
-    assert row_id != 0
-
-    # Temizle
-    from app.database.connection import get_connection
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM llm_rag.tender_profile_decision WHERE tender_id = %s",
-                (tender_id,),
-            )
-            conn.commit()
+    assert row_id == 2
+    mock_db_connection.execute.assert_called_once()

@@ -72,13 +72,40 @@ class FaissVectorStore:
 
             temp_index = self.index_file.with_suffix(".index.tmp")
             temp_payload = self.payload_file.with_suffix(".pkl.tmp")
+            bak_index = self.index_file.with_suffix(".index.bak")
+            bak_payload = self.payload_file.with_suffix(".pkl.bak")
 
+            # 1. Yazım aşaması
             faiss.write_index(self.index, str(temp_index))
             with open(temp_payload, "wb") as f:
                 pickle.dump({"payloads": self.payloads, "uuid_to_id": self.uuid_to_id}, f)
 
-            temp_index.replace(self.index_file)
-            temp_payload.replace(self.payload_file)
+            # 2. Kesinleştirme (Two-phase commit ve Rollback)
+            try:
+                if self.index_file.exists():
+                    self.index_file.replace(bak_index)
+                if self.payload_file.exists():
+                    self.payload_file.replace(bak_payload)
+
+                temp_index.replace(self.index_file)
+                temp_payload.replace(self.payload_file)
+
+                if bak_index.exists():
+                    bak_index.unlink()
+                if bak_payload.exists():
+                    bak_payload.unlink()
+            except Exception:
+                # Geri alma (Rollback)
+                if bak_index.exists():
+                    bak_index.replace(self.index_file)
+                if bak_payload.exists():
+                    bak_payload.replace(self.payload_file)
+
+                if temp_index.exists():
+                    temp_index.unlink()
+                if temp_payload.exists():
+                    temp_payload.unlink()
+                raise
 
     def close(self) -> None:
         self._save()
@@ -138,11 +165,23 @@ class FaissVectorStore:
         if batch_size <= 0:
             raise ValueError("batch_size pozitif olmalıdır.")
 
+        records_list = list(records)
+        if not records_list:
+            return 0
+
+        first_vec = records_list[0].vector
+        if self.index.d != len(first_vec):
+            raise ValueError(
+                f"Vektör boyutu uyuşmazlığı: beklenen {self.index.d}, "
+                f"alınan {len(first_vec)}"
+            )
+
         total = 0
         current_vectors = []
         current_ids = []
 
-        for record in records:
+        for record in records_list:
+            # Check duplicate chunk_ids in the incoming batch to be safe, though upstream shouldn't send them
             if record.point_id in self.uuid_to_id:
                 existing_id = self.uuid_to_id[record.point_id]
                 id_selector = faiss.IDSelectorBatch([existing_id])
@@ -177,24 +216,50 @@ class FaissVectorStore:
             ids = np.array(current_ids, dtype=np.int64)
             self.index.add_with_ids(vecs, ids)
 
-        self._save()
+        try:
+            self._save()
+        except Exception:
+            self._load()
+            raise
         return total
 
-    def delete_by_tender_id(
+    def replace_tenders_records(
         self,
-        tender_id: str,
-    ) -> None:
-        normalized_tender_id = str(tender_id).strip()
-        if not normalized_tender_id:
-            raise ValueError("tender_id boş olamaz.")
-
+        tender_ids_to_remove: list[str],
+        new_records: Iterable[VectorRecord],
+    ) -> int:
+        """Atomik ve güvenli bir şekilde eski ihaleleri siler ve yenilerini ekler."""
         if self.index is None:
-            return
+            raise RuntimeError("Koleksiyon oluşturulmadı.")
 
+        records_list = list(new_records)
+        if records_list:
+            first_vec = records_list[0].vector
+            if self.index.d != len(first_vec):
+                raise ValueError(
+                    f"Vektör boyutu uyuşmazlığı: beklenen {self.index.d}, "
+                    f"alınan {len(first_vec)}"
+                )
+
+            point_ids = []
+            chunk_ids = []
+            for r in records_list:
+                point_ids.append(r.point_id)
+                cid = r.payload.get("chunk_id")
+                if cid:
+                    chunk_ids.append(cid)
+
+            if len(point_ids) != len(set(point_ids)):
+                raise ValueError("Yeni FAISS kayıtlarında yinelenen point_id bulundu.")
+
+            if len(chunk_ids) != len(set(chunk_ids)):
+                raise ValueError("Yeni FAISS kayıtlarında yinelenen chunk_id bulundu.")
+
+        normalized_ids = {str(tid).strip() for tid in tender_ids_to_remove if str(tid).strip()}
         ids_to_remove = []
         for pid, payload in list(self.payloads.items()):
             t_id = str(payload.get("tender_id") or payload.get("ikn") or "").strip()
-            if t_id == normalized_tender_id:
+            if t_id in normalized_ids:
                 ids_to_remove.append(pid)
                 for uuid_str, val in list(self.uuid_to_id.items()):
                     if val == pid:
@@ -205,88 +270,103 @@ class FaissVectorStore:
         if ids_to_remove:
             id_selector = faiss.IDSelectorBatch(ids_to_remove)
             self.index.remove_ids(id_selector)
-            self._save()
 
-    def reconstruct_vector(self, faiss_id: int) -> list[float]:
-        """Dış FAISS kimliğine ait vektörü güvenli biçimde yeniden oluşturur."""
+        total_added = 0
+        current_vectors = []
+        current_ids = []
+        batch_size = 64
+
+        for record in records_list:
+            if record.point_id in self.uuid_to_id:
+                existing_id = self.uuid_to_id[record.point_id]
+                id_selector = faiss.IDSelectorBatch([existing_id])
+                self.index.remove_ids(id_selector)
+                if existing_id in self.payloads:
+                    del self.payloads[existing_id]
+                del self.uuid_to_id[record.point_id]
+
+            new_id = len(self.uuid_to_id) + 1
+            while new_id in self.payloads:
+                new_id += 1
+
+            self.uuid_to_id[record.point_id] = new_id
+            self.payloads[new_id] = record.payload
+
+            vec = np.array(record.vector, dtype=np.float32)
+            faiss.normalize_L2(vec.reshape(1, -1))
+
+            current_vectors.append(vec)
+            current_ids.append(new_id)
+            total_added += 1
+
+            if len(current_vectors) >= batch_size:
+                vecs = np.vstack(current_vectors)
+                ids = np.array(current_ids, dtype=np.int64)
+                self.index.add_with_ids(vecs, ids)
+                current_vectors.clear()
+                current_ids.clear()
+
+        if current_vectors:
+            vecs = np.vstack(current_vectors)
+            ids = np.array(current_ids, dtype=np.int64)
+            self.index.add_with_ids(vecs, ids)
+
+        if self.index.ntotal != len(self.payloads):
+            bad_ntotal = self.index.ntotal
+            bad_payload_count = len(self.payloads)
+            self._load()
+            raise RuntimeError(
+                f"Bütünlük hatası: ntotal({bad_ntotal}) != payload({bad_payload_count})"
+            )
+
+        try:
+            self._save()
+        except Exception:
+            self._load()
+            raise
+
+        return total_added
+
+    def delete_by_tender_id(
+        self,
+        tender_id: str,
+    ) -> None:
+        self.delete_by_tender_ids([tender_id])
+
+    def delete_by_tender_ids(
+        self,
+        tender_ids: list[str],
+    ) -> None:
+        if not tender_ids:
+            return
+
+        normalized_ids = {str(tid).strip() for tid in tender_ids if str(tid).strip()}
+        if not normalized_ids:
+            return
 
         if self.index is None:
-            raise RuntimeError("Koleksiyon belleğe yüklenemedi.")
-        if faiss_id not in self.payloads:
-            raise KeyError(f"FAISS kimliği yük verisinde bulunamadı: {faiss_id}")
+            return
 
-        if hasattr(self.index, "id_map"):
-            external_ids = faiss.vector_to_array(self.index.id_map)
-            positions = np.flatnonzero(external_ids == int(faiss_id))
-            if positions.size == 0:
-                raise KeyError(f"FAISS kimliği indeks içinde bulunamadı: {faiss_id}")
-            vector = self.index.index.reconstruct(int(positions[0]))
-        else:
-            vector = self.index.reconstruct(int(faiss_id))
+        ids_to_remove = []
+        for pid, payload in list(self.payloads.items()):
+            t_id = str(payload.get("tender_id") or payload.get("ikn") or "").strip()
+            if t_id in normalized_ids:
+                ids_to_remove.append(pid)
+                for uuid_str, val in list(self.uuid_to_id.items()):
+                    if val == pid:
+                        del self.uuid_to_id[uuid_str]
+                        break
+                del self.payloads[pid]
 
-        return np.asarray(vector, dtype=np.float32).tolist()
+        if ids_to_remove:
+            id_selector = faiss.IDSelectorBatch(ids_to_remove)
+            self.index.remove_ids(id_selector)
 
-    def search_subset(
-        self,
-        *,
-        query_vector: list[float],
-        allowed_ids: Iterable[int],
-        limit: int,
-        score_threshold: float | None = None,
-    ) -> list[dict[str, Any]]:
-        """Yalnız verilen FAISS kimlikleri içinde tam kosinüs araması yapar."""
-
-        if limit <= 0:
-            raise ValueError("limit pozitif olmalıdır.")
-        if self.index is None or self.index.ntotal == 0:
-            return []
-
-        normalized_ids = list(
-            dict.fromkeys(
-                int(faiss_id)
-                for faiss_id in allowed_ids
-                if int(faiss_id) in self.payloads
-            )
-        )
-        if not normalized_ids:
-            return []
-
-        query = np.asarray(query_vector, dtype=np.float32).reshape(1, -1)
-        if query.shape[1] != self.index.d:
-            raise ValueError(
-                "Sorgu vektör boyutu koleksiyonla uyuşmuyor: "
-                f"sorgu={query.shape[1]}, koleksiyon={self.index.d}"
-            )
-        faiss.normalize_L2(query)
-
-        matrix = np.vstack(
-            [
-                np.asarray(self.reconstruct_vector(faiss_id), dtype=np.float32)
-                for faiss_id in normalized_ids
-            ]
-        )
-        faiss.normalize_L2(matrix)
-        scores = matrix @ query[0]
-        ranked = sorted(
-            zip(normalized_ids, scores, strict=True),
-            key=lambda item: (-float(item[1]), item[0]),
-        )
-
-        results: list[dict[str, Any]] = []
-        for faiss_id, score_value in ranked:
-            score = float(score_value)
-            if score_threshold is not None and score < score_threshold:
-                continue
-            results.append(
-                {
-                    "id": str(faiss_id),
-                    "score": score,
-                    "payload": self.payloads[faiss_id],
-                }
-            )
-            if len(results) >= limit:
-                break
-        return results
+            try:
+                self._save()
+            except Exception:
+                self._load()
+                raise
 
     def search(
         self,

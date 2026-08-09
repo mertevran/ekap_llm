@@ -93,22 +93,6 @@ def parse_args() -> argparse.Namespace:
         help="Tüm çalışma için üretilecek azami karar sayısı.",
     )
     parser.add_argument(
-        "--selected-ikn",
-        action="append",
-        default=[],
-        help=(
-            "Aday aramasını belirtilen İKN ile sınırlar. Birden fazla kez verilebilir; "
-            "SQL Encoder giriş noktası tarafından kullanılır."
-        ),
-    )
-    parser.add_argument(
-        "--require-selected-coverage",
-        action="store_true",
-        help=(
-            "Seçilen her İKN FAISS içinde eşleşmeden karar zincirinin başlamasını engeller."
-        ),
-    )
-    parser.add_argument(
         "--random-seed",
         type=int,
         default=42,
@@ -191,25 +175,6 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--limit-per-profile pozitif olmalıdır.")
     if args.max_decisions is not None and args.max_decisions <= 0:
         raise ValueError("--max-decisions pozitif olmalıdır.")
-    if args.selected_ikn and args.source_mode != "database":
-        raise ValueError("--selected-ikn yalnız --source-mode database ile kullanılabilir.")
-    if args.require_selected_coverage and not args.selected_ikn:
-        raise ValueError("--require-selected-coverage için en az bir --selected-ikn gerekir.")
-    selected_count = len(
-        {
-            "".join(str(value or "").upper().split())
-            for value in args.selected_ikn
-            if str(value or "").strip()
-        }
-    )
-    if (
-        args.require_selected_coverage
-        and args.max_decisions is not None
-        and args.max_decisions < selected_count
-    ):
-        raise ValueError(
-            "--max-decisions, zorunlu seçili İKN sayısından küçük olamaz."
-        )
 
 
 def validate_faiss_store(store: FaissVectorStore, label: str) -> None:
@@ -560,15 +525,6 @@ def main() -> int:
     )
 
     profile_codes = selected_profiles(loader, args.profile_code)
-    selected_ikns = list(
-        dict.fromkeys(
-            str(value).strip()
-            for value in args.selected_ikn
-            if str(value).strip()
-        )
-    )
-    selected_ikn_keys = {normalize_ikn(value) for value in selected_ikns}
-    retrieval_limit = max(args.limit_per_profile, len(selected_ikns))
     LOGGER.info(
         "Başlatılıyor | profil=%s | ihale_vektörü=%s | profil_vektörü=%s",
         len(profile_codes),
@@ -605,17 +561,10 @@ def main() -> int:
         LOGGER.info("Profil değerlendiriliyor: %s", profile_code)
 
         try:
-            if selected_ikn_keys:
-                candidates = matcher.retrieve_profile(
-                    profile_code=profile_code,
-                    limit=retrieval_limit,
-                    allowed_ikns=selected_ikn_keys,
-                )
-            else:
-                candidates = matcher.retrieve_profile(
-                    profile_code=profile_code,
-                    limit=retrieval_limit,
-                )
+            candidates = matcher.retrieve_profile(
+                profile_code=profile_code,
+                limit=args.limit_per_profile,
+            )
         except Exception as exc:
             LOGGER.exception("%s aday getirme hatası", profile_code)
             failures.append(
@@ -666,49 +615,7 @@ def main() -> int:
             int(rag_settings.faiss_max_chunks_per_tender),
         ),
     )
-    selection_coverage_path: Path | None = None
-    matched_selected_keys = {
-        normalize_ikn(item.candidate.ikn)
-        for item in unique_candidates
-        if normalize_ikn(item.candidate.ikn) in selected_ikn_keys
-    }
-    missing_selected_ikns = [
-        ikn for ikn in selected_ikns if normalize_ikn(ikn) not in matched_selected_keys
-    ]
-    if selected_ikns:
-        selection_rank = {
-            normalize_ikn(ikn): rank for rank, ikn in enumerate(selected_ikns)
-        }
-        unique_candidates.sort(
-            key=lambda item: (
-                selection_rank.get(normalize_ikn(item.candidate.ikn), len(selection_rank)),
-                -item.candidate.scores.final,
-            )
-        )
-        selection_coverage = {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "selection_source": "sql_encoder",
-            "requested_ikns": selected_ikns,
-            "matched_ikns": [
-                item.candidate.ikn
-                for item in unique_candidates
-                if normalize_ikn(item.candidate.ikn) in selected_ikn_keys
-            ],
-            "missing_ikns": missing_selected_ikns,
-            "coverage_complete": not missing_selected_ikns,
-            "minimum_score_bypassed_for_selected_subset": True,
-        }
-        selection_coverage_path = report_dir / "sql_encoder_selection_coverage.json"
-        selection_coverage_path.write_text(
-            json.dumps(selection_coverage, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        if args.require_selected_coverage and missing_selected_ikns:
-            raise RuntimeError(
-                "SQL Encoder ile seçilen bazı İKN'ler güncel FAISS indeksinde bulunamadı: "
-                + ", ".join(missing_selected_ikns)
-            )
-    elif args.random_seed is not None:
+    if args.random_seed is not None:
         random.Random(args.random_seed).shuffle(unique_candidates)
     unique_rows = [
         {
@@ -949,13 +856,6 @@ def main() -> int:
         ),
         "timestamp": datetime.now(UTC).isoformat(),
         "source_mode": args.source_mode,
-        "selection_mode": "sql_encoder" if selected_ikns else "profile_faiss",
-        "selected_ikn_count": len(selected_ikns),
-        "selected_ikns": selected_ikns,
-        "missing_selected_ikns": missing_selected_ikns,
-        "selection_coverage_report": (
-            str(selection_coverage_path) if selection_coverage_path is not None else None
-        ),
         "random_seed": args.random_seed,
         "elapsed_seconds": round(elapsed, 3),
         "profiles_requested": len(profile_codes),

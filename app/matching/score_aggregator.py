@@ -106,6 +106,7 @@ class ScoreAggregator:
         profile_okas_prefixes: list[str] | None = None,
         strong_terms: list[str] | None = None,
         negative_terms: list[str] | None = None,
+        evidence_texts: list[str] | None = None,
     ) -> MatchScoreBreakdown:
         """Puan kırılımını hesaplar.
 
@@ -118,6 +119,7 @@ class ScoreAggregator:
             profile_okas_prefixes: Profil OKAS ön ekleri (örn. "48", "72").
             strong_terms: Profil güçlü terimleri.
             negative_terms: Profil negatif terimleri.
+            evidence_texts: Kanıt chunk metinleri (negatif terim araması için).
         """
         s = self._s
 
@@ -153,9 +155,13 @@ class ScoreAggregator:
         # Negatif ceza
         neg_penalty = 0.0
         if negative_terms:
-            combined_neg = " ".join(negative_terms)
-            neg_overlap = _term_overlap(query_terms, combined_neg)
-            neg_penalty = min(0.30, neg_overlap * 0.30)
+            neg_terms_tuple = _query_terms(" ".join(negative_terms))
+            if neg_terms_tuple:
+                tender_text = tender_name
+                if evidence_texts:
+                    tender_text += " " + " ".join(evidence_texts)
+                neg_overlap = _term_overlap(neg_terms_tuple, tender_text)
+                neg_penalty = min(0.30, neg_overlap * 0.30)
 
         raw_final = (
             s.weight_max_chunk * max_sim
@@ -209,9 +215,8 @@ class ScoreAggregator:
                         return 0.5
             return 0.0
 
-        # Ön ek yoksa metin üzerinden terim örtüşmesi
-        okas_text = " ".join(okas_codes)
-        return _term_overlap(query_terms, okas_text)
+        # Ön ek yoksa eşleşme olmaz, kelime tabanlı kod eşleştirme yapılmaz.
+        return 0.0
 
 
 def build_query_terms(text: str) -> tuple[str, ...]:

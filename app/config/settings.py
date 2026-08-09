@@ -30,18 +30,6 @@ class Settings(BaseSettings):
     database_statement_timeout_ms: int = 60_000
     database_application_name: str = "ekap-isbak-decision"
 
-    sql_encoder_max_rows: int = 100
-    sql_encoder_statement_timeout_ms: int = 10_000
-    sql_encoder_lock_timeout_ms: int = 1_000
-    sql_encoder_max_sql_chars: int = 12_000
-    sql_encoder_max_joins: int = 3
-    sql_encoder_max_ast_nodes: int = 500
-    sql_encoder_max_request_chars: int = 2_000
-    sql_encoder_timeout_seconds: int = 180
-    sql_encoder_num_ctx: int = 4_096
-    sql_encoder_num_predict: int = 300
-    sql_encoder_default_random_seed: int = 20_260_806
-
     qdrant_path: Path = Field(default=Path("storage/qdrant"))
     model_cache_path: Path = Field(default=Path("storage/model_cache"))
 
@@ -117,17 +105,6 @@ class Settings(BaseSettings):
         "database_connect_timeout_seconds",
         "database_statement_timeout_ms",
         "max_runtime_swap_growth_mb",
-        "sql_encoder_max_rows",
-        "sql_encoder_statement_timeout_ms",
-        "sql_encoder_lock_timeout_ms",
-        "sql_encoder_max_sql_chars",
-        "sql_encoder_max_joins",
-        "sql_encoder_max_ast_nodes",
-        "sql_encoder_max_request_chars",
-        "sql_encoder_timeout_seconds",
-        "sql_encoder_num_ctx",
-        "sql_encoder_num_predict",
-        "sql_encoder_default_random_seed",
     )
     @classmethod
     def validate_positive_integers(cls, v: int) -> int:

@@ -291,6 +291,14 @@ class ProfileToTenderMatcher:
         for c in chunks:
             okas_codes.extend(self._reader.resolve_okas_codes(c.get("payload", {})))
 
+        # Kanıt chunk'ları
+        evidence_chunk_ids = [
+            str(c.get("payload", {}).get("chunk_id") or "") for c in chunks
+        ]
+        evidence_texts = [
+            str(c.get("payload", {}).get("text") or "")[:500] for c in chunks
+        ]
+
         # Puan hesapla
         breakdown = self._scorer.compute(
             raw_scores=raw_scores,
@@ -301,15 +309,8 @@ class ProfileToTenderMatcher:
             profile_okas_prefixes=okas_prefixes,
             strong_terms=strong_terms,
             negative_terms=negative_terms,
+            evidence_texts=evidence_texts,
         )
-
-        # Kanıt chunk'ları
-        evidence_chunk_ids = [
-            str(c.get("payload", {}).get("chunk_id") or "") for c in chunks
-        ]
-        evidence_texts = [
-            str(c.get("payload", {}).get("text") or "")[:500] for c in chunks
-        ]
 
         return ProfileTenderMatch(
             profile_code=profile_code,

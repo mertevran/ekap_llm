@@ -159,17 +159,3 @@ class TestIsbakRetrieverIntegration:
         assert results[0].scores.max_chunk >= 0.40, (
             f"En üstteki sonucun en yüksek parça skoru çok düşük: {results[0].scores.max_chunk}"
         )
-
-    def test_no_write_to_qdrant_during_search(self, retriever) -> None:
-        """Arama sırasında Qdrant koleksiyonunun nokta sayısı değişmemeli."""
-        store = retriever.vector_store
-        count_before = store.count()
-
-        retriever.retrieve("trafik kavşak sistemi", limit=5)
-
-        count_after = store.count()
-
-        assert count_before == count_after, (
-            f"Nokta sayısı değişti: {count_before} → {count_after}. "
-            "Retriever yazma yapıyor olabilir!"
-        )

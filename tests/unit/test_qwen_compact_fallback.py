@@ -96,6 +96,8 @@ def test_schema_limits_present():
     assert props["insan_incelemesi_gerekcesi"]["maxLength"] == 500
 
 def test_qwen_num_predict_default():
+    from app.config import get_settings
+    settings = get_settings()
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
-    # Bu sürümün kısa v4 sözleşmesi 512 token üretim bütçesi kullanır.
-    assert model.qwen_num_predict == 512
+    # Kısa v4 sözleşmesi için varsayılan üretim bütçesi ayardan (settings) okunmalıdır.
+    assert model.qwen_num_predict == settings.qwen_decision_num_predict

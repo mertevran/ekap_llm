@@ -221,104 +221,36 @@ class IndexStateRepository:
         classifier_version: str,
         tender_updated_at: datetime | None,
         skip_reason: str = "skipped",
-        ikn: str | None = None,
     ) -> None:
-        """
-        İndekslenmemesi gereken ihaleyi durum tablosuna kaydeder.
-
-        Kayıt yoksa INSERT, varsa UPDATE yapılır. Böylece örneğin İSBAK'ın
-        kendi ihaleleri embedding (gömme) yapılmadan takip tablosunda tutulur
-        ve sonraki artımlı indeksleme çalışmalarında yeniden seçilmez.
-        """
-
-        normalized_ikn = str(ikn or "").strip()
-
         query = f"""
-            INSERT INTO {self.table_name} (
-                tender_id,
-                ikn,
-                classification,
-                evidence_score,
-                source_hash,
-                classifier_version,
-                embedding_model,
-                vector_collection,
-                index_status,
-                chunk_count,
-                is_active,
-                tender_updated_at,
-                first_seen_at,
-                last_seen_at,
-                indexed_at,
-                deleted_at,
-                error_message,
-                processing_started_at,
-                processing_completed_at
-            )
-            VALUES (
-                %s,
-                COALESCE(
-                    NULLIF(%s, ''),
-                    (SELECT t.ikn FROM public.tenders t WHERE t.id = %s),
-                    ''
-                ),
-                %s,
-                %s,
-                %s,
-                %s,
-                NULL,
-                NULL,
-                %s,
-                0,
-                TRUE,
-                %s,
-                CURRENT_TIMESTAMP,
-                CURRENT_TIMESTAMP,
-                NULL,
-                NULL,
-                NULL,
-                NULL,
-                NULL
-            )
-            ON CONFLICT (tender_id)
-            DO UPDATE SET
-                ikn = CASE
-                    WHEN EXCLUDED.ikn <> '' THEN EXCLUDED.ikn
-                    ELSE {self.table_name}.ikn
-                END,
-                classification = COALESCE(
-                    {self.table_name}.classification,
-                    EXCLUDED.classification
-                ),
-                evidence_score = EXCLUDED.evidence_score,
-                source_hash = EXCLUDED.source_hash,
-                classifier_version = EXCLUDED.classifier_version,
+            UPDATE {self.table_name}
+            SET
+                classification = COALESCE({self.table_name}.classification, %s),
+                evidence_score = %s,
+                source_hash = %s,
+                classifier_version = %s,
+                index_status = %s,
+                chunk_count = 0,
                 embedding_model = NULL,
                 vector_collection = NULL,
-                index_status = EXCLUDED.index_status,
-                chunk_count = 0,
                 is_active = TRUE,
-                tender_updated_at = EXCLUDED.tender_updated_at,
+                tender_updated_at = %s,
                 last_seen_at = CURRENT_TIMESTAMP,
                 indexed_at = NULL,
                 deleted_at = NULL,
-                error_message = NULL,
-                processing_started_at = NULL,
-                processing_completed_at = CURRENT_TIMESTAMP
+                error_message = NULL
+            WHERE tender_id = %s
         """
-
         self._execute(
             query,
             (
-                tender_id,
-                normalized_ikn,
-                tender_id,
                 classification,
                 evidence_score,
                 source_hash,
                 classifier_version,
                 skip_reason,
                 tender_updated_at,
+                tender_id,
             ),
         )
 

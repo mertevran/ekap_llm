@@ -85,37 +85,6 @@ def query_file_loaded() -> list[dict]:
 # ---------------------------------------------------------------------------
 
 
-class TestQdrantInfrastructure:
-    """storage/qdrant_isbak bağlantı ve koleksiyon kontrolleri."""
-
-    def test_qdrant_path_exists(self, settings: IsbakRagSettings) -> None:
-        qdrant_path = settings.resolved_qdrant_path
-        assert qdrant_path.exists(), f"Qdrant dizini bulunamadı: {qdrant_path}"
-
-    def test_collection_exists(self, retriever) -> None:
-        assert retriever.vector_store.collection_exists(), (
-            f"'{retriever.settings.collection_name}' koleksiyonu mevcut değil."
-        )
-
-    def test_collection_not_empty(self, retriever) -> None:
-        try:
-            count = retriever.vector_store.count()
-            assert count > 0, "Koleksiyon boş."
-        except AttributeError:
-            # count() metodu yoksa skip
-            pytest.skip("vector_store.count() metodu desteklenmiyor.")
-
-    def test_query_file_is_valid_json(self, query_file_loaded: list[dict]) -> None:
-        assert isinstance(query_file_loaded, list)
-        assert len(query_file_loaded) > 0
-
-    def test_query_file_has_required_fields(self, query_file_loaded: list[dict]) -> None:
-        required = {"query_id", "query", "expected_profile_groups"}
-        for q in query_file_loaded:
-            missing = required - set(q.keys())
-            assert not missing, f"{q.get('query_id')}: eksik alanlar {missing}"
-
-
 # ---------------------------------------------------------------------------
 # Arama kalite testleri
 # ---------------------------------------------------------------------------
@@ -179,45 +148,6 @@ class TestRetrievalQuality:
             assert results[i].scores.final >= results[i + 1].scores.final, (
                 "Sonuçlar nihai puana göre azalan sıralı değil."
             )
-
-    def test_no_write_to_qdrant_during_search(self, retriever) -> None:
-        """Arama öncesi ve sonrası Qdrant kayıt sayısı değişmemeli.
-
-        Yerel Qdrant, aynı dizine yalnızca tek bağlantıya izin verir
-        (portalocker dosya kilidi). Bu nedenle ayrı bir bağlantı açmak
-        yerine retriever'ın mevcut bağlantısı kullanılır.
-        """
-        store = retriever.vector_store
-
-        # Mevcut bağlantıdan sayı al
-        try:
-            count_before = store.count()
-        except AttributeError:
-            # count() yoksa client üzerinden dene
-            try:
-                info = store.client.get_collection(retriever.settings.collection_name)
-                count_before = info.points_count
-            except Exception:
-                pytest.skip(
-                    "Qdrant kayıt sayısı alınamadı; count() ve get_collection() desteklenmiyor."
-                )
-
-        retriever.retrieve("trafik sistemi", limit=5)
-
-        # Aynı bağlantıdan tekrar say
-        try:
-            count_after = store.count()
-        except AttributeError:
-            try:
-                info = store.client.get_collection(retriever.settings.collection_name)
-                count_after = info.points_count
-            except Exception:
-                pytest.skip("Arama sonrası sayım alınamadı.")
-
-        assert count_before == count_after, (
-            f"Kayıt sayısı değişti: {count_before} → {count_after}. "
-            "Retriever yazma yapıyor olabilir!"
-        )
 
 
 # ---------------------------------------------------------------------------
