@@ -106,8 +106,6 @@ storage/qdrant_isbak/*
 storage/faiss*/*
 !storage/faiss*/.gitkeep
 
-.env.example
-
 arsiv/
 
 Vektor_DB_Dosyalari.zip

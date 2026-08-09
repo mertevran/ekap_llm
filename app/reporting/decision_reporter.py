@@ -19,6 +19,7 @@ class DecisionReporter:
         csv_path = self.output_dir / "tender_model_decisions.csv"
         review_path = self.output_dir / "tender_review_required.csv"
         human_action_path = self.output_dir / "tender_human_action_queue.csv"
+        professional_csv_path = self.output_dir / "tender_professional_decisions.csv"
 
         with open(jsonl_path, "w", encoding="utf-8") as f:
             for d in decisions:
@@ -47,6 +48,7 @@ class DecisionReporter:
                 if d.human_review_required or d.human_approval_required
             ],
         )
+        self._write_professional_csv(professional_csv_path, decisions)
 
     def _write_csv(self, path: Path, decisions: list[FinalTenderDecision]):
         if not decisions:
@@ -160,5 +162,58 @@ class DecisionReporter:
                         d.human_approval_status,
                         d.automatic_action_allowed,
                         d.evaluated_at,
+                    ]
+                )
+
+    def _write_professional_csv(
+        self, path: Path, decisions: list[FinalTenderDecision]
+    ) -> None:
+        """Yöneticilere sunulabilecek sade profesyonel CSV raporu.
+
+        Teknik iç alanları (chunk_id, validation detayları, model raw_response)
+        içermez. Yalnızca kurumsal karar bilgisi ve profesyonel gerekçe aktarılır.
+        """
+        if not decisions:
+            return
+
+        from app.decision.public_response import build_public_decision_response
+
+        _PROFESSIONAL_COLUMNS = [
+            "ikn",
+            "tender_name",
+            "authority_name",
+            "primary_profile_code",
+            "karar",
+            "guven",
+            "yonetici_ozeti",
+            "teknik_gerekce",
+            "katilim_degerlendirmesi",
+            "sonuc",
+            "inceleme_notu",
+            "human_review_required",
+            "human_approval_required",
+        ]
+
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(_PROFESSIONAL_COLUMNS)
+            for d in decisions:
+                pub = build_public_decision_response(d)
+                pr = pub.professional_reasoning
+                writer.writerow(
+                    [
+                        d.ikn,
+                        d.tender_name,
+                        d.authority_name,
+                        d.primary_profile_code,
+                        pr.karar_basligi,
+                        round(d.final_confidence, 4),
+                        pr.yonetici_ozeti,
+                        pr.teknik_gerekce,
+                        pr.katilim_degerlendirmesi,
+                        pr.sonuc,
+                        pr.inceleme_notu,
+                        d.human_review_required,
+                        d.human_approval_required,
                     ]
                 )

@@ -32,6 +32,22 @@ class PublicSuitablePart:
 
 
 @dataclass(frozen=True)
+class ProfessionalDecisionReasoning:
+    """Deterministik Python fonksiyonlarıyla üretilen kurumsal karar gerekçesi.
+
+    Yeni LLM çağrısı yapılmaz. Kaynak: FinalTenderDecision + Python doğrulayıcı
+    çıktıları.
+    """
+
+    karar_basligi: str
+    yonetici_ozeti: str
+    teknik_gerekce: str
+    katilim_degerlendirmesi: str
+    sonuc: str
+    inceleme_notu: str = ""
+
+
+@dataclass(frozen=True)
 class PublicDecisionResponse:
     tender_id: str
     ikn: str
@@ -44,6 +60,16 @@ class PublicDecisionResponse:
     confidence: float
     decision_summary: str
     primary_profile_code: str
+    professional_reasoning: ProfessionalDecisionReasoning = field(
+        default_factory=lambda: ProfessionalDecisionReasoning(
+            karar_basligi="",
+            yonetici_ozeti="",
+            teknik_gerekce="",
+            katilim_degerlendirmesi="",
+            sonuc="",
+            inceleme_notu="",
+        )
+    )
     secondary_profile_codes: list[str] = field(default_factory=list)
     kismi_teklif: bool = False
     uygun_kisimlar: list[PublicSuitablePart] = field(default_factory=list)
@@ -64,8 +90,17 @@ def _clean_text(value: Any, max_chars: int) -> str:
     text = " ".join(str(value or "").split()).strip()
     if len(text) <= max_chars:
         return text
-    shortened = text[: max_chars - 1].rstrip(" ,;:-")
-    return shortened + "…"
+    # Cümle ortasında kesme — son cümle sınırına kadar al
+    shortened = text[:max_chars]
+    # Son noktalama işaretine kadar kes
+    for i in range(len(shortened) - 1, max(len(shortened) - 80, 0), -1):
+        if shortened[i] in ".!?":
+            return shortened[: i + 1].strip()
+    # Noktalama yoksa kelime sınırında kes
+    last_space = shortened.rfind(" ")
+    if last_space > max_chars // 2:
+        return shortened[:last_space].rstrip(" ,;:-") + "…"
+    return shortened.rstrip(" ,;:-") + "…"
 
 
 def _first_sentence(value: str, max_chars: int = 260) -> str:
@@ -98,6 +133,196 @@ def _summary(decision: FinalTenderDecision) -> str:
             "Kararı etkileyen belirsizlikler nedeniyle insan incelemesi gerekmektedir."
         )
     return f"{first} {second}".strip()
+
+
+def _karar_basligi(final_decision: str) -> str:
+    mapping = {
+        "uygun": "UYGUN",
+        "uygun_degil": "UYGUN DEĞİL",
+        "inceleme_gerekli": "İNCELEME GEREKLİ",
+    }
+    return mapping.get(final_decision, final_decision.upper())
+
+
+def _yonetici_ozeti(decision: FinalTenderDecision) -> str:
+    fd = decision.final_decision
+    am = decision.activity_match
+
+    if fd == "uygun" and am == "guclu":
+        text = (
+            "İhale konusu, şirketin ilgili faaliyet profiliyle güçlü ve doğrudan "
+            "teknik uyum göstermektedir."
+        )
+    elif fd == "uygun" and am == "kismi":
+        text = (
+            "İhalenin belirli bölümleri şirketin faaliyet alanı ve teknik "
+            "yetkinlikleriyle uyumludur."
+        )
+    elif fd == "uygun_degil":
+        text = (
+            "İhale konusu ile değerlendirilen şirket profilinin temel faaliyet alanı "
+            "arasında yeterli teknik uyum bulunmamaktadır."
+        )
+    else:
+        # inceleme_gerekli (ve uygun + zayif/belirsiz gibi kenar durumlar)
+        text = (
+            "İhale ile şirket faaliyet alanı arasında potansiyel uyum bulunmakla "
+            "birlikte, nihai karar için doğrulanması gereken önemli unsurlar mevcuttur."
+        )
+    return _clean_text(text, 400)
+
+
+def _teknik_gerekce(decision: FinalTenderDecision) -> str:
+    parts: list[str] = []
+
+    # 1. Doğrulanmış faaliyet eşleşmesi
+    if decision.activity_match == "guclu":
+        parts.append(
+            "Doğrulanan kanıtlar, ihale kapsamının şirket faaliyet profiliyle "
+            "doğrudan ve güçlü teknik uyum içinde olduğunu ortaya koymaktadır."
+        )
+    elif decision.activity_match == "kismi":
+        parts.append(
+            "Doğrulanan kanıtlar, ihale kapsamının belirli bölümlerinin şirket "
+            "faaliyet profiliyle uyumlu olduğunu göstermektedir."
+        )
+
+    # 2. Uygun kısımlar (suitable_parts) varsa
+    if decision.suitable_parts:
+        kisim_adlari = ", ".join(
+            p.part_name for p in decision.suitable_parts[:3] if p.part_name
+        )
+        if kisim_adlari:
+            parts.append(
+                f"Doğrulanan ihale kapsamı içinde teknik uyum gösterilen "
+                f"bölümler: {kisim_adlari}."
+            )
+
+    # 3. Python doğrulayıcıdan gelen kaynak onaylı kriterler
+    source_confirmed = [
+        a for a in decision.validation.criterion_assessments
+        if a.source_status == "mandatory" and a.source_available
+    ]
+    if source_confirmed:
+        criteria_desc = "; ".join(
+            _clean_text(a.description or a.criterion_id, 80)
+            for a in source_confirmed[:2]
+        )
+        parts.append(
+            f"Kaynak doğrulamasıyla teyit edilen kriterler: {criteria_desc}."
+        )
+
+    # 4. Negatif kapsam doğrulanmışsa — yalnızca Python doğrulamasıyla teyit edilmiş
+    if decision.negative_scope_verified and decision.matched_negative_terms:
+        terms = ", ".join(decision.matched_negative_terms[:3])
+        parts.append(
+            f"Mevcut kanıtlarda doğrulanan kapsam çelişkisi tespit edilmiştir "
+            f"({terms})."
+        )
+
+    # 5. Python doğrulamasıyla çelişmeyen model uygunluk gerekçeleri
+    if (
+        not decision.negative_scope_verified
+        and decision.final_decision != "uygun_degil"
+        and decision.primary_model.uygunluk_gerekceleri
+    ):
+        ilk_gerekce = _clean_text(
+            decision.primary_model.uygunluk_gerekceleri[0], 200
+        )
+        if ilk_gerekce and not any(ilk_gerekce in p for p in parts):
+            parts.append(
+                f"Mevcut kanıtlar kapsamında: {ilk_gerekce}"
+                if not ilk_gerekce.endswith(".")
+                else f"Mevcut kanıtlar kapsamında: {ilk_gerekce}"
+            )
+
+    if not parts:
+        parts.append(
+            "Mevcut ihale kanıtları ve şirket faaliyet profili "
+            "karşılaştırılmıştır."
+        )
+
+    full_text = " ".join(parts)
+    return _clean_text(full_text, 700)
+
+
+def _katilim_degerlendirmesi(decision: FinalTenderDecision) -> str:
+    unverified = decision.dogrulanamayan_katilim_sartlari
+
+    if unverified:
+        sart_ozeti = "; ".join(
+            _clean_text(s, 100) for s in unverified[:3]
+        )
+        text = (
+            "Faaliyet alanı açısından teknik uyum değerlendirmesi yukarıda "
+            "verilmiştir. Bununla birlikte ihaleye katılım için gerekli mali, "
+            f"idari ve teknik yeterlilik belgelerinden bir bölümü "
+            f"({sart_ozeti}) mevcut kaynaklarla tam olarak doğrulanamamıştır."
+        )
+    else:
+        text = (
+            "Mevcut analiz kapsamında faaliyet uygunluğunu engelleyen doğrulanmış "
+            "bir katılım sorunu tespit edilmemiştir. Nihai teklif öncesinde ihale "
+            "belgelerinin insan kontrolünden geçirilmesi gerekir."
+        )
+    return _clean_text(text, 500)
+
+
+def _sonuc(decision: FinalTenderDecision) -> str:
+    fd = decision.final_decision
+    pc = decision.primary_profile_code
+
+    if fd == "uygun":
+        # Kısmi teklif + uygun kısımlar varsa
+        if decision.partial_offer and decision.suitable_parts:
+            text = (
+                f"İhalenin yalnız doğrulanan uygun kısımlarının {pc} profili "
+                f"kapsamında değerlendirilmesi uygundur."
+            )
+        else:
+            text = (
+                f"İhalenin {pc} profili kapsamında değerlendirilmesi uygundur."
+            )
+        # İnsan onayı gerekiyorsa ikinci cümle
+        if decision.human_approval_required:
+            text += (
+                " Olumlu değerlendirme, nihai teklif veya operasyonel işlem "
+                "öncesinde insan onayına tabidir."
+            )
+    elif fd == "uygun_degil":
+        text = (
+            f"İhalenin {pc} profili kapsamında takip edilmesi "
+            "önerilmemektedir."
+        )
+    else:
+        # inceleme_gerekli
+        text = (
+            "İhale doğrudan elenmemeli; ilgili teknik veya ticari birim "
+            "tarafından detaylı incelemeye alınmalıdır."
+        )
+    return _clean_text(text, 400)
+
+
+def _inceleme_notu(decision: FinalTenderDecision) -> str:
+    if not decision.human_review_required:
+        return ""
+    reason = _clean_text(decision.human_review_reason, 300)
+    if not reason:
+        return ""
+    return reason
+
+
+def _build_professional_reasoning(
+    decision: FinalTenderDecision,
+) -> ProfessionalDecisionReasoning:
+    return ProfessionalDecisionReasoning(
+        karar_basligi=_karar_basligi(decision.final_decision),
+        yonetici_ozeti=_yonetici_ozeti(decision),
+        teknik_gerekce=_teknik_gerekce(decision),
+        katilim_degerlendirmesi=_katilim_degerlendirmesi(decision),
+        sonuc=_sonuc(decision),
+        inceleme_notu=_inceleme_notu(decision),
+    )
 
 
 def _evidences(decision: FinalTenderDecision) -> list[PublicEvidence]:
@@ -162,6 +387,7 @@ def build_public_decision_response(
         confidence=round(decision.final_confidence, 4),
         decision_summary=_summary(decision),
         primary_profile_code=decision.primary_profile_code,
+        professional_reasoning=_build_professional_reasoning(decision),
         secondary_profile_codes=list(decision.secondary_profile_codes),
         kismi_teklif=decision.partial_offer,
         uygun_kisimlar=[
@@ -192,6 +418,7 @@ def build_public_decision_response(
 
 
 __all__ = [
+    "ProfessionalDecisionReasoning",
     "PublicDecisionResponse",
     "PublicEvidence",
     "PublicRequirement",
