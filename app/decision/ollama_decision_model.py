@@ -879,17 +879,35 @@ class OllamaDecisionModel:
                         response_text[:500],
                     )
                     thinking_text = str(data.get("message", {}).get("content", data.get("thinking", ""))) 
-                    eval_count = data.get("eval_count", 0)
-                    prompt_eval_count = data.get("prompt_eval_count", 0)
+                    eval_count = data.get("eval_count", 0) or 0
+                    prompt_eval_count = data.get("prompt_eval_count", 0) or 0
                     done_reason = data.get("done_reason", "")
-                    total_duration = data.get("total_duration", 0)
+                    total_duration = data.get("total_duration", 0) or 0
+                    load_duration = data.get("load_duration", 0) or 0
+                    prompt_eval_duration = data.get("prompt_eval_duration", 0) or 0
+                    eval_duration = data.get("eval_duration", 0) or 0
+
+                    prompt_tokens_per_second = (
+                        prompt_eval_count / (prompt_eval_duration / 1e9)
+                        if prompt_eval_duration > 0
+                        else 0.0
+                    )
+                    generation_tokens_per_second = (
+                        eval_count / (eval_duration / 1e9)
+                        if eval_duration > 0
+                        else 0.0
+                    )
 
                     logger.info(
                         f"[DIAGNOSTICS] model={self.name} prompt={active_prompt_version} "
                         f"done={data.get('done')} done_reason={done_reason} "
-                        f"eval_count={eval_count} prompt_eval_count={prompt_eval_count} "
-                        f"total_duration={total_duration} response_length={len(response_text)} "
-                        f"num_ctx={options.get('num_ctx')} num_predict={options.get('num_predict')}"
+                        f"load_duration={load_duration} prompt_eval_duration={prompt_eval_duration} "
+                        f"eval_duration={eval_duration} total_duration={total_duration} "
+                        f"prompt_eval_count={prompt_eval_count} eval_count={eval_count} "
+                        f"response_length={len(response_text)} "
+                        f"num_ctx={options.get('num_ctx')} num_predict={options.get('num_predict')} "
+                        f"prompt_tokens_per_second={prompt_tokens_per_second:.2f} "
+                        f"generation_tokens_per_second={generation_tokens_per_second:.2f}"
                     )
 
                     if not response_text and "response" not in data:

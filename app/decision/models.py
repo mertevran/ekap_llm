@@ -103,6 +103,12 @@ class DecisionValidationContext:
     tender_okas_codes: list[str] = field(default_factory=list)
     evidence_text_by_chunk: dict[str, str] = field(default_factory=dict)
     profile_signals: dict[str, Any] = field(default_factory=dict)
+    profile_name: str = ""
+    primary_capabilities: list[str] = field(default_factory=list)
+    profile_description: str = ""
+    technical_equipment: list[dict[str, Any]] = field(default_factory=list)
+    abbreviations_and_jargon: list[dict[str, Any]] = field(default_factory=list)
+    action_verbs: list[str] = field(default_factory=list)
     retrieval_score: float = 0.0
     partial_offer: bool = False
     tender_parts: list[dict[str, str]] = field(default_factory=list)
@@ -130,6 +136,34 @@ class NegativeScopeAnalysis:
 
 
 @dataclass(frozen=True)
+class PositiveScopeAnalysis:
+    """Profilin pozitif faaliyet terimlerinin gerçek ihale kaynaklarındaki karşılığı.
+
+    NegativeScopeAnalysis'ın pozitif eşdeğeri. Deterministik Python fonksiyonlarıyla
+    yalnızca ihale başlığı ve kanıt metinleri üzerinden üretilir; model çıktısına
+    dayanmaz.
+    """
+
+    verified: bool = False
+    strong_matched_terms: list[str] = field(default_factory=list)
+    supporting_matched_terms: list[str] = field(default_factory=list)
+    primary_capability_matches: list[str] = field(default_factory=list)
+    equipment_matches: list[str] = field(default_factory=list)
+    contextual_matches: list[str] = field(default_factory=list)
+    abbreviation_matches: list[str] = field(default_factory=list)
+    title_matched_terms: list[str] = field(default_factory=list)
+    evidence_matched_terms: list[str] = field(default_factory=list)
+    evidence_chunk_ids: list[str] = field(default_factory=list)
+    matched_okas_codes: list[str] = field(default_factory=list)
+    okas_supported: bool = False
+    okas_text_support_required: bool = False
+    okas_text_support_verified: bool = False
+    evidence_strength: str = "none"
+    matched_equipment_terms: list[str] = field(default_factory=list)
+    matched_action_terms: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
 class ValidationResult:
     passed: bool
     forced_decision: DecisionLabel | None
@@ -150,6 +184,9 @@ class ValidationResult:
     )
     negative_scope: NegativeScopeAnalysis = field(
         default_factory=NegativeScopeAnalysis
+    )
+    positive_scope: PositiveScopeAnalysis = field(
+        default_factory=PositiveScopeAnalysis
     )
 
 

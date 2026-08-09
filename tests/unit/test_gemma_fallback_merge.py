@@ -106,7 +106,8 @@ def test_gemma_trigger_and_fallback_to_qwen():
     assert result.secondary_error_type == "secondary_model_error"
     # Even if primary said uygun_degil, the validator forced inceleme_gerekli which triggered secondary
     # If secondary fails, the active validation is still primary's validation.
-    assert result.final_decision == "inceleme_gerekli"
+    # But with new rules, a forced inceleme_gerekli from participation does not blindly override uygun_degil.
+    assert result.final_decision == "uygun_degil"
 
 
 def test_model_agreement_merge():

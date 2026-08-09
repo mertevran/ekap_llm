@@ -194,6 +194,12 @@ class TenderSourceContext:
         *,
         profile_signals: dict[str, Any],
         retrieval_score: float,
+        profile_name: str = "",
+        primary_capabilities: list[str] | None = None,
+        profile_description: str = "",
+        technical_equipment: list[dict[str, Any]] | None = None,
+        abbreviations_and_jargon: list[dict[str, Any]] | None = None,
+        action_verbs: list[str] | None = None,
     ) -> DecisionValidationContext:
         return DecisionValidationContext(
             tender_name=str(self.tender.adi or ""),
@@ -205,6 +211,12 @@ class TenderSourceContext:
                 if item.chunk_id and item.text.strip()
             },
             profile_signals=dict(profile_signals),
+            profile_name=profile_name,
+            primary_capabilities=list(primary_capabilities or []),
+            profile_description=profile_description,
+            technical_equipment=list(technical_equipment or []),
+            abbreviations_and_jargon=list(abbreviations_and_jargon or []),
+            action_verbs=list(action_verbs or []),
             retrieval_score=retrieval_score,
             partial_offer=self.is_partial_offer,
             tender_parts=[part.to_dict() for part in self.parts],

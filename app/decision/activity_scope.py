@@ -1,138 +1,298 @@
-"""İhale metnindeki profil kapsam sinyallerini deterministik olarak doğrular."""
+"""İhale metnindeki profil kapsam sinyallerini deterministik olarak doğrular.
+
+Hem pozitif hem negatif kapsam analizi aynı ortak eşleştirici üzerinden çalışır:
+    app.matching.scope_terms
+
+Tek genel kelime eşleşmesi kanıt sayılmaz.
+"""
 
 from __future__ import annotations
 
-import re
-import unicodedata
-from collections.abc import Iterable
 from typing import Any
 
-from app.decision.models import DecisionValidationContext, NegativeScopeAnalysis
-
-_NON_ALNUM = re.compile(r"[^0-9a-zçğıöşü]+", re.IGNORECASE)
-_GENERIC_TRAILING_TOKENS = {
-    "alım",
-    "alımı",
-    "hizmet",
-    "hizmeti",
-    "kontrollük",
-    "kontrollüğü",
-    "satınalma",
-    "temin",
-    "temini",
-    "tedarik",
-    "tedariki",
-}
-_SEMANTIC_TOKEN_GROUPS = (
-    frozenset({"araç", "arac", "taşıt", "tasit", "otomobil", "minibüs", "minibus", "otobüs", "otobus", "kamyon", "ambulans"}),
-    frozenset({"bakım", "bakim", "onarım", "onarim", "tamir", "servis"}),
-    frozenset({"kiralama", "kiralık", "kiralik", "kira"}),
-    frozenset({"yapım", "yapim", "inşaat", "insaat"}),
-    frozenset({"taşıma", "tasima", "taşımacılık", "tasimacilik", "nakliye"}),
-    frozenset({"levha", "tabela"}),
-    frozenset({"organizasyon", "etkinlik", "festival"}),
-    frozenset({"klima", "iklimlendirme"}),
+from app.decision.models import (
+    DecisionValidationContext,
+    NegativeScopeAnalysis,
+    PositiveScopeAnalysis,
+)
+from app.matching.scope_terms import (
+    contains_term,
+    matching_terms,
+    normalize_code,
+    normalize_text,
+    ordered_strings,
+    is_strong_term,
+    _WEAK_STANDALONE_TERMS,
+    _WEAK_CAPABILITY_TERMS,
 )
 
-
-def _normalize_text(value: Any) -> str:
-    text = unicodedata.normalize("NFKC", str(value or ""))
-    text = text.translate(str.maketrans({"I": "ı", "İ": "i"}))
-    text = text.lower().replace("\u0307", "")
-    return " ".join(_NON_ALNUM.sub(" ", text).split())
-
-
-def _normalize_code(value: Any) -> str:
-    return "".join(char for char in str(value or "") if char.isalnum()).upper()
+# Geriye uyumluluk — bazı dosyalar activity_scope içinden bu fonksiyonları import ediyor
+_normalize_text = normalize_text
+_normalize_code = normalize_code
+_ordered_strings = ordered_strings
+_contains_term = contains_term
+_matching_terms = matching_terms
 
 
-def _ordered_strings(values: Any) -> list[str]:
-    if not isinstance(values, list):
-        return []
-    return list(
-        dict.fromkeys(
-            text
-            for item in values
-            if (text := " ".join(str(item).split()).strip())
-        )
-    )
-
-
-def _contains_phrase(normalized_text: str, phrase: str) -> bool:
-    normalized_phrase = _normalize_text(phrase)
-    if not normalized_text or not normalized_phrase:
-        return False
-    return f" {normalized_phrase} " in f" {normalized_text} "
-
-
-def _token_matches(expected: str, actual: str) -> bool:
-    if expected == actual:
-        return True
-    if any(expected in group and actual in group for group in _SEMANTIC_TOKEN_GROUPS):
-        return True
-    if min(len(expected), len(actual)) < 5:
-        return False
-    common_prefix_length = 0
-    for expected_char, actual_char in zip(expected, actual, strict=False):
-        if expected_char != actual_char:
-            break
-        common_prefix_length += 1
-    return common_prefix_length >= max(5, min(len(expected), len(actual)) - 2)
-
-
-def _term_variants(term: str) -> list[list[str]]:
-    tokens = _normalize_text(term).split()
-    if not tokens:
-        return []
-    variants = [tokens]
-    shortened = list(tokens)
-    while len(shortened) > 2 and shortened[-1] in _GENERIC_TRAILING_TOKENS:
-        shortened = shortened[:-1]
-        variants.append(list(shortened))
-    return variants
-
-
-def _contains_term(normalized_text: str, term: str) -> bool:
-    if _contains_phrase(normalized_text, term):
-        return True
-
-    text_tokens = normalized_text.split()
-    for variant in _term_variants(term):
-        # Tek genel sözcük anlamsal ret üretmek için yeterli değildir.
-        if len(variant) < 2 or len(text_tokens) < len(variant):
-            continue
-        maximum_window = len(variant) + 4
-        for start in range(len(text_tokens)):
-            search_from = start
-            matched_positions: list[int] = []
-            for expected in variant:
-                position = next(
-                    (
-                        index
-                        for index in range(search_from, len(text_tokens))
-                        if _token_matches(expected, text_tokens[index])
-                    ),
-                    None,
-                )
-                if position is None:
-                    break
-                matched_positions.append(position)
-                search_from = position + 1
-            if (
-                len(matched_positions) == len(variant)
-                and matched_positions[-1] - matched_positions[0] <= maximum_window
-            ):
-                return True
-    return False
-
-
-def _matching_terms(texts: Iterable[str], terms: list[str]) -> list[str]:
-    normalized_texts = [_normalize_text(text) for text in texts if str(text).strip()]
-    return [
-        term
-        for term in terms
-        if any(_contains_term(text, term) for text in normalized_texts)
+def _okas_matches(
+    context: DecisionValidationContext,
+    signals: dict[str, Any],
+) -> list[str]:
+    """İhale OKAS kodlarını profil OKAS sinyalleriyle karşılaştırır."""
+    configured_codes = {
+        normalize_code(code)
+        for code in ordered_strings(signals.get("okas_kodlari"))
+        if normalize_code(code)
+    }
+    configured_prefixes = {
+        normalize_code(code)
+        for code in ordered_strings(signals.get("okas_kod_on_ekleri"))
+        if normalize_code(code)
+    }
+    tender_codes = [
+        normalized
+        for code in context.tender_okas_codes
+        if (normalized := normalize_code(code))
     ]
+    return [
+        code
+        for code in tender_codes
+        if code in configured_codes
+        or any(code.startswith(prefix) for prefix in configured_prefixes)
+    ]
+
+
+def analyze_positive_scope(
+    context: DecisionValidationContext | None,
+) -> PositiveScopeAnalysis:
+    """Pozitif faaliyet terimlerini ihale başlığı ve kanıtlarında doğrular.
+
+    Çok seviyeli (1-4) kanıt hiyerarşisi uygular.
+    Tek genel kelime eşleşme kanıtı sayılmaz.
+    """
+    if context is None:
+        return PositiveScopeAnalysis()
+
+    signals = context.profile_signals
+    if not isinstance(signals, dict):
+        return PositiveScopeAnalysis()
+
+    # Seviye 1 (Güçlü)
+    strong_terms = ordered_strings(signals.get("guclu_terimler", []))
+
+    # Filter weak/generic primary capabilities
+    raw_caps = ordered_strings(context.primary_capabilities)
+    primary_caps = [
+        cap for cap in raw_caps
+        if normalize_text(cap) not in _WEAK_CAPABILITY_TERMS
+    ]
+
+    level_1 = list(dict.fromkeys(strong_terms + primary_caps))
+
+    # Seviye 2 (Teknik/Destekleyici)
+    supporting_terms = ordered_strings(signals.get("destekleyici_terimler", []))
+    equipment = []
+    generic_equipment_names = {"kamera", "sensör", "sunucu", "kablo", "switch", "router", "bilgisayar"}
+    for eq in context.technical_equipment:
+        name = eq.get("name", "")
+        if name:
+            equipment.append(name)
+        equipment.extend(eq.get("aliases", []))
+    equipment = ordered_strings(equipment)
+    level_2 = list(dict.fromkeys(supporting_terms + equipment))
+
+    # Seviye 3 (Bağlamsal)
+    level_3 = []
+    if context.profile_name:
+        level_3.append(context.profile_name)
+    if context.profile_description:
+        # Just use description conceptually if needed, or exact phrases (not ideal for exact match, but let's keep name and jargon)
+        pass
+    jargon = []
+    for j in context.abbreviations_and_jargon:
+        term = j.get("term", "")
+        if term:
+            jargon.append(term)
+        expanded = j.get("expanded_form", "")
+        if expanded:
+            jargon.append(expanded)
+        jargon.extend(j.get("aliases", []))
+    jargon = ordered_strings(jargon)
+    level_3 = list(dict.fromkeys(level_3 + jargon))
+
+    # Seviye 4 (Yetersiz)
+    action_verbs = ordered_strings(context.action_verbs)
+
+    okas_text_support_required = bool(signals.get("okas_metin_destegi_zorunlu", False))
+    normalized_title = normalize_text(context.tender_name)
+    all_evidence = list(context.evidence_text_by_chunk.values())
+
+    # Eşleşme Fonksiyonu
+    def get_matches(terms: list[str], texts: list[str]) -> list[str]:
+        matched = []
+        for text in texts:
+            norm_text = normalize_text(text)
+            for t in terms:
+                if contains_term(norm_text, t):
+                    matched.append(t)
+        return list(dict.fromkeys(matched))
+
+    title_texts = [context.tender_name]
+
+    def get_token_overlap(term: str, text: str, any_match: bool = False) -> bool:
+        term_tokens = {t for t in term.split() if len(t) > 3 and t not in _WEAK_STANDALONE_TERMS}
+        text_tokens = {t for t in text.split() if len(t) > 3 and t not in _WEAK_STANDALONE_TERMS}
+        if not term_tokens or not text_tokens:
+            return False
+        if any_match:
+            return bool(term_tokens.intersection(text_tokens))
+        # If all strong tokens of the term are in the text, it's a match
+        return term_tokens.issubset(text_tokens)
+
+    # Başlık eşleşmeleri
+    title_l1 = [t for t in get_matches(level_1, title_texts) if is_strong_term(t)]
+    # Check token overlap for primary caps if not exactly matched
+    for cap in primary_caps:
+        if cap not in title_l1 and get_token_overlap(normalize_text(cap), normalized_title):
+            title_l1.append(cap)
+
+    title_l2 = get_matches(level_2, title_texts)
+    for eq in equipment:
+        if eq not in title_l2 and get_token_overlap(normalize_text(eq), normalized_title, any_match=True):
+            title_l2.append(eq)
+
+    title_l3 = get_matches(level_3, title_texts)
+    title_l4 = get_matches(action_verbs, title_texts)
+
+    # Kanıt metni eşleşmeleri
+    evidence_l1 = []
+    evidence_l2 = []
+    evidence_l3 = []
+    evidence_l4 = []
+    evidence_chunk_ids = []
+
+    for chunk_id, text in context.evidence_text_by_chunk.items():
+        norm_ev = normalize_text(text)
+        c_l1 = [t for t in level_1 if contains_term(norm_ev, t) and is_strong_term(t)]
+        for cap in primary_caps:
+            if cap not in c_l1 and get_token_overlap(normalize_text(cap), norm_ev):
+                c_l1.append(cap)
+
+        c_l2 = [t for t in level_2 if contains_term(norm_ev, t)]
+        for eq in equipment:
+            if eq not in c_l2 and get_token_overlap(normalize_text(eq), norm_ev, any_match=True):
+                c_l2.append(eq)
+
+        c_l3 = [t for t in level_3 if contains_term(norm_ev, t)]
+        c_l4 = [t for t in action_verbs if contains_term(norm_ev, t)]
+        if c_l1 or c_l2 or c_l3 or c_l4:
+            evidence_chunk_ids.append(str(chunk_id))
+            evidence_l1.extend(c_l1)
+            evidence_l2.extend(c_l2)
+            evidence_l3.extend(c_l3)
+            evidence_l4.extend(c_l4)
+
+    all_l1 = list(dict.fromkeys(title_l1 + evidence_l1))
+    all_l2 = list(dict.fromkeys(title_l2 + evidence_l2))
+    all_l3 = list(dict.fromkeys(title_l3 + evidence_l3))
+
+    # Kategori ayrımları
+    primary_capability_matches = [t for t in all_l1 if t in primary_caps]
+    strong_matched_terms = [t for t in all_l1 if t in strong_terms]
+    equipment_matches = [t for t in all_l2 if t in equipment]
+    supporting_matched_terms = [t for t in all_l2 if t in supporting_terms]
+    contextual_matches = [t for t in all_l3 if t == context.profile_name]
+    if context.profile_description and contains_term(normalize_text(context.profile_description), context.tender_name):
+        # Very simple contextual match if title is in description or vice versa
+        pass
+    abbreviation_matches = [t for t in all_l3 if t in jargon]
+    matched_action_terms = list(dict.fromkeys(title_l4 + evidence_l4))
+
+    # OKAS
+    matched_okas_codes = _okas_matches(context, signals)
+    okas_supported = bool(matched_okas_codes)
+
+    # Verified kuralları (A, B, C)
+    # Kural A: Seviye 1 eşleşmesi
+    rule_a = bool(all_l1)
+
+    # Kural B: Seviye 2 eşleşmesi + bağımsız destek
+    # Destekler: Farklı bir profil sinyali, OKAS desteği, Context (L3) desteği
+    rule_b = False
+    if all_l2:
+        # Eğer eq sadece jenerikse ("kamera", vb.) ve L2'de başka bir şey yoksa daha dikkatli olmalıyız.
+        # generic_equipment_names kontrolü:
+        has_specific_l2 = any(t.lower() not in generic_equipment_names for t in all_l2)
+        if has_specific_l2 and (okas_supported or all_l3 or len(all_l2) > 1 or matched_action_terms):
+            rule_b = True
+
+    # Kural C: Seviye 3 eşleşmesi + bağımsız destek
+    rule_c = False
+    if all_l3:
+        if okas_supported or all_l2 or matched_action_terms:
+            rule_c = True
+
+    # Özel bağlam kontrolleri (description_expanded ile ihale başlığı uyumu)
+    if not rule_a and not rule_b and not rule_c:
+        norm_title = normalize_text(context.tender_name)
+        title_tokens = {t for t in norm_title.split() if len(t) > 3 and t not in _WEAK_STANDALONE_TERMS}
+
+        desc_match = False
+        if context.profile_description and title_tokens:
+            norm_desc = normalize_text(context.profile_description)
+            if all(t in norm_desc for t in title_tokens):
+                desc_match = True
+
+        name_match = False
+        if context.profile_name and title_tokens:
+            norm_name = normalize_text(context.profile_name)
+            name_tokens = {t for t in norm_name.split() if len(t) > 3 and t not in _WEAK_STANDALONE_TERMS}
+            if name_tokens and name_tokens.intersection(title_tokens):
+                name_match = True
+
+        # For rule_b support from name_match
+        if name_match and all_l2:
+            all_l3.append(context.profile_name)
+
+        if desc_match or name_match:
+            # We treat this as a strong contextual match
+            # If the description fully covers the title's strong tokens, it's a confirmed match.
+            if desc_match or okas_supported or matched_action_terms or name_match:
+                rule_c = True
+                contextual_matches.append(context.tender_name)
+
+    verified = rule_a or rule_b or rule_c
+
+    # Evidence strength
+    evidence_strength = "none"
+    if rule_a:
+        evidence_strength = "strong"
+    elif rule_b:
+        evidence_strength = "supporting"
+    elif rule_c:
+        evidence_strength = "contextual"
+
+    okas_text_support_verified = bool(all_l1 or all_l2 or all_l3)
+
+    return PositiveScopeAnalysis(
+        verified=verified,
+        strong_matched_terms=strong_matched_terms,
+        supporting_matched_terms=supporting_matched_terms,
+        primary_capability_matches=primary_capability_matches,
+        equipment_matches=equipment_matches,
+        contextual_matches=contextual_matches,
+        abbreviation_matches=abbreviation_matches,
+        title_matched_terms=list(dict.fromkeys(title_l1 + title_l2 + title_l3 + title_l4)),
+        evidence_matched_terms=list(dict.fromkeys(evidence_l1 + evidence_l2 + evidence_l3 + evidence_l4)),
+        evidence_chunk_ids=list(dict.fromkeys(evidence_chunk_ids)),
+        matched_okas_codes=list(dict.fromkeys(matched_okas_codes)),
+        okas_supported=okas_supported,
+        okas_text_support_required=okas_text_support_required,
+        okas_text_support_verified=okas_text_support_verified,
+        evidence_strength=evidence_strength,
+        matched_equipment_terms=equipment_matches,
+        matched_action_terms=matched_action_terms,
+    )
 
 
 def analyze_negative_scope(
@@ -143,7 +303,6 @@ def analyze_negative_scope(
     OKAS kodları negatif terimi tek başına kanıtlamaz. Kodlar, bulunan metinsel
     sinyalin profil kategorisiyle ilişkisini raporlamak için ayrı tutulur.
     """
-
     if context is None:
         return NegativeScopeAnalysis()
 
@@ -151,59 +310,39 @@ def analyze_negative_scope(
     if not isinstance(signals, dict):
         return NegativeScopeAnalysis()
 
-    negative_terms = _ordered_strings(signals.get("negatif_terimler"))
-    positive_terms = _ordered_strings(signals.get("guclu_terimler"))
+    negative_terms = ordered_strings(signals.get("negatif_terimler"))
+    positive_terms = ordered_strings(signals.get("guclu_terimler"))
     positive_terms.extend(
         term
-        for term in _ordered_strings(signals.get("destekleyici_terimler"))
+        for term in ordered_strings(signals.get("destekleyici_terimler"))
         if term not in positive_terms
     )
 
-    normalized_title = _normalize_text(context.tender_name)
+    normalized_title = normalize_text(context.tender_name)
     title_matches = [
         term
         for term in negative_terms
-        if _contains_term(normalized_title, term)
+        if contains_term(normalized_title, term)
     ]
 
     evidence_terms: list[str] = []
     evidence_chunk_ids: list[str] = []
     for chunk_id, text in context.evidence_text_by_chunk.items():
-        normalized_evidence = _normalize_text(text)
+        normalized_evidence = normalize_text(text)
         chunk_matches = [
             term
             for term in negative_terms
-            if _contains_term(normalized_evidence, term)
+            if contains_term(normalized_evidence, term)
         ]
         if not chunk_matches:
             continue
         evidence_chunk_ids.append(str(chunk_id))
         evidence_terms.extend(chunk_matches)
 
-    configured_codes = {
-        _normalize_code(code)
-        for code in _ordered_strings(signals.get("okas_kodlari"))
-        if _normalize_code(code)
-    }
-    configured_prefixes = {
-        _normalize_code(code)
-        for code in _ordered_strings(signals.get("okas_kod_on_ekleri"))
-        if _normalize_code(code)
-    }
-    tender_codes = [
-        normalized
-        for code in context.tender_okas_codes
-        if (normalized := _normalize_code(code))
-    ]
-    matched_okas_codes = [
-        code
-        for code in tender_codes
-        if code in configured_codes
-        or any(code.startswith(prefix) for prefix in configured_prefixes)
-    ]
+    matched_okas_codes = _okas_matches(context, signals)
 
     all_evidence_texts = list(context.evidence_text_by_chunk.values())
-    positive_matches = _matching_terms(
+    positive_matches = matching_terms(
         [context.tender_name, *all_evidence_texts],
         positive_terms,
     )
@@ -230,4 +369,4 @@ def analyze_negative_scope(
     )
 
 
-__all__ = ["analyze_negative_scope"]
+__all__ = ["analyze_negative_scope", "analyze_positive_scope"]

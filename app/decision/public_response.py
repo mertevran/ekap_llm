@@ -146,18 +146,17 @@ def _karar_basligi(final_decision: str) -> str:
 
 def _yonetici_ozeti(decision: FinalTenderDecision) -> str:
     fd = decision.final_decision
+    ad = decision.activity_decision
     am = decision.activity_match
+    ps = decision.katilim_yeterliligi_durumu
 
-    if fd == "uygun" and am == "guclu":
-        text = (
-            "İhale konusu, şirketin ilgili faaliyet profiliyle güçlü ve doğrudan "
-            "teknik uyum göstermektedir."
-        )
-    elif fd == "uygun" and am == "kismi":
-        text = (
-            "İhalenin belirli bölümleri şirketin faaliyet alanı ve teknik "
-            "yetkinlikleriyle uyumludur."
-        )
+    if fd == "uygun" or ad == "uygun":
+        text = "İhale konusu faaliyet açısından şirketin profiliyle teknik uyum göstermektedir."
+        if am == "guclu":
+            text = "İhale konusu faaliyet açısından şirketin profiliyle güçlü ve doğrudan teknik uyum göstermektedir."
+
+        if ps == "dogrulanmadi":
+            text += " Ancak katılım yeterliliğine ilişkin bazı belge veya şartlar mevcut verilerle doğrulanmamıştır."
     elif fd == "uygun_degil":
         text = (
             "İhale konusu ile değerlendirilen şirket profilinin temel faaliyet alanı "
@@ -176,16 +175,17 @@ def _teknik_gerekce(decision: FinalTenderDecision) -> str:
     parts: list[str] = []
 
     # 1. Doğrulanmış faaliyet eşleşmesi
-    if decision.activity_match == "guclu":
-        parts.append(
-            "Doğrulanan kanıtlar, ihale kapsamının şirket faaliyet profiliyle "
-            "doğrudan ve güçlü teknik uyum içinde olduğunu ortaya koymaktadır."
-        )
-    elif decision.activity_match == "kismi":
-        parts.append(
-            "Doğrulanan kanıtlar, ihale kapsamının belirli bölümlerinin şirket "
-            "faaliyet profiliyle uyumlu olduğunu göstermektedir."
-        )
+    if decision.final_decision != "uygun_degil":
+        if decision.activity_match == "guclu":
+            parts.append(
+                "Doğrulanan kanıtlar, ihale kapsamının şirket faaliyet profiliyle "
+                "doğrudan ve güçlü teknik uyum içinde olduğunu ortaya koymaktadır."
+            )
+        elif decision.activity_match == "kismi":
+            parts.append(
+                "Doğrulanan kanıtlar, ihale kapsamının belirli bölümlerinin şirket "
+                "faaliyet profiliyle uyumlu olduğunu göstermektedir."
+            )
 
     # 2. Uygun kısımlar (suitable_parts) varsa
     if decision.suitable_parts:
@@ -209,7 +209,7 @@ def _teknik_gerekce(decision: FinalTenderDecision) -> str:
             for a in source_confirmed[:2]
         )
         parts.append(
-            f"Kaynak doğrulamasıyla teyit edilen kriterler: {criteria_desc}."
+            f"İhale kaynağında zorunlu olduğu doğrulanan kriterler: {criteria_desc}."
         )
 
     # 4. Negatif kapsam doğrulanmışsa — yalnızca Python doğrulamasıyla teyit edilmiş
@@ -248,22 +248,25 @@ def _teknik_gerekce(decision: FinalTenderDecision) -> str:
 
 def _katilim_degerlendirmesi(decision: FinalTenderDecision) -> str:
     unverified = decision.dogrulanamayan_katilim_sartlari
+    ps = decision.katilim_yeterliligi_durumu
 
-    if unverified:
-        sart_ozeti = "; ".join(
-            _clean_text(s, 100) for s in unverified[:3]
-        )
+    if ps == "dogrulanmadi":
+        sart_ozeti = ""
+        if unverified:
+            sart_ozeti = " (" + "; ".join(_clean_text(s, 100) for s in unverified[:3]) + ")"
         text = (
-            "Faaliyet alanı açısından teknik uyum değerlendirmesi yukarıda "
-            "verilmiştir. Bununla birlikte ihaleye katılım için gerekli mali, "
-            f"idari ve teknik yeterlilik belgelerinden bir bölümü "
-            f"({sart_ozeti}) mevcut kaynaklarla tam olarak doğrulanamamıştır."
+            "Faaliyet alanı açısından teknik uyum değerlendirmesi bağımsız yapılmıştır. "
+            f"Bununla birlikte ihaleye katılım için gerekli mali, idari veya teknik "
+            f"yeterlilik belge şartları mevcut kaynaklarla tam olarak doğrulanamamıştır{sart_ozeti}. "
+            "İhaleye katılım kararı alınması halinde bu belgelerin kontrolü zorunludur."
         )
+    elif ps == "karsilanmiyor":
+        text = "İhaleye katılım için zorunlu olan mali, idari veya teknik bir şartın açıkça karşılanmadığı tespit edilmiştir."
     else:
         text = (
             "Mevcut analiz kapsamında faaliyet uygunluğunu engelleyen doğrulanmış "
             "bir katılım sorunu tespit edilmemiştir. Nihai teklif öncesinde ihale "
-            "belgelerinin insan kontrolünden geçirilmesi gerekir."
+            "belgelerinin insan kontrolünden geçirilmesi her zaman gereklidir."
         )
     return _clean_text(text, 500)
 
@@ -271,18 +274,23 @@ def _katilim_degerlendirmesi(decision: FinalTenderDecision) -> str:
 def _sonuc(decision: FinalTenderDecision) -> str:
     fd = decision.final_decision
     pc = decision.primary_profile_code
+    ps = decision.katilim_yeterliligi_durumu
 
     if fd == "uygun":
         # Kısmi teklif + uygun kısımlar varsa
         if decision.partial_offer and decision.suitable_parts:
             text = (
-                f"İhalenin yalnız doğrulanan uygun kısımlarının {pc} profili "
+                f"İhalenin yalnız doğrulanan uygun kısımlarının faaliyet açısından {pc} profili "
                 f"kapsamında değerlendirilmesi uygundur."
             )
         else:
             text = (
-                f"İhalenin {pc} profili kapsamında değerlendirilmesi uygundur."
+                f"İhalenin faaliyet uyumu açısından {pc} profili kapsamında değerlendirilmesi uygundur."
             )
+
+        if ps == "dogrulanmadi":
+            text += " İhaleye katılım için tüm yeterlilik şartlarının doğrulandığı anlamına gelmez, idari evrak kontrolü şarttır."
+
         # İnsan onayı gerekiyorsa ikinci cümle
         if decision.human_approval_required:
             text += (

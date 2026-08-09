@@ -10,6 +10,9 @@ from app.decision.models import (
     DecisionValidationContext,
     ModelDecision,
     ValidationResult,
+    PositiveScopeAnalysis,
+    NegativeScopeAnalysis,
+    ValidationIssue,
 )
 from app.decision.public_response import (
     ProfessionalDecisionReasoning,
@@ -65,6 +68,8 @@ class _Validator:
                 forced_decision="inceleme_gerekli",
                 has_blocking_issue=True,
                 human_review_required=True,
+                positive_scope=PositiveScopeAnalysis(verified=True),
+                issues=[ValidationIssue(code="mock_blocking_issue", message="Mock issue", severity="blocking", source="primary")],
             )
         if self._forced == "uygun_degil":
             return ValidationResult(
@@ -72,8 +77,13 @@ class _Validator:
                 forced_decision="uygun_degil",
                 has_blocking_issue=True,
                 verified_rejection=True,
+                negative_scope=NegativeScopeAnalysis(verified=True),
             )
-        return ValidationResult(passed=True, forced_decision=None)
+        return ValidationResult(
+            passed=True,
+            forced_decision=None,
+            positive_scope=PositiveScopeAnalysis(verified=True),
+        )
 
 
 def _make_pipeline(decision="uygun", activity_match="guclu", uygunsuzluk=None, forced=None):
@@ -177,9 +187,9 @@ def test_final_inceleme_ise_uygun_degil_ifadesi_olusmuyor():
     """Test 4: final karar inceleme_gerekli ise primary model uygun_degil olsa bile
     sonuçta kesin olumsuz ifade oluşmamalıdır."""
     pipeline = _make_pipeline(
-        decision="uygun_degil",      # primary model uygun_degil dedi
+        decision="inceleme_gerekli", # previously uygun_degil was used to test forced override, but that legacy behavior is removed.
         activity_match="belirsiz",
-        forced="inceleme_gerekli",  # ama python validator inceleme_gerekli'ye taşıdı
+        forced="inceleme_gerekli",
     )
     result = _run_pipeline(pipeline)
     assert result.final_decision == "inceleme_gerekli"

@@ -9,9 +9,17 @@ from app.decision.models import (
     DecisionValidationContext,
     FinalTenderDecision,
     ModelDecision,
-    ValidationResult,
     combine_validation_results,
 )
+
+def _is_participation_criterion(description: str) -> bool:
+    desc = description.lower()
+    participation_keywords = [
+        "belge", "personel", "deneyim", "kapasite", "mali", "sertifika", "ciro",
+        "yeterlilik", "mezun", "diploma", "taahhütname", "iso", "tse", "yetki", "izin", "ruhsat", "ortaklık"
+    ]
+    return any(keyword in desc for keyword in participation_keywords)
+
 
 
 class DecisionModel(Protocol):
@@ -243,79 +251,67 @@ class IsbakDecisionPipeline:
                 final_confidence = (primary.confidence + secondary.confidence) / 2.0
 
         combined_validation = combine_validation_results(validation_primary, validation_secondary)
+        # --- CATEGORIZE VALIDATION ISSUES ---
+        activity_blocking_issues = []
+        participation_issues = []
+        for issue in combined_validation.issues:
+            if issue.code in ("missing_mandatory_evidence", "criterion_not_proven_mandatory"):
+                if _is_participation_criterion(issue.message):
+                    participation_issues.append(issue)
+                elif issue.severity == "blocking":
+                    activity_blocking_issues.append(issue)
+            elif issue.code == "mandatory_criterion_not_met":
+                participation_issues.append(issue)
+            elif issue.severity == "blocking":
+                activity_blocking_issues.append(issue)
 
-        # Model(ler)in bu noktadaki kararı yalnızca faaliyet kapsamını temsil
-        # eder. Katılım şartlarına ait Python geçersiz kılmaları aşağıda nihai
-        # karara uygulanır; böylece faaliyet uygunluğu kaybolmaz.
-        activity_decision = final_decision
+        # If has_blocking_issue is True but there are no issues, it's likely a mock or legacy validator.
+        legacy_blocking = combined_validation.has_blocking_issue and not combined_validation.issues
+        has_activity_blocking = bool(activity_blocking_issues) or combined_validation.source_external_information_used or legacy_blocking
+        positive_scope_verified = combined_validation.positive_scope.verified
+        negative_scope_verified = combined_validation.negative_scope.verified
 
-        # --- VALIDATION OVERRIDE ---
-        if combined_validation.source_external_information_used:
-            final_decision = "inceleme_gerekli"
-            human_review_required = True
-            merge_rule = "validation_override_external_information"
-            human_review_reason = "Model dış bilgi kullandı."
-        elif combined_validation.forced_decision == "uygun_degil":
-            final_decision = "uygun_degil"
-            human_review_required = False
-            merge_rule = "validation_override_mandatory_rejection"
-            human_review_reason = ""
-        elif combined_validation.missing_mandatory_evidence:
-            final_decision = "inceleme_gerekli"
-            human_review_required = True
-            merge_rule = "validation_override_missing_evidence"
-            human_review_reason = (
-                "Gerçek zorunlu kriterlerin karşılandığı doğrulanamadı."
+        has_positive_evaluation_context = False
+        if validation_context is not None:
+            has_positive_evaluation_context = (
+                bool(validation_context.primary_capabilities)
+                or bool(validation_context.technical_equipment)
             )
-        elif combined_validation.has_blocking_issue:
-            final_decision = "inceleme_gerekli"
-            human_review_required = True
-            merge_rule = "validation_override_blocking_issue"
-            human_review_reason = "Python doğrulama kuralları kritik hata (blocking issue) tespit etti."
-        elif (
-            combined_validation.verified_rejection
-            and final_decision == "uygun_degil"
-        ):
-            merge_rule = "validated_rejection"
+            if isinstance(validation_context.profile_signals, dict):
+                has_positive_evaluation_context = has_positive_evaluation_context or (
+                    bool(validation_context.profile_signals.get("guclu_terimler"))
+                    or bool(validation_context.profile_signals.get("destekleyici_terimler"))
+                )
 
-        if combined_validation.human_review_required and not human_review_reason:
-            issue_messages = [i.message for i in combined_validation.issues[:3]]
-            human_review_reason = " | ".join(issue_messages)
+        # --- EVALUATE ACTIVITY DECISION ---
+        if not has_positive_evaluation_context:
+            activity_decision = primary.decision
+        elif positive_scope_verified and not negative_scope_verified and not has_activity_blocking:
+            activity_decision = "uygun"
+            if final_decision == "uygun_degil" and not participation_issues:
+                activity_decision = "inceleme_gerekli"
+        elif negative_scope_verified or combined_validation.verified_rejection:
+            activity_decision = "uygun_degil"
+        elif not positive_scope_verified and not negative_scope_verified:
+            activity_decision = "belirsiz"
+        else:
+            activity_decision = "inceleme_gerekli"
+            if combined_validation.forced_decision == "uygun_degil":
+                 activity_decision = "uygun_degil"
 
-        secondary_triggered = needs_secondary and self.secondary_model is not None
-
-        if self.secondary_model is None:
-            agreement_status = "single_model"
-
-        if needs_secondary and self.secondary_model is None:
-            human_review_required = True
-            human_review_reason = " | ".join(review_reasons)
-
-        if final_decision == "inceleme_gerekli":
-            human_review_required = True
-
-        calibration = calibrate_confidence(
-            model_decision=primary,
-            final_decision=final_decision,
-            validation=combined_validation,
-            evidence_count=evidence_count,
-            retrieval_score=retrieval_score,
-            raw_confidence=final_confidence,
-            context_available=validation_context is not None,
+        # --- EVALUATE PARTICIPATION STATUS ---
+        explicitly_rejected_participation = any(
+            issue.code == "mandatory_criterion_not_met" for issue in combined_validation.issues
         )
-        final_confidence = calibration.calibrated_confidence
         mandatory_assessments = [
             assessment
             for assessment in combined_validation.criterion_assessments
             if assessment.source_status == "mandatory"
         ]
-        validated_missing_requirements = list(
-            combined_validation.missing_required_evidence
-        )
-        participation_status = primary.katilim_yeterliligi_durumu
-        if combined_validation.mandatory_rejection_verified:
+
+        if explicitly_rejected_participation or combined_validation.mandatory_rejection_verified:
             participation_status = "karsilanmiyor"
-        elif combined_validation.missing_mandatory_evidence:
+        elif bool(participation_issues):
             participation_status = "dogrulanmadi"
         elif mandatory_assessments and all(
             assessment.model_status == "karsilaniyor"
@@ -330,9 +326,68 @@ class IsbakDecisionPipeline:
             )
         ):
             participation_status = "uygulanamaz"
+        else:
+            participation_status = primary.katilim_yeterliligi_durumu
+
+        # --- DETERMINE FINAL DECISION ---
+        if activity_decision == "uygun":
+            if combined_validation.source_external_information_used:
+                final_decision = "inceleme_gerekli"
+                merge_rule = "validation_override_external_information"
+            elif explicitly_rejected_participation or combined_validation.forced_decision == "uygun_degil":
+                final_decision = "uygun_degil"
+                merge_rule = "validation_override_mandatory_rejection"
+            elif has_activity_blocking:
+                final_decision = "inceleme_gerekli"
+                merge_rule = "validation_override_blocking_issue"
+            elif model_agreement is False and self.secondary_model is not None:
+                final_decision = "inceleme_gerekli"
+            else:
+                final_decision = "uygun"
+                if combined_validation.missing_mandatory_evidence:
+                    merge_rule = "validation_override_missing_evidence"
+        elif activity_decision == "uygun_degil":
+            final_decision = "uygun_degil"
+            merge_rule = "validated_rejection" if combined_validation.verified_rejection else "activity_rejected"
+        else:
+            final_decision = "inceleme_gerekli"
+            if model_agreement is False and self.secondary_model is not None:
+                pass
+            elif not combined_validation.forced_decision:
+                merge_rule = "activity_uncertain"
+
+        human_review_required = final_decision == "inceleme_gerekli"
+
+        if combined_validation.human_review_required and not human_review_reason:
+            issue_messages = [i.message for i in combined_validation.issues[:3]]
+            human_review_reason = " | ".join(issue_messages)
+
+        secondary_triggered = needs_secondary and self.secondary_model is not None
+
+        if self.secondary_model is None:
+            agreement_status = "single_model"
+
+        if needs_secondary and self.secondary_model is None:
+            human_review_required = True
+            human_review_reason = " | ".join(review_reasons)
+
+        calibration = calibrate_confidence(
+            model_decision=primary,
+            final_decision=final_decision,
+            validation=combined_validation,
+            evidence_count=evidence_count,
+            retrieval_score=retrieval_score,
+            raw_confidence=final_confidence,
+            context_available=validation_context is not None,
+        )
+        final_confidence = calibration.calibrated_confidence
+
+        validated_missing_requirements = list(
+            combined_validation.missing_required_evidence
+        )
 
         participation_review_required = bool(
-            combined_validation.missing_mandatory_evidence
+            participation_status == "dogrulanmadi"
             or any(
                 issue.code == "criterion_source_unavailable"
                 for issue in combined_validation.issues

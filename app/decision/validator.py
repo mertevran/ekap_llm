@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from app.decision.activity_scope import analyze_negative_scope
+from app.decision.activity_scope import (
+    analyze_negative_scope,
+    analyze_positive_scope,
+)
 from app.decision.criterion_evidence import assess_criterion_evidence
 from app.decision.models import (
     CriterionEvidenceAssessment,
@@ -282,6 +285,7 @@ class IsbakDeterministicValidator:
             )
 
         negative_scope = analyze_negative_scope(validation_context)
+        positive_scope = analyze_positive_scope(validation_context)
         if validation_context is not None:
             rules.append("verify_profile_signals_against_tender_sources")
 
@@ -407,7 +411,7 @@ class IsbakDeterministicValidator:
 
         if (
             decision == "uygun_degil"
-            and primary_decision.faaliyet_eslesmesi in {"guclu", "kismi"}
+            and positive_scope.verified
             and not negative_scope.verified
             and not primary_decision.negatif_kapsam_cakismasi
             and not failed_mandatory_criteria
@@ -416,12 +420,13 @@ class IsbakDeterministicValidator:
                 ValidationIssue(
                     code="activity_participation_decision_conflict",
                     message=(
-                        "Faaliyet eşleşmesi güçlü/kısmi olduğu hâlde, doğrulanmış negatif "
-                        "kapsam veya karşılanmayan gerçek kriter olmadan uygun_degil "
-                        "kararı üretildi."
+                        "İhale faaliyetinin şirket profiliyle uyumlu olduğu deterministik "
+                        "olarak doğrulandığı hâlde, negatif kapsam veya karşılanmayan gerçek "
+                        "kriter olmadan uygun_degil kararı üretildi."
                     ),
                     severity="blocking",
                     source=source,
+                    related_chunk_ids=positive_scope.evidence_chunk_ids,
                 )
             )
 
@@ -557,6 +562,7 @@ class IsbakDeterministicValidator:
             warnings=warnings,
             criterion_assessments=criterion_assessments,
             negative_scope=negative_scope,
+            positive_scope=positive_scope,
         )
 
     @staticmethod

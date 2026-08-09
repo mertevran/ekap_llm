@@ -75,9 +75,9 @@ def test_primary_secondary_uygun_no_blocking_issue():
 def test_primary_secondary_uygun_missing_mandatory():
     val = MockValidator(passed=False, forced_decision="inceleme_gerekli", missing_mandatory=True)
     res = run_pipeline(val, "uygun", "uygun")
-    assert res.final_decision == "inceleme_gerekli"
+    assert res.final_decision == "uygun"
     assert res.merge_rule == "validation_override_missing_evidence"
-    assert res.human_review_required is True
+    assert res.human_review_required is False
 
 def test_primary_secondary_uygun_blocking_issue():
     val = MockValidator(passed=False, forced_decision="inceleme_gerekli", blocking=True)

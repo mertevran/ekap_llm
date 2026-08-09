@@ -742,6 +742,12 @@ def main() -> int:
                 validation_context = source_context.validation_context(
                     profile_signals=profile_signals,
                     retrieval_score=candidate.scores.final,
+                    profile_name=profile_data.get("profil_adi", ""),
+                    primary_capabilities=profile_data.get("birincil_yetkinlikler", []),
+                    profile_description=profile_data.get("description_expanded", ""),
+                    technical_equipment=profile_data.get("technical_equipment", []),
+                    abbreviations_and_jargon=profile_data.get("abbreviations_and_jargon", []),
+                    action_verbs=profile_data.get("action_verbs", []),
                 )
                 evidence_count = len(
                     source_context.selected_evidence_chunks
@@ -771,6 +777,12 @@ def main() -> int:
                     },
                     profile_signals=profile_signals,
                     retrieval_score=candidate.scores.final,
+                    profile_name=profile_data.get("profil_adi", ""),
+                    primary_capabilities=profile_data.get("birincil_yetkinlikler", []),
+                    profile_description=profile_data.get("description_expanded", ""),
+                    technical_equipment=profile_data.get("technical_equipment", []),
+                    abbreviations_and_jargon=profile_data.get("abbreviations_and_jargon", []),
+                    action_verbs=profile_data.get("action_verbs", []),
                 )
                 evidence_count = len(candidate.evidence_chunks)
                 tender_id = candidate.tender_id

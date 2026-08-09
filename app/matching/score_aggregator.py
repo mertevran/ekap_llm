@@ -14,6 +14,17 @@ Puan formülü:
 
 Negatif ceza sonucu 0.0 altına düşüremez.
 Nihai skor 0.0–1.0 arasına sınırlandırılır.
+
+strong_term_support:
+    Profilin güçlü faaliyet terimleri ihale başlığı ve kanıt metinleriyle
+    karşılaştırılır. Bu alan MatchScoreBreakdown'a yazılır; nihai puana
+    doğrudan eklenmez — puan formülünün ağırlıkları sabit kalmak zorundadır.
+    Ancak title_support hesaplamasında kullanılan query_terms artık yalnızca
+    profil sorgusundan değil; strong_terms de ihale metniyle karşılaştırılır.
+
+Negatif terim cezası:
+    scope_terms.contains_term() kullanılır — activity_scope ile aynı matcher.
+    Bu sayede aday puanlama ve karar doğrulama aynı eşleştirme mantığını paylaşır.
 """
 
 from __future__ import annotations
@@ -23,6 +34,10 @@ import unicodedata
 from typing import Any
 
 from app.matching.models import MatchScoreBreakdown
+from app.matching.scope_terms import (
+    contains_term as _scope_contains_term,
+    normalize_text as _scope_normalize,
+)
 from app.vector_store.faiss_vector_reader import KNOWN_SECTION_TYPES
 
 _TOKEN_PATTERN = re.compile(r"[a-zçğışöü0-9]+", re.IGNORECASE | re.UNICODE)
@@ -107,6 +122,7 @@ class ScoreAggregator:
         strong_terms: list[str] | None = None,
         negative_terms: list[str] | None = None,
         evidence_texts: list[str] | None = None,
+        okas_text_support_required: bool = False,
     ) -> MatchScoreBreakdown:
         """Puan kırılımını hesaplar.
 
@@ -119,7 +135,10 @@ class ScoreAggregator:
             profile_okas_prefixes: Profil OKAS ön ekleri (örn. "48", "72").
             strong_terms: Profil güçlü terimleri.
             negative_terms: Profil negatif terimleri.
-            evidence_texts: Kanıt chunk metinleri (negatif terim araması için).
+            evidence_texts: Kanıt chunk metinleri.
+            okas_text_support_required: Profilde okas_metin_destegi_zorunlu=true ise
+                yalnız OKAS ön eki eşleşmesi tam destek vermez; güçlü metin desteği
+                de gerekmektedir.
         """
         s = self._s
 
@@ -136,32 +155,50 @@ class ScoreAggregator:
         # En az 3 farklı bölüm = 1.0 çeşitlilik
         section_div = min(1.0, len(unique_known_sections) / 3.0)
 
-        # OKAS desteği — profil ön ekleriyle ihale OKAS kodlarını karşılaştır
+        # Başlık desteği
+        title_sup = _term_overlap(query_terms, tender_name)
+
+        # Güçlü terim desteği:
+        # Profilin güçlü faaliyet terimleri İHALE BAŞLIĞI ve KANIT METİNLERİYLE
+        # karşılaştırılır. Profil sorgusundan üretilen query_terms ile değil.
+        strong_sup = 0.0
+        if strong_terms:
+            all_tender_text = tender_name
+            if evidence_texts:
+                all_tender_text += " " + " ".join(evidence_texts)
+            normalized_tender = _scope_normalize(all_tender_text)
+            # Kaç güçlü terim ihale metninde bulunuyor?
+            matched_strong = sum(
+                1 for term in strong_terms
+                if _scope_contains_term(normalized_tender, term)
+            )
+            strong_sup = min(1.0, matched_strong / max(1, len(strong_terms)))
+
+        # OKAS desteği — okas_metin_destegi_zorunlu dikkate alınarak
         okas_sup = self._compute_okas_support(
             okas_codes=okas_codes,
             profile_okas_prefixes=profile_okas_prefixes or [],
             query_terms=query_terms,
+            okas_text_support_required=okas_text_support_required,
+            okas_text_support_verified=bool(strong_sup > 0.0),
         )
 
-        # Başlık desteği
-        title_sup = _term_overlap(query_terms, tender_name)
-
-        # Güçlü terim desteği (bonus — skorun üst sınırı 1.0'i aşmaz)
-        strong_sup = 0.0
-        if strong_terms:
-            combined = " ".join(strong_terms)
-            strong_sup = min(1.0, _term_overlap(query_terms, combined))
-
-        # Negatif ceza
+        # Negatif ceza:
+        # scope_terms.contains_term() ile activity_scope ile aynı eşleştirme mantığı.
+        # Tek kelime eşleşmesi ceza üretmez — en az 2 token gerektirir.
         neg_penalty = 0.0
         if negative_terms:
-            neg_terms_tuple = _query_terms(" ".join(negative_terms))
-            if neg_terms_tuple:
-                tender_text = tender_name
-                if evidence_texts:
-                    tender_text += " " + " ".join(evidence_texts)
-                neg_overlap = _term_overlap(neg_terms_tuple, tender_text)
-                neg_penalty = min(0.30, neg_overlap * 0.30)
+            all_tender_text = tender_name
+            if evidence_texts:
+                all_tender_text += " " + " ".join(evidence_texts)
+            normalized_tender = _scope_normalize(all_tender_text)
+            neg_matches = sum(
+                1 for term in negative_terms
+                if _scope_contains_term(normalized_tender, term)
+            )
+            if neg_matches > 0:
+                # Her eşleşen negatif terim en fazla 0.10 ceza; toplam max 0.30
+                neg_penalty = min(0.30, neg_matches * 0.10)
 
         raw_final = (
             s.weight_max_chunk * max_sim
@@ -193,8 +230,19 @@ class ScoreAggregator:
         okas_codes: list[str],
         profile_okas_prefixes: list[str],
         query_terms: tuple[str, ...],
+        okas_text_support_required: bool = False,
+        okas_text_support_verified: bool = False,
     ) -> float:
-        """Profil OKAS ön ekleriyle ihale OKAS kodlarını karşılaştırır."""
+        """Profil OKAS ön ekleriyle ihale OKAS kodlarını karşılaştırır.
+
+        okas_metin_destegi_zorunlu=True ise:
+          - OKAS eşleşmesi var + güçlü metin desteği var → tam destek (1.0)
+          - OKAS eşleşmesi var + güçlü metin desteği yok → azaltılmış destek (0.3)
+          Bu davranış geniş OKAS ön eklerinin (30, 31, 32 gibi) genel ürünlerde
+          hatalı tam destek vermesini engeller.
+
+        okas_metin_destegi_zorunlu=False ise mevcut davranış korunur.
+        """
         if not okas_codes:
             return 0.0
 
@@ -204,18 +252,41 @@ class ScoreAggregator:
                 _normalize_okas_code(p) for p in profile_okas_prefixes if p
             ]
             norm_codes = [_normalize_okas_code(c) for c in okas_codes if c]
+
+            full_match = False
+            partial_match = False
             for code in norm_codes:
                 for prefix in norm_prefixes:
                     if code.startswith(prefix):
-                        return 1.0
-            # Kısmi ön ek eşleşmesi
-            for code in norm_codes:
-                for prefix in norm_prefixes:
-                    if len(prefix) >= 2 and code.startswith(prefix[:2]):
-                        return 0.5
-            return 0.0
+                        full_match = True
+                        break
+                if full_match:
+                    break
 
-        # Ön ek yoksa eşleşme olmaz, kelime tabanlı kod eşleştirme yapılmaz.
+            if not full_match:
+                # Kısmi ön ek eşleşmesi (2 karakter)
+                for code in norm_codes:
+                    for prefix in norm_prefixes:
+                        if len(prefix) >= 2 and code.startswith(prefix[:2]):
+                            partial_match = True
+                            break
+                    if partial_match:
+                        break
+
+            if not full_match and not partial_match:
+                return 0.0
+
+            base_support = 1.0 if full_match else 0.5
+
+            if okas_text_support_required:
+                if okas_text_support_verified:
+                    return base_support          # Metin desteği var → tam ödül
+                else:
+                    return round(base_support * 0.3, 4)  # Yalnız OKAS, metin yok → azaltılmış
+
+            return base_support
+
+        # Ön ek yoksa eşleşme olmaz.
         return 0.0
 
 

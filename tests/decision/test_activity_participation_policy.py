@@ -121,9 +121,9 @@ def test_pipeline_reports_unknown_mandatory_criterion():
 
     assert result.activity_decision == "uygun"
     assert result.katilim_yeterliligi_durumu == "dogrulanmadi"
-    assert result.final_decision == "inceleme_gerekli"
+    assert result.final_decision == "uygun"
     assert result.merge_rule == "validation_override_missing_evidence"
-    assert result.human_review_required is True
+    assert result.human_review_required is False
     assert result.missing_mandatory_evidence is True
     assert result.mandatory_missing_evidence == [
         "iso_9001: ISO 9001 belgesi"

@@ -124,6 +124,7 @@ class ProfileToTenderMatcher:
             if str(payload.get("text") or "").strip()
         )
         query_terms = build_query_terms(composite_text)
+        okas_text_support_required = profile_meta.get("okas_text_support_required", False)
 
         # 4. Her profil vektörüyle ihale indeksinde ara → chunk bazlı tekilleştir
         raw_by_chunk: dict[str, dict[str, Any]] = {}
@@ -169,6 +170,7 @@ class ProfileToTenderMatcher:
                 okas_prefixes=okas_prefixes,
                 strong_terms=strong_terms,
                 negative_terms=negative_terms,
+                okas_text_support_required=okas_text_support_required,
             )
             if match is None:
                 continue
@@ -214,6 +216,9 @@ class ProfileToTenderMatcher:
                 "strong_terms": signals.guclu_terimler,
                 "negative_terms": signals.negatif_terimler,
                 "okas_prefixes": signals.okas_kod_on_ekleri,
+                "okas_text_support_required": bool(
+                    getattr(signals, "okas_metin_destegi_zorunlu", False)
+                ),
             }
         except Exception as exc:
             logger.debug("Profil meta yüklenemedi: %s — %s", profile_code, exc)
@@ -267,6 +272,7 @@ class ProfileToTenderMatcher:
         okas_prefixes: list[str],
         strong_terms: list[str],
         negative_terms: list[str],
+        okas_text_support_required: bool = False,
     ) -> ProfileTenderMatch | None:
         if not chunks:
             return None
@@ -310,6 +316,7 @@ class ProfileToTenderMatcher:
             strong_terms=strong_terms,
             negative_terms=negative_terms,
             evidence_texts=evidence_texts,
+            okas_text_support_required=okas_text_support_required,
         )
 
         return ProfileTenderMatch(
