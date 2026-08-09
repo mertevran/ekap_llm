@@ -747,6 +747,7 @@ class OllamaDecisionModel:
         score_breakdown: dict[str, Any] | None = None,
         valid_chunk_ids: list[str] | None = None,
         primary_profile_code: str = "",
+        validation_context: Any | None = None,
     ) -> ModelDecision:
         logger.info(
             f"Analyzing tender {tender_id} ({ikn}) with model {self.name} (prompt: {self.prompt_version})"
@@ -849,6 +850,186 @@ class OllamaDecisionModel:
                 "options": options,
             }
 
+            from app.config import get_settings
+            settings = get_settings()
+
+            # 1. Company Context
+            raw_company_context = company_context or ""
+            final_company_context = raw_company_context  # Currently no truncation occurs on company_context
+
+            company_context_raw_chars = len(raw_company_context)
+            company_context_final_chars = len(final_company_context)
+            company_context_truncated = (raw_company_context != final_company_context)
+            company_context_removed_chars = max(0, company_context_raw_chars - company_context_final_chars)
+            company_context_limit_chars = settings.max_company_context_chars
+
+            # 3. Prompt
+            prompt_static_template_chars = len(prompt_template)
+            tender_context_chars = len(tender_context or "")
+
+            if "messages" not in payload:
+                final_prompt_chars = len(payload.get("prompt", ""))
+            else:
+                final_prompt_chars = sum(len(m.get("content", "")) for m in payload["messages"])
+
+            prompt_fixed_overhead_chars = final_prompt_chars - tender_context_chars - company_context_final_chars
+
+            company_context_original_chars = 0
+            company_context_truncated = False
+            profile_name_chars = 0
+            primary_capabilities_chars = 0
+            profile_description_chars = 0
+            strong_terms_chars = 0
+            supporting_terms_chars = 0
+            negative_terms_chars = 0
+            technical_equipment_chars = 0
+            abbreviations_and_jargon_chars = 0
+            action_verbs_chars = 0
+            participation_evidence_chars = 0
+            primary_profile_serialized_chars = 0
+            profiles_serialized_chars = 0
+            duplicate_primary_profile_detected = False
+            accounted_profile_fields_chars = 0
+            unaccounted_company_context_chars = 0
+
+            if validation_context is not None:
+                # We can calculate original company context size approximately
+                # by serializing the profile signals, or we can just measure the components
+
+                profile_name_chars = len(validation_context.profile_name) if validation_context.profile_name else 0
+
+                # Helper to measure serialized size
+                def _measure(val):
+                    return len(json.dumps(val, ensure_ascii=False)) if val else 0
+
+                primary_capabilities_chars = _measure(validation_context.primary_capabilities)
+                profile_description_chars = len(validation_context.profile_description) if validation_context.profile_description else 0
+
+                sig = validation_context.profile_signals or {}
+                strong_terms_chars = _measure(sig.get("guclu_terimler"))
+                supporting_terms_chars = _measure(sig.get("destekleyici_terimler"))
+                negative_terms_chars = _measure(sig.get("negatif_terimler"))
+
+                technical_equipment_chars = _measure(validation_context.technical_equipment)
+                abbreviations_and_jargon_chars = _measure(validation_context.abbreviations_and_jargon)
+                action_verbs_chars = _measure(validation_context.action_verbs)
+                participation_evidence_chars = _measure(sig.get("katilim_sartlari"))
+
+                # 5. Field Accounting
+                accounted_profile_fields_chars = (
+                    profile_name_chars + primary_capabilities_chars + profile_description_chars +
+                    strong_terms_chars + supporting_terms_chars + negative_terms_chars +
+                    technical_equipment_chars + abbreviations_and_jargon_chars + action_verbs_chars +
+                    participation_evidence_chars
+                )
+                unaccounted_company_context_chars = company_context_raw_chars - accounted_profile_fields_chars
+
+            # 4. Duplicate Check
+            duplicate_check_applicable = False
+            duplicate_primary_profile_detected = False
+
+            # 6. Company Context Breakdown
+            cc_breakdown = {
+                "company_section_header_chars": 0,
+                "primary_profile_header_chars": 0,
+                "secondary_profile_header_chars": 0,
+                "verified_capabilities_chars": 0,
+                "verified_capabilities_count": 0,
+                "verified_documents_chars": 0,
+                "verified_documents_count": 0,
+                "missing_info_chars": 0,
+                "missing_info_count": 0,
+                "wrapper_chars": 0,
+                "other_unclassified_chars": 0,
+            }
+            if raw_company_context:
+                lines = raw_company_context.split("\n")
+                current_section = "other_unclassified_chars"
+                current_count_key = None
+                for i, line in enumerate(lines):
+                    line_chars = len(line) + (1 if i < len(lines)-1 else 0)
+                    if line.startswith("## ŞİRKET PROFİLİ"):
+                        cc_breakdown["company_section_header_chars"] += line_chars
+                        current_section = "company_section_header_chars"
+                        current_count_key = None
+                    elif line.startswith("- **Birincil Profil**") or line.startswith("PROFİL:"):
+                        cc_breakdown["primary_profile_header_chars"] += line_chars
+                        current_section = "primary_profile_header_chars"
+                        current_count_key = None
+                    elif line.startswith("- **İkincil Profiller**") or line.startswith("EK PROFİLLER:"):
+                        cc_breakdown["secondary_profile_header_chars"] += line_chars
+                        current_section = "secondary_profile_header_chars"
+                        current_count_key = None
+                    elif line.startswith("### Doğrulanmış Yetkinlikler") or line.startswith("YETKİNLİKLER:"):
+                        cc_breakdown["verified_capabilities_chars"] += line_chars
+                        current_section = "verified_capabilities_chars"
+                        current_count_key = "verified_capabilities_count"
+                    elif line.startswith("### Doğrulanmış Belgeler") or line.startswith("BELGELER:"):
+                        cc_breakdown["verified_documents_chars"] += line_chars
+                        current_section = "verified_documents_chars"
+                        current_count_key = "verified_documents_count"
+                    elif line.startswith("### Eksik veya Doğrulanamayan Bilgiler") or line.startswith("EKSİKLER:"):
+                        cc_breakdown["missing_info_chars"] += line_chars
+                        current_section = "missing_info_chars"
+                        current_count_key = "missing_info_count"
+                    elif line.startswith("- ") and current_count_key:
+                        cc_breakdown[current_section] += line_chars
+                        cc_breakdown[current_count_key] += 1
+                    else:
+                        if line.strip() == "":
+                            cc_breakdown["wrapper_chars"] += line_chars
+                        else:
+                            cc_breakdown[current_section] += line_chars
+
+            sum_of_measured_company_sections_chars = sum(v for k, v in cc_breakdown.items() if k.endswith("_chars"))
+            company_context_accounting_delta = company_context_raw_chars - sum_of_measured_company_sections_chars
+
+            logger.info(
+                f"[COMPANY_CONTEXT_BREAKDOWN] "
+                f"profile_code={primary_profile_code} "
+                f"company_context_raw_chars={company_context_raw_chars} "
+                f"company_section_header_chars={cc_breakdown['company_section_header_chars']} "
+                f"primary_profile_header_chars={cc_breakdown['primary_profile_header_chars']} "
+                f"secondary_profile_header_chars={cc_breakdown['secondary_profile_header_chars']} "
+                f"verified_capabilities_chars={cc_breakdown['verified_capabilities_chars']} "
+                f"verified_capabilities_count={cc_breakdown['verified_capabilities_count']} "
+                f"verified_documents_chars={cc_breakdown['verified_documents_chars']} "
+                f"verified_documents_count={cc_breakdown['verified_documents_count']} "
+                f"missing_info_chars={cc_breakdown['missing_info_chars']} "
+                f"missing_info_count={cc_breakdown['missing_info_count']} "
+                f"wrapper_chars={cc_breakdown['wrapper_chars']} "
+                f"other_unclassified_chars={cc_breakdown['other_unclassified_chars']} "
+                f"sum_of_measured_company_sections_chars={sum_of_measured_company_sections_chars} "
+                f"company_context_accounting_delta={company_context_accounting_delta}"
+            )
+
+            logger.info(
+                f"[CONTEXT_DIAGNOSTICS] "
+                f"prompt_static_template_chars={prompt_static_template_chars} "
+                f"tender_context_chars={tender_context_chars} "
+                f"company_context_raw_chars={company_context_raw_chars} "
+                f"company_context_final_chars={company_context_final_chars} "
+                f"company_context_truncated={company_context_truncated} "
+                f"company_context_removed_chars={company_context_removed_chars} "
+                f"company_context_limit_chars={company_context_limit_chars} "
+                f"final_prompt_chars={final_prompt_chars} "
+                f"prompt_fixed_overhead_chars={prompt_fixed_overhead_chars} "
+                f"duplicate_check_applicable={duplicate_check_applicable} "
+                f"duplicate_primary_profile_detected={duplicate_primary_profile_detected} "
+                f"accounted_profile_fields_chars={accounted_profile_fields_chars} "
+                f"unaccounted_company_context_chars={unaccounted_company_context_chars} "
+                f"profile_name_chars={profile_name_chars} "
+                f"primary_capabilities_chars={primary_capabilities_chars} "
+                f"profile_description_chars={profile_description_chars} "
+                f"strong_terms_chars={strong_terms_chars} "
+                f"supporting_terms_chars={supporting_terms_chars} "
+                f"negative_terms_chars={negative_terms_chars} "
+                f"technical_equipment_chars={technical_equipment_chars} "
+                f"abbreviations_and_jargon_chars={abbreviations_and_jargon_chars} "
+                f"action_verbs_chars={action_verbs_chars} "
+                f"participation_evidence_chars={participation_evidence_chars}"
+            )
+
             network_success = False
             response_text = ""
             thinking_text = ""
@@ -878,7 +1059,7 @@ class OllamaDecisionModel:
                         len(response_text),
                         response_text[:500],
                     )
-                    thinking_text = str(data.get("message", {}).get("content", data.get("thinking", ""))) 
+                    thinking_text = str(data.get("message", {}).get("content", data.get("thinking", "")))
                     eval_count = data.get("eval_count", 0) or 0
                     prompt_eval_count = data.get("prompt_eval_count", 0) or 0
                     done_reason = data.get("done_reason", "")
@@ -1437,7 +1618,7 @@ class OllamaDecisionModel:
     def _validate_semantic_field_usage(self, data: dict[str, Any], tender_context: str, valid_chunk_ids: list[str] | None) -> None:
         # A: Check for empty strings in specific lists
         lists_to_check = [
-            "uygunluk_gerekceleri", "uygunsuzluk_gerekceleri", 
+            "uygunluk_gerekceleri", "uygunsuzluk_gerekceleri",
             "eksik_kanitlar", "kritik_belirsizlikler", "kritik_faaliyet_belirsizlikleri",
             "dogrulanamayan_katilim_sartlari", "kullanilan_chunk_idleri"
         ]
@@ -1464,7 +1645,7 @@ class OllamaDecisionModel:
 
         # C: Negative patterns in uygunluk_gerekceleri
         neg_patterns = [
-            "bulunmamaktadır", "bulunmuyor", "eksiktir", "eksik", 
+            "bulunmamaktadır", "bulunmuyor", "eksiktir", "eksik",
             "doğrulanmamıştır", "kanıt yok", "kanıt bulunamadı", "belirsiz", "bilinmiyor"
         ]
         uygunluk_g = data.get("uygunluk_gerekceleri", [])

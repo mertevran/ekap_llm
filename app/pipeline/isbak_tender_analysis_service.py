@@ -58,6 +58,143 @@ def format_company_context(context_dict: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_company_context_compact(context_dict: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """
+    Şirket bağlamını LLM için KESİN YİNELENENLERİ (exact duplicate) temizleyerek kompakt formata dönüştürür.
+    Markdown etiketlerini azaltır. Boş bölümleri eklemez.
+    """
+    lines = []
+
+    primary_code = context_dict.get("birincil_profil_kodu", "BİLİNMİYOR")
+    lines.append(f"PROFİL: {primary_code}")
+
+    birincil_profil = context_dict.get("birincil_profil", {})
+    profil_adi = birincil_profil.get("profil_adi")
+    if profil_adi:
+        lines.append(f"PROFİL ADI: {profil_adi}")
+
+    loaded_codes = context_dict.get("yuklenen_profil_kodlari", [])
+    secondary = [c for c in loaded_codes if c != primary_code]
+    if secondary:
+        lines.append(f"EK PROFİLLER: {', '.join(secondary)}")
+
+    kurum = context_dict.get("kurum", {})
+
+    stats = {
+        "verified_capabilities_original_count": 0,
+        "verified_capabilities_compact_count": 0,
+        "verified_documents_original_count": 0,
+        "verified_documents_compact_count": 0,
+        "exact_duplicate_capabilities_removed": 0,
+        "exact_duplicate_documents_removed": 0,
+        "missing_info_count": 0,
+    }
+
+    def add_section(items: list | dict | str, header: str, stat_prefix: str = "") -> None:
+        if not items:
+            return
+
+        if isinstance(items, str):
+            lines.append(f"\n{header}")
+            lines.append(items)
+            return
+
+        if isinstance(items, dict):
+            # Dict values, e.g. capacity limits
+            lines.append(f"\n{header}")
+            for k, v in items.items():
+                if v:
+                    lines.append(f"- {k}: {v}")
+            return
+
+        if stat_prefix:
+            stats[f"{stat_prefix}_original_count"] = len(items)
+
+        seen = set()
+        unique_items = []
+        for item in items:
+            item_str = str(item)
+            if item_str not in seen:
+                seen.add(item_str)
+                unique_items.append(item_str)
+
+        if stat_prefix:
+            stats[f"{stat_prefix}_compact_count"] = len(unique_items)
+            mid = stat_prefix.split('_')[1] if '_' in stat_prefix else stat_prefix
+            stats[f"exact_duplicate_{mid}_removed"] = len(items) - len(unique_items)
+
+        if unique_items:
+            lines.append(f"\n{header}")
+            for item in unique_items:
+                lines.append(f"- {item}")
+
+    # Primary Profile Fields
+    desc = birincil_profil.get("description_expanded")
+    if desc:
+        add_section(desc, "FAALİYET AÇIKLAMASI:")
+
+    add_section(birincil_profil.get("birincil_yetkinlikler", []), "BİRİNCİL YETKİNLİKLER:")
+
+    signals = birincil_profil.get("ihale_kategori_sinyalleri", {})
+    if isinstance(signals, dict):
+        add_section(signals.get("guclu_terimler", []), "GÜÇLÜ TERİMLER:")
+        add_section(signals.get("destekleyici_terimler", []), "DESTEKLEYİCİ TERİMLER:")
+        add_section(signals.get("negatif_terimler", []), "NEGATİF TERİMLER:")
+
+        okas = signals.get("okas_kodlari", [])
+        if okas:
+            add_section(okas, "OKAS KODLARI:")
+
+        on_ekler = signals.get("okas_kod_on_ekleri", [])
+        if on_ekler:
+            add_section(on_ekler, "OKAS KOD ÖN EKLERİ:")
+
+        zorunlu = signals.get("okas_metin_destegi_zorunlu")
+        if zorunlu:
+            lines.append(f"\nOKAS METİN DESTEĞİ ZORUNLU: {zorunlu}")
+
+    add_section(birincil_profil.get("urunler_ve_hizmetler", []), "ÜRÜNLER VE HİZMETLER:")
+    add_section(birincil_profil.get("teknolojiler", []), "TEKNOLOJİLER:")
+    add_section(birincil_profil.get("technical_equipment", []), "TEKNİK EKİPMAN:")
+    add_section(birincil_profil.get("abbreviations_and_jargon", []), "KISALTMALAR VE JARGON:")
+    add_section(birincil_profil.get("action_verbs", []), "EYLEM FİİLLERİ:")
+
+    kapasite = birincil_profil.get("kapasite_sinirlari", {})
+    if kapasite and isinstance(kapasite, dict):
+        add_section(kapasite, "KAPASİTE SINIRLARI:")
+
+    # Company Master Fields
+    yetkinlikler = kurum.get("dogrulanmis_yetkinlikler", [])
+    if isinstance(yetkinlikler, list):
+        add_section(yetkinlikler, "DOĞRULANMIŞ YETKİNLİKLER:", "verified_capabilities")
+
+    belgeler = kurum.get("dogrulanmis_belgeler", [])
+    if isinstance(belgeler, list):
+        add_section(belgeler, "DOĞRULANMIŞ BELGELER:", "verified_documents")
+
+    eksikler = kurum.get("eksik_bilgiler", [])
+    if not eksikler:
+        eksikler = kurum.get("eksik_veya_dogrulanamayan_bilgiler", [])
+
+    if isinstance(eksikler, list) and eksikler:
+        stats["missing_info_count"] = len(eksikler)
+        seen = set()
+        unique_eksikler = []
+        for e in eksikler:
+            if e not in seen:
+                seen.add(e)
+                unique_eksikler.append(e)
+
+        if unique_eksikler:
+            lines.append("\nEKSİKLER:")
+            for e in unique_eksikler:
+                lines.append(f"- {e}")
+
+    compact_str = "\n".join(lines)
+    stats["compact_chars"] = len(compact_str)
+    return compact_str, stats
+
+
 class IsbakTenderAnalysisService:
     """
     Uçtan uca İSBAK İhale Analiz Servisi.
@@ -367,7 +504,36 @@ class IsbakTenderAnalysisService:
                 context_dict = self.profile_loader.build_evaluation_context(
                     primary_code=primary_profile, secondary_codes=secondary_profiles
                 )
-                company_context = format_company_context(context_dict)
+                from app.config import get_settings
+                settings = get_settings()
+
+                company_context_legacy = format_company_context(context_dict)
+                company_context_compact, compact_stats = format_company_context_compact(context_dict)
+
+                company_context_mode = "compact" if settings.qwen_compact_company_context else "legacy"
+                legacy_chars = len(company_context_legacy)
+                compact_chars = compact_stats["compact_chars"]
+                saved_chars = legacy_chars - compact_chars
+                saved_percent = round((saved_chars / legacy_chars * 100), 2) if legacy_chars else 0
+
+                logger.info(
+                    f"[COMPANY_CONTEXT_COMPRESSION] "
+                    f"company_context_mode={company_context_mode} "
+                    f"legacy_company_context_chars={legacy_chars} "
+                    f"compact_company_context_chars={compact_chars} "
+                    f"company_context_saved_chars={saved_chars} "
+                    f"company_context_saved_percent={saved_percent} "
+                    f"verified_capabilities_original_count={compact_stats['verified_capabilities_original_count']} "
+                    f"verified_capabilities_compact_count={compact_stats['verified_capabilities_compact_count']} "
+                    f"verified_documents_original_count={compact_stats['verified_documents_original_count']} "
+                    f"verified_documents_compact_count={compact_stats['verified_documents_compact_count']} "
+                    f"exact_duplicate_capabilities_removed={compact_stats['exact_duplicate_capabilities_removed']} "
+                    f"exact_duplicate_documents_removed={compact_stats['exact_duplicate_documents_removed']} "
+                    f"missing_info_count={compact_stats['missing_info_count']}"
+                )
+
+                company_context = company_context_compact if settings.qwen_compact_company_context else company_context_legacy
+
                 result.primary_profile_code = primary_profile
                 result.secondary_profile_codes = secondary_profiles
                 result.matched_capabilities = []

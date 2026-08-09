@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     max_company_context_chars: int = 5000
     automatic_positive_decisions_enabled: bool = False
     max_runtime_swap_growth_mb: int = 512
+    qwen_compact_company_context: bool = False
 
     active_tender_status_values: list[str] = Field(
         default_factory=lambda: ["İhale İlanı Yayımlanmış, Katılıma Açık"]

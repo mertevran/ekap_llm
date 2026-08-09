@@ -342,17 +342,115 @@ def render_company_context(
         if code != primary_code
     ]
 
-    compact_context = remove_empty_values(evaluation_context)
-    company_context = json.dumps(
-        compact_context,
+    compact_context_json = remove_empty_values(evaluation_context)
+    legacy_raw_company_context_str = json.dumps(
+        compact_context_json,
         ensure_ascii=False,
         separators=(",", ":"),
         default=str,
     )
-    company_context = compact_text(
-        company_context,
+    legacy_company_context_str = compact_text(
+        legacy_raw_company_context_str,
         settings.max_company_context_chars,
     )
+
+    from app.pipeline.isbak_tender_analysis_service import format_company_context_compact
+    compact_company_context_str, compact_stats = format_company_context_compact(evaluation_context)
+
+    if settings.qwen_compact_company_context:
+        company_context = compact_company_context_str
+        selected_mode = "compact"
+        fallback_reason = ""
+
+        # Integrity Guard
+        birincil_profil = evaluation_context.get("birincil_profil", {})
+
+        def check_field(field_value: Any, field_name: str) -> bool:
+            nonlocal selected_mode, fallback_reason, company_context
+            if not field_value:
+                return True
+
+            if isinstance(field_value, str):
+                if field_value not in company_context:
+                    selected_mode = "legacy_fallback"
+                    fallback_reason = f"missing_{field_name}"
+                    company_context = legacy_company_context_str
+                    return False
+                return True
+
+            if isinstance(field_value, list):
+                seen = set()
+                unique_items = []
+                for item in field_value:
+                    item_str = str(item)
+                    if item_str not in seen:
+                        seen.add(item_str)
+                        unique_items.append(item_str)
+
+                for item in unique_items:
+                    if str(item) not in company_context:
+                        selected_mode = "legacy_fallback"
+                        fallback_reason = f"missing_{field_name}"
+                        company_context = legacy_company_context_str
+                        return False
+                return True
+
+            if isinstance(field_value, dict):
+                for k, v in field_value.items():
+                    if v and str(v) not in company_context:
+                        selected_mode = "legacy_fallback"
+                        fallback_reason = f"missing_{field_name}"
+                        company_context = legacy_company_context_str
+                        return False
+                return True
+
+            return True
+
+        if selected_mode == "compact":
+            check_field(birincil_profil.get("profil_adi"), "profile_name")
+            check_field(birincil_profil.get("birincil_yetkinlikler"), "primary_capabilities")
+            check_field(birincil_profil.get("description_expanded"), "description_expanded")
+            check_field(birincil_profil.get("technical_equipment"), "technical_equipment")
+            check_field(birincil_profil.get("abbreviations_and_jargon"), "abbreviations_and_jargon")
+            check_field(birincil_profil.get("action_verbs"), "action_verbs")
+            check_field(birincil_profil.get("urunler_ve_hizmetler"), "urunler_ve_hizmetler")
+            check_field(birincil_profil.get("teknolojiler"), "teknolojiler")
+            check_field(birincil_profil.get("kapasite_sinirlari"), "kapasite_sinirlari")
+
+        signals = birincil_profil.get("ihale_kategori_sinyalleri", {})
+        if isinstance(signals, dict) and selected_mode == "compact":
+            check_field(signals.get("guclu_terimler"), "strong_terms")
+            check_field(signals.get("destekleyici_terimler"), "destekleyici_terimler")
+            check_field(signals.get("negatif_terimler"), "negative_terms")
+            check_field(signals.get("okas_kodlari"), "okas_kodlari")
+            check_field(signals.get("okas_kod_on_ekleri"), "okas_kod_on_ekleri")
+
+        log_msg = (
+            f"[COMPANY_CONTEXT_MODE] "
+            f"setting_value={settings.qwen_compact_company_context} "
+            f"selected_mode={selected_mode} "
+            f"legacy_raw_chars={len(legacy_raw_company_context_str)} "
+            f"legacy_final_chars={len(legacy_company_context_str)} "
+            f"compact_final_chars={len(compact_company_context_str)} "
+            f"selected_chars={len(company_context)} "
+            f"compact_integrity_passed={selected_mode == 'compact'}"
+        )
+        if fallback_reason:
+            log_msg += f" fallback_reason={fallback_reason}"
+        LOGGER.info(log_msg)
+    else:
+        company_context = legacy_company_context_str
+        selected_mode = "legacy"
+        LOGGER.info(
+            f"[COMPANY_CONTEXT_MODE] "
+            f"setting_value={settings.qwen_compact_company_context} "
+            f"selected_mode={selected_mode} "
+            f"legacy_raw_chars={len(legacy_raw_company_context_str)} "
+            f"legacy_final_chars={len(legacy_company_context_str)} "
+            f"compact_final_chars={len(compact_company_context_str)} "
+            f"selected_chars={len(company_context)} "
+            f"compact_integrity_passed=False"
+        )
 
     return (
         company_context,

@@ -38,6 +38,7 @@ class DecisionModel(Protocol):
         score_breakdown: dict[str, Any] | None = None,
         valid_chunk_ids: list[str] | None = None,
         primary_profile_code: str = "",
+        validation_context: Any = None,
     ) -> ModelDecision: ...
 
 
@@ -106,6 +107,7 @@ class IsbakDecisionPipeline:
             score_breakdown=score_breakdown,
             valid_chunk_ids=valid_chunk_ids,
             primary_profile_code=primary_profile_code,
+            validation_context=validation_context,
         )
         validation_primary = self._validate_model_decision(
             primary,
