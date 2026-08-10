@@ -431,6 +431,22 @@ class IsbakDeterministicValidator:
             )
 
         if (
+            decision == "uygun"
+            and not positive_scope.verified
+        ):
+            issues.append(
+                ValidationIssue(
+                    code="suitable_without_verified_positive_scope",
+                    message=(
+                        "Model uygun kararı verdi, ancak ihale metninde profilin faaliyet "
+                        "alanına ait güçlü bir nesne/alan kanıtı (pozitif kapsam) doğrulanamadı."
+                    ),
+                    severity="blocking",
+                    source=source,
+                )
+            )
+
+        if (
             decision == "inceleme_gerekli"
             and not primary_decision.kritik_faaliyet_belirsizlikleri
         ):

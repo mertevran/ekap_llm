@@ -235,11 +235,13 @@ def analyze_positive_scope(
     # Özel bağlam kontrolleri (description_expanded ile ihale başlığı uyumu)
     if not rule_a and not rule_b and not rule_c:
         norm_title = normalize_text(context.tender_name)
+        # Başlıktan güçlü domain token'ları: kısa (<= 3 char) ve _WEAK_STANDALONE_TERMS dışında olanlar
         title_tokens = {t for t in norm_title.split() if len(t) > 3 and t not in _WEAK_STANDALONE_TERMS}
 
         desc_match = False
         if context.profile_description and title_tokens:
             norm_desc = normalize_text(context.profile_description)
+            # Tüm domain tokenlerinin description'da bulunması gerekiyor
             if all(t in norm_desc for t in title_tokens):
                 desc_match = True
 
@@ -247,7 +249,14 @@ def analyze_positive_scope(
         if context.profile_name and title_tokens:
             norm_name = normalize_text(context.profile_name)
             name_tokens = {t for t in norm_name.split() if len(t) > 3 and t not in _WEAK_STANDALONE_TERMS}
-            if name_tokens and name_tokens.intersection(title_tokens):
+            common_tokens = name_tokens.intersection(title_tokens)
+            # Ortak token var, ANCAK tümü _WEAK_CAPABILITY_TERMS içindeyse name_match geçersiz.
+            # Gerçek domain token'ı (nesne/cihaz/alan) gerektir — yalnız generic eylem fiilleri yetmez.
+            normalized_cap_terms_all = {normalize_text(c) for c in _WEAK_CAPABILITY_TERMS}
+            # Ortak tokenlerden oluşan ifadenin _WEAK_CAPABILITY_TERMS ile örtüşüp örtüşmediğini kontrol et
+            # Basit yaklaşım: ortak token kümesindeki her token _WEAK_STANDALONE_TERMS içinde mi?
+            # Eğer common_tokens içindeki token'ların tamamı generik eylem sözcüğüyse name_match False
+            if common_tokens and not all(t in _WEAK_STANDALONE_TERMS for t in common_tokens):
                 name_match = True
 
         # For rule_b support from name_match
@@ -255,9 +264,11 @@ def analyze_positive_scope(
             all_l3.append(context.profile_name)
 
         if desc_match or name_match:
-            # We treat this as a strong contextual match
-            # If the description fully covers the title's strong tokens, it's a confirmed match.
-            if desc_match or okas_supported or matched_action_terms or name_match:
+            # Bağlamsal eşleşme yalnız gerçek domain kanıtı içeriyorsa geçerlidir.
+            # name_match yalnız action_term eşleşmesiyse (matched_action_terms var ama L1/L2/L3 yok)
+            # bu geçerli bir domain kanıtı sayılmaz.
+            has_real_support = okas_supported or bool(all_l2) or desc_match
+            if has_real_support or (name_match and not matched_action_terms):
                 rule_c = True
                 contextual_matches.append(context.tender_name)
 

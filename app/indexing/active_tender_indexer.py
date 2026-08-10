@@ -117,6 +117,7 @@ class ActiveTenderIndexer:
         device: str = "cpu",
         collection_name: str = "ekap_tender_chunks",
         faiss_path: str = "storage/faiss",
+        target_tender_ids: set[str] | None = None,
     ) -> IndexingStats:
         if limit is not None and limit <= 0:
             raise ValueError("limit pozitif olmalıdır.")
@@ -138,12 +139,15 @@ class ActiveTenderIndexer:
             active_snapshot_count = self.repository.count_active_tenders()
             stats.active_snapshot_count = active_snapshot_count
 
-            selected_count = max(
-                0,
-                active_snapshot_count - start_offset,
-            )
-            if limit is not None:
-                selected_count = min(selected_count, limit)
+            if target_tender_ids is not None:
+                selected_count = len(target_tender_ids)
+            else:
+                selected_count = max(
+                    0,
+                    active_snapshot_count - start_offset,
+                )
+                if limit is not None:
+                    selected_count = min(selected_count, limit)
             stats.selected_tender_count = selected_count
 
             self._write_manifest(
@@ -167,11 +171,29 @@ class ActiveTenderIndexer:
             batch_number = 0
             collection_ensured = False
 
-            for tenders in self.repository.iter_active_tender_batches(
-                batch_size=self.database_batch_size,
-                limit=limit,
-                start_offset=start_offset,
-            ):
+            def _get_batches():
+                if target_tender_ids is not None:
+                    all_active = self.repository.get_active_tenders()
+                    target_active = [t for t in all_active if str(t.id) in target_tender_ids]
+                    if start_offset:
+                        target_active = target_active[start_offset:]
+                    if limit is not None:
+                        target_active = target_active[:limit]
+
+                    for start in range(0, len(target_active), self.database_batch_size):
+                        group = target_active[start : start + self.database_batch_size]
+                        ikns = [str(t.ikn) for t in group]
+                        detailed = self.repository.get_by_ikns(ikns)
+                        if detailed:
+                            yield detailed
+                else:
+                    yield from self.repository.iter_active_tender_batches(
+                        batch_size=self.database_batch_size,
+                        limit=limit,
+                        start_offset=start_offset,
+                    )
+
+            for tenders in _get_batches():
                 batch_number += 1
 
                 # Sınırlı bellek optimizasyonu (Bounded-memory)
@@ -180,6 +202,9 @@ class ActiveTenderIndexer:
                 tenders_to_delete = []
 
                 for tender in tenders:
+                    if target_tender_ids is not None and str(tender.id) not in target_tender_ids:
+                        continue
+
                     source_hash = generate_source_hash(tender)
                     state = state_repo.get_by_tender_id(tender.id)
 
@@ -218,6 +243,7 @@ class ActiveTenderIndexer:
                     needs_processing = True
                     if (
                         not recreate
+                        and target_tender_ids is None
                         and state
                         and state.index_status == "indexed"
                         and state.source_hash == source_hash
@@ -233,21 +259,22 @@ class ActiveTenderIndexer:
                             if cache_data:
                                 manifest, chunks, vectors = cache_data
                                 if len(chunks) == len(vectors):
-                                    for chunk, vector in zip(chunks, vectors):
-                                        payload = {
-                                            **chunk,
-                                            "embedding_model": model_name,
-                                            "indexed_at": state.indexed_at.isoformat()
-                                            if state.indexed_at
-                                            else datetime.now(UTC).isoformat(),
-                                        }
+                                    for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
+                                        point_id = deterministic_point_id(
+                                            "ekap_tender_chunk", chunk["chunk_id"]
+                                        )
+                                        if self.vector_store and point_id in self.vector_store.uuid_to_id:
+                                            raise RuntimeError(f"Chunk ID çakışması tespit edildi: point_id={point_id}, chunk_id={chunk['chunk_id']}")
+
                                         all_records_for_faiss.append(
                                             VectorRecord(
-                                                point_id=deterministic_point_id(
-                                                    "ekap_tender_chunk", chunk["chunk_id"]
-                                                ),
+                                                point_id=point_id,
                                                 vector=vector.tolist(),
-                                                payload=payload,
+                                                payload={
+                                                    **chunk,
+                                                    "embedding_model": model_name,
+                                                    "indexed_at": state.indexed_at.isoformat() if state.indexed_at else datetime.now(UTC).isoformat(),
+                                                },
                                             )
                                         )
                                     stats.processed_tender_count += 1
@@ -312,23 +339,25 @@ class ActiveTenderIndexer:
                             )
                             tenders_to_delete.append(tender.id)
 
-                            for chunk, vector in zip(chunks, vectors):
-                                payload = {
-                                    **chunk,
-                                    "embedding_model": model_name,
-                                    "indexed_at": datetime.now(UTC).isoformat(),
-                                }
-                                all_records_for_faiss.append(
-                                    VectorRecord(
-                                        point_id=deterministic_point_id(
-                                            "ekap_tender_chunk", chunk["chunk_id"]
-                                        ),
-                                        vector=vector
-                                        if isinstance(vector, list)
-                                        else vector.tolist(),
-                                        payload=payload,
+                            if not dry_run:
+                                for i, chunk in enumerate(chunks):
+                                    point_id = deterministic_point_id(
+                                        "ekap_tender_chunk", chunk["chunk_id"]
                                     )
-                                )
+                                    if self.vector_store and point_id in self.vector_store.uuid_to_id:
+                                        raise RuntimeError(f"Chunk ID çakışması tespit edildi: point_id={point_id}, chunk_id={chunk['chunk_id']}")
+
+                                    all_records_for_faiss.append(
+                                        VectorRecord(
+                                            point_id=point_id,
+                                            vector=vectors[i].tolist() if hasattr(vectors[i], "tolist") else vectors[i],
+                                            payload={
+                                                **chunk,
+                                                "embedding_model": model_name,
+                                                "indexed_at": datetime.now(UTC).isoformat(),
+                                            },
+                                        )
+                                    )
 
                             stats.processed_tender_count += 1
                             stats.chunk_count += len(chunks)

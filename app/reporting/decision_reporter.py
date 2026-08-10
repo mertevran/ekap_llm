@@ -16,6 +16,7 @@ class DecisionReporter:
 
         jsonl_path = self.output_dir / "tender_model_decisions.jsonl"
         public_jsonl_path = self.output_dir / "tender_public_decisions.jsonl"
+        public_csv_path = self.output_dir / "tender_public_decisions.csv"
         csv_path = self.output_dir / "tender_model_decisions.csv"
         review_path = self.output_dir / "tender_review_required.csv"
         human_action_path = self.output_dir / "tender_human_action_queue.csv"
@@ -31,6 +32,7 @@ class DecisionReporter:
                     json.dumps(d.to_public_dict(), ensure_ascii=False) + "\n"
                 )
 
+        self._write_public_csv(public_csv_path, decisions)
         self._write_csv(csv_path, decisions)
         self._write_csv(
             review_path,
@@ -164,6 +166,34 @@ class DecisionReporter:
                         d.evaluated_at,
                     ]
                 )
+
+    def _write_public_csv(
+        self, path: Path, decisions: list[FinalTenderDecision]
+    ) -> None:
+        """Kullanıcıya gösterilecek sade public CSV raporu."""
+        if not decisions:
+            return
+
+        with open(path, "w", newline="", encoding="utf-8-sig") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "ikn",
+                "decision",
+                "confidence",
+                "decision_summary",
+                "human_review_required",
+                "human_review_reason"
+            ])
+            for d in decisions:
+                pub = d.to_public_dict()
+                writer.writerow([
+                    pub.get("ikn", ""),
+                    pub.get("decision", ""),
+                    round(pub.get("confidence", 0.0), 4) if isinstance(pub.get("confidence"), (float, int)) else pub.get("confidence", ""),
+                    pub.get("decision_summary", ""),
+                    pub.get("human_review_required", False),
+                    pub.get("human_review_reason", "")
+                ])
 
     def _write_professional_csv(
         self, path: Path, decisions: list[FinalTenderDecision]

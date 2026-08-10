@@ -29,4 +29,4 @@ def test_expected_database_name(
             result = cursor.fetchone()
 
     assert result is not None
-    assert result[0] == "isbak_ekap_db"
+    assert result[0] == "ekap_db"

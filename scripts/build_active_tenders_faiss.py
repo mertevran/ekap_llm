@@ -46,6 +46,7 @@ def main() -> int:
     parser.add_argument("--start-offset", type=int, default=0, help="Başlangıç ofseti")
     parser.add_argument("--collection", default="ekap_tender_chunks", help="FAISS koleksiyon adı")
     parser.add_argument("--faiss-path", default="storage/faiss", help="FAISS depolama dizini")
+    parser.add_argument("--missing-from-faiss-only", action="store_true", help="Yalnızca FAISS'te bulunmayan aktif ihaleleri işle")
     args = parser.parse_args()
 
     # Çevre kontrolü
@@ -82,9 +83,40 @@ def main() -> int:
         embedder = None if args.dry_run else BgeM3Embedder(model_name=model_name, device=device)
         vector_store = (
             None
-            if args.dry_run
+            if args.dry_run and not args.missing_from_faiss_only
             else FaissVectorStore(path=args.faiss_path, collection_name=args.collection)
         )
+
+        target_tender_ids = None
+        if args.missing_from_faiss_only:
+            if device != "cpu":
+                print("HATA: --missing-from-faiss-only modu yalnızca CPU gerektirir.")
+                return 1
+
+            if vector_store is None:
+                print("HATA: Vektör mağazası yüklenemedi.")
+                return 1
+
+            # Build the DB ID set
+            all_active = repository.get_active_tenders()
+            active_db_ids = {str(t.id).strip() for t in all_active}
+
+            # Build the FAISS ID set
+            existing_faiss_ids = set()
+            for payload in vector_store.payloads.values():
+                if tid := payload.get("tender_id"):
+                    existing_faiss_ids.add(str(tid).strip())
+
+            # The exact set difference
+            missing_ids = active_db_ids - existing_faiss_ids
+            target_tender_ids = missing_ids
+
+            print(f"Mode: missing-from-faiss-only")
+            print(f"Active DB tenders: {len(active_db_ids)}")
+            print(f"FAISS unique tender IDs: {len(existing_faiss_ids)}")
+            print(f"Overlap: {len(active_db_ids.intersection(existing_faiss_ids))}")
+            print(f"Missing from FAISS: {len(missing_ids)}")
+            print(f"Embedding device: {device}")
 
         indexer = ActiveTenderIndexer(
             repository=repository,
@@ -107,6 +139,7 @@ def main() -> int:
             device=device,
             collection_name=args.collection,
             faiss_path=args.faiss_path,
+            target_tender_ids=target_tender_ids,
         )
 
         report = {

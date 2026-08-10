@@ -48,6 +48,19 @@ _WEAK_STANDALONE_TERMS = frozenset({
     "kamera",
     "yazılım",
     "bakım",
+    "bakim",
+    "onarım",
+    "onarim",
+    "tamir",
+    "kurulum",
+    "montaj",
+    "işletme",
+    "isletme",
+    "işletim",
+    "isletim",
+    "yenileme",
+    "iyileştirme",
+    "iyilestirme",
     "entegrasyon",
     "sistem",
     "sistemi",
@@ -59,14 +72,16 @@ _WEAK_STANDALONE_TERMS = frozenset({
     "uygulama",
     "proje",
     "alım",
+    "alim",
     "temin",
     "tedarik",
     "montaj",
-    "kurulum",
     "donanım",
+    "donanim",
     "ekipman",
     "cihaz",
     "altyapı",
+    "altyapi",
     "altyapısı",
     "analiz",
 })
@@ -74,6 +89,8 @@ _WEAK_STANDALONE_TERMS = frozenset({
 # Yalnızca hizmet, işletim veya destek ifade eden, sektörel nesnesi olmayan
 # jenerik faaliyet yetkinlik tanımları. Bunlar tek başına güçlü pozitif eşleşme
 # (verified=True) üretemez.
+# Özellikle "bakım" ve "onarım" gibi domain-agnostik eylem fiillerini içeren
+# ifadeler buraya dahil edilmiştir — domain/nesne kanıtı olmadan eşleşme yapmaz.
 _WEAK_CAPABILITY_TERMS = frozenset({
     "kesintisiz hizmet",
     "kesintisiz hizmet altyapısı",
@@ -81,8 +98,20 @@ _WEAK_CAPABILITY_TERMS = frozenset({
     "operasyon sürekliliği",
     "teknik destek",
     "bakım desteği",
+    "bakım ve onarım",
+    "bakim ve onarim",
+    "bakım onarım",
+    "bakim onarim",
+    "onarım ve bakım",
+    "onarim ve bakim",
+    "bakım, onarım ve teknik destek",
+    "bakim onarim ve teknik destek",
     "sistem yönetimi",
     "saha desteği",
+    "saha destek",
+    "genel bakım",
+    "periyodik bakım",
+    "koruyucu bakım",
 })
 
 def normalize_text(value: Any) -> str:

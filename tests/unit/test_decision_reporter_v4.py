@@ -191,3 +191,40 @@ def test_mevcut_raporlar_uretilmeye_devam_ediyor(tmp_path) -> None:
     assert pr["karar_basligi"]
     assert pr["yonetici_ozeti"]
     assert pr["sonuc"]
+
+
+def test_public_csv_report_olusturuluyor(tmp_path) -> None:
+    """Test 13: tender_public_decisions.csv oluşturulmalıdır."""
+    DecisionReporter(output_dir=str(tmp_path)).write_reports([_decision(), _decision()])
+    csv_path = tmp_path / "tender_public_decisions.csv"
+    assert csv_path.exists(), "tender_public_decisions.csv oluşturulmadı"
+
+    with csv_path.open(encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.reader(f))
+
+    # Başlık satırı
+    EXPECTED_COLUMNS = [
+        "ikn",
+        "decision",
+        "confidence",
+        "decision_summary",
+        "human_review_required",
+        "human_review_reason",
+    ]
+    assert rows[0] == EXPECTED_COLUMNS, f"Kolon başlıkları yanlış: {rows[0]}"
+
+    # 1 başlık + 2 veri satırı
+    assert len(rows) == 3, f"Beklenen 3 satır, bulunan: {len(rows)}"
+
+    # İlk veri satırı kontrolleri
+    row1 = rows[1]
+    assert row1[0] == "2026/1"  # ikn
+    assert row1[1] == "uygun"  # decision
+    assert float(row1[2]) == 0.82  # confidence
+    assert len(row1[3]) > 0  # decision_summary
+    assert row1[4] == "False"  # human_review_required
+    assert row1[5] == ""  # human_review_reason (boş string aynen yazılıyor)
+
+    # CSV'nin tekrar ve sorunsuz okunabildiğini doğrula
+    row2 = rows[2]
+    assert row2[0] == "2026/1"
