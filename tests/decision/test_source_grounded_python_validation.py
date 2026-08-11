@@ -52,12 +52,16 @@ def _context(
     *,
     title: str = "Test ihalesi",
     negative_terms: list[str] | None = None,
+    positive_terms: list[str] | None = None,
 ) -> DecisionValidationContext:
     return DecisionValidationContext(
         tender_name=title,
         tender_type="Hizmet Alımı",
         evidence_text_by_chunk={"chk_1": evidence},
-        profile_signals={"negatif_terimler": negative_terms or []},
+        profile_signals={
+            "negatif_terimler": negative_terms or [],
+            "guclu_terimler": positive_terms or [],
+        },
     )
 
 
@@ -89,7 +93,8 @@ def test_explicitly_not_required_criterion_does_not_force_review() -> None:
         _decision(zorunlu_kriter_sonuclari=[criterion]),
         _context(
             "Mesleki ve teknik yeterliğe ilişkin bilgi, belge veya kriter "
-            "belirtilmemiştir."
+            "belirtilmemiştir.",
+            positive_terms=["Test ihalesi"],
         ),
     )
 
@@ -110,7 +115,10 @@ def test_generic_section_heading_is_not_accepted_as_mandatory() -> None:
     )
     result = _validate_with_context(
         _decision(zorunlu_kriter_sonuclari=[criterion]),
-        _context("4.3 Mesleki ve teknik yeterliğe ilişkin bilgi, belge veya kriterler"),
+        _context(
+            "4.3 Mesleki ve teknik yeterliğe ilişkin bilgi, belge veya kriterler",
+            positive_terms=["Test ihalesi"],
+        ),
     )
 
     assert result.passed is True
@@ -149,7 +157,10 @@ def test_negated_failed_criterion_cannot_force_rejection() -> None:
     )
     result = _validate_with_context(
         _decision(zorunlu_kriter_sonuclari=[criterion]),
-        _context("İş deneyimini gösteren belge istenmeyecektir."),
+        _context(
+            "İş deneyimini gösteren belge istenmeyecektir.",
+            positive_terms=["Test ihalesi"],
+        ),
     )
 
     assert result.passed is True
@@ -190,6 +201,7 @@ def test_negative_scope_does_not_match_on_one_generic_word() -> None:
             "Mali işler birimi için raporlama yazılımı alınacaktır.",
             title="Kurumsal raporlama yazılımı",
             negative_terms=["mali danışmanlık"],
+            positive_terms=["raporlama yazılımı"],
         )
     )
 
@@ -260,7 +272,8 @@ def test_pipeline_keeps_suitable_when_source_says_criterion_not_required() -> No
         ),
         _context(
             "Mesleki ve teknik yeterliğe ilişkin bilgi, belge veya kriter "
-            "belirtilmemiştir."
+            "belirtilmemiştir.",
+            positive_terms=["Test ihalesi"],
         ),
     )
 
@@ -310,3 +323,139 @@ def test_suitable_decision_with_unsuitable_reasons_forces_review() -> None:
         issue.code == "suitable_with_unsuitable_reasons"
         for issue in result.issues
     )
+
+
+def test_proven_out_of_scope_student_transport() -> None:
+    # Test 1 — Öğrenci taşıma (AUS-04)
+    result = analyze_negative_scope(
+        _context(
+            "973 öğrencinin 67 araç ile okullara güvenli taşınması işi",
+            title="973 Öğrencinin 67 Araç ile 22 Taşıma Merkezi Okula Taşınması",
+            positive_terms=["toplu taşıma", "raylı sistem"],
+        )
+    )
+    assert result.verified is True
+    assert result.out_of_scope_verified is True
+    assert result.negative_verification_method == "proven_out_of_scope"
+
+
+def test_proven_out_of_scope_patient_transport() -> None:
+    # Test 2 — Hasta taşıma
+    result = analyze_negative_scope(
+        _context(
+            "hastaların hastanelere taşınması için hasta taşıma aracı",
+            title="Hasta Taşıma Aracı Hizmet Alımı",
+            positive_terms=["sunucu", "veri depolama"],
+        )
+    )
+    assert result.verified is True
+    assert result.out_of_scope_verified is True
+    assert result.negative_verification_method == "proven_out_of_scope"
+    assert any("hasta" in reason and "taşıma" in reason for reason in result.out_of_scope_reasons)
+
+
+def test_proven_out_of_scope_food_service() -> None:
+    # Test 3 — Yemek hizmeti
+    result = analyze_negative_scope(
+        _context(
+            "personel için yemek hizmeti hazırlanması ve dağıtılması",
+            title="24 Aylık Yemek ve Yemek Hizmet Alımı",
+            positive_terms=["kamera", "yazılım"],
+        )
+    )
+    assert result.verified is True
+    assert result.out_of_scope_verified is True
+    assert result.negative_verification_method == "proven_out_of_scope"
+
+
+def test_proven_out_of_scope_fuel_oil() -> None:
+    # Test 4 — Fuel-Oil
+    result = analyze_negative_scope(
+        _context(
+            "tesisler için 400 ton fuel-oil tedariki",
+            title="400 Ton Fuel-Oil No 5 satın alınması",
+            positive_terms=["haberleşme"],
+        )
+    )
+    assert result.verified is True
+    assert result.out_of_scope_verified is True
+
+
+def test_real_positive_tech_tender_is_not_rejected() -> None:
+    # Test 5 — Gerçek pozitif teknoloji ihalesi
+    result = analyze_negative_scope(
+        _context(
+            "veri depolama sistemleri ve sanallaştırma yazılımı alınacaktır.",
+            title="Veri Depolama Sistemleri ve Sanallaştırma Yazılımı Lisansı",
+            positive_terms=["veri depolama", "sanallaştırma"],
+        )
+    )
+    assert result.out_of_scope_verified is False
+    assert result.verified is False
+
+
+def test_ambiguous_generic_maintenance_stays_review() -> None:
+    # Test 6 — Belirsiz genel bakım
+    result = analyze_negative_scope(
+        _context(
+            "sistemlerin periyodik bakımı ve onarımı",
+            title="Bakım ve Onarım Hizmeti",
+            positive_terms=["yazılım geliştirme"],
+        )
+    )
+    assert result.verified is False
+    assert result.out_of_scope_verified is False
+
+
+def test_public_transport_tech_is_not_rejected() -> None:
+    # Test 7 — Toplu taşıma teknolojisi yanlış reddedilmemeli
+    result = analyze_negative_scope(
+        _context(
+            "toplu taşıma araç takip ve yolcu bilgilendirme sistemi",
+            title="Toplu Taşıma Araç Takip ve Yolcu Bilgilendirme Sistemi",
+            positive_terms=["toplu taşıma", "araç takip"],
+        )
+    )
+    assert result.verified is False
+    assert result.out_of_scope_verified is False
+
+
+def test_existing_negative_term_behavior_kept() -> None:
+    # Test 8 — Mevcut negatif terim davranışı korunmalı
+    result = analyze_negative_scope(
+        _context(
+            "sürücüsüz araç kiralama hizmeti alınacaktır",
+            title="Araç Kiralama Hizmet Alımı",
+            positive_terms=["yazılım"],
+            negative_terms=["araç kiralama hizmeti"],
+        )
+    )
+    assert result.verified is True
+    assert result.negative_verification_method == "profile_negative_term"
+
+
+def test_qwen_rejection_without_evidence_stays_review() -> None:
+    # Test 9 — Qwen tek başına ret veremez
+    decision = _decision(
+        decision="uygun_degil",
+        faaliyet_eslesmesi="zayif",
+        negatif_kapsam_cakismasi=True,
+        uygunsuzluk_gerekceleri=["Konu bizim dışımızda"]
+    )
+    context = _context(
+        "farklı bir ürün tedarik edilecek, detaylar ektedir.",
+        title="Özel Sensör Alımı",
+        positive_terms=["yazılım"],
+    )
+    pipeline = IsbakDecisionPipeline(
+        primary_model=_StaticModel(decision),
+        validator=IsbakDeterministicValidator(),
+    )
+    result = pipeline.run(
+        tender_id="1", ikn="1", tender_name=context.tender_name, authority_name="A",
+        category_code="T", primary_profile_code="T", secondary_profile_codes=[],
+        tender_context="", company_context="", evaluation_rules={},
+        evidence_count=1, valid_chunk_ids=["chk_1"], validation_context=context
+    )
+    assert result.final_decision == "inceleme_gerekli"
+    assert result.negative_scope_verified is False

@@ -148,13 +148,20 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--selection-mode",
-        choices=("candidate-pool", "database-random", "database-sequential"),
+        choices=("candidate-pool", "database-random", "database-sequential", "faiss-distant"),
         default="candidate-pool",
         help=(
             "İhale seçim modu. candidate-pool mevcut FAISS tabanlı aday havuzunu kullanır. "
             "database-random ise PostgreSQL'den rastgele aktif ihale seçerek doğrudan mevcut profillerle değerlendirir. "
-            "database-sequential: PostgreSQL'deki aktif ihaleleri en yeni kayıttan başlayarak deterministik biçimde sırayla değerlendirir."
+            "database-sequential: PostgreSQL'deki aktif ihaleleri en yeni kayıttan başlayarak deterministik biçimde sırayla değerlendirir.\n"
+            "faiss-distant: FAISS içindeki ihaleler arasından tüm aktif profillere olan en iyi benzerliği düşük olan ihaleleri seçerek negatif/stres testi yapar."
         ),
+    )
+    parser.add_argument(
+        "--distant-pool-size",
+        type=int,
+        default=500,
+        help="faiss-distant modunda taranacak örneklem büyüklüğü.",
     )
     parser.add_argument(
         "--allow-inactive-database-records",
@@ -710,11 +717,15 @@ def main() -> int:
     unique_candidates: list[UniqueTenderCandidate] = []
     unique_rows: list[dict[str, Any]] = []
     database_random_selection_report: list[dict[str, Any]] = []
+    faiss_distant_selection_report: list[dict[str, Any]] = []
     active_tender_pool_size = 0
     random_tenders_examined = 0
     random_tenders_missing_faiss = 0
     random_tenders_with_semantic_evidence = 0
     random_tenders_submitted_to_model = 0
+    distant_tenders_examined = 0
+    distant_tenders_selected = 0
+    distant_best_scores: list[float] = []
 
     if args.selection_mode == "candidate-pool":
         for profile_code in profile_codes:
@@ -801,7 +812,7 @@ def main() -> int:
             len(candidate_matches),
             len(unique_candidates),
         )
-    else:
+    elif args.selection_mode in ("database-random", "database-sequential"):
         # database-random / database-sequential mode
         from app.indexing.active_tender_indexer import is_isbak_tender
         repository = TenderRepository()
@@ -1086,6 +1097,232 @@ def main() -> int:
                 "top_profile_candidates": top_str,
             })
 
+    elif args.selection_mode == "faiss-distant":
+        from app.indexing.active_tender_indexer import is_isbak_tender
+        from app.matching.score_aggregator import ScoreAggregator
+        from app.retrieval.isbak_tender_retriever import ChunkEvidence, ScoreBreakdown, TenderSearchResult
+        import numpy as np
+        import faiss
+
+        scorer = ScoreAggregator(settings=rag_settings)
+        
+        # Deduplicate all FAISS payloads by tender_id/ikn
+        all_unique_tenders = {}
+        for pid, payload in tender_store.payloads.items():
+            t_id = str(payload.get("tender_id") or "").strip()
+            t_ikn = normalize_ikn(payload.get("ikn"))
+            key = t_ikn if t_ikn else t_id
+            if not key:
+                continue
+            if key not in all_unique_tenders:
+                all_unique_tenders[key] = []
+            all_unique_tenders[key].append((pid, payload))
+            
+        unique_keys = list(all_unique_tenders.keys())
+        unique_keys.sort() # For determinism before random
+        rnd = random.Random(args.random_seed)
+        rnd.shuffle(unique_keys)
+        
+        pool_size = min(args.distant_pool_size, len(unique_keys))
+        sampled_keys = unique_keys[:pool_size]
+        
+        LOGGER.info(
+            "[SELECTION_MODE] mode=faiss-distant source=FAISS "
+            "requested=%s distant_pool_size=%s random_seed=%s",
+            args.max_decisions, pool_size, args.random_seed
+        )
+        
+        scored_candidates = []
+        
+        for idx, key in enumerate(sampled_keys, start=1):
+            distant_tenders_examined += 1
+            matched_items = all_unique_tenders[key]
+            first_payload = matched_items[0][1]
+            tender_id_val = str(first_payload.get("tender_id") or "")
+            tender_ikn_val = str(first_payload.get("ikn") or "")
+            authority_val = str(first_payload.get("idare_adi") or "")
+            title_val = str(first_payload.get("adi") or "")
+            
+            if is_isbak_tender(authority_val):
+                faiss_distant_selection_report.append({
+                    "examined_rank": distant_tenders_examined,
+                    "selection_rank": "",
+                    "tender_id": tender_id_val,
+                    "ikn": tender_ikn_val,
+                    "title": title_val,
+                    "best_profile_code": "",
+                    "best_profile_score": "",
+                    "status": "skipped",
+                    "reason": "isbak_own_tender",
+                })
+                continue
+                
+            matched_pids = [pid for pid, _ in matched_items]
+            try:
+                chunk_vectors = _get_vectors_for_faiss_ids(tender_store.index, matched_pids)
+                chunk_payloads = [payload for _, payload in matched_items]
+            except Exception as e:
+                LOGGER.error("FAISS extract error for %s: %s", key, e)
+                continue
+                
+            if not chunk_vectors:
+                continue
+                
+            tender_vecs = np.array(chunk_vectors, dtype=np.float32)
+            faiss.normalize_L2(tender_vecs)
+            
+            best_profile = None
+            best_score = -1.0
+            best_candidate = None
+            
+            for p_code in profile_codes:
+                p_code_norm = str(p_code).strip().upper()
+                p_meta = matcher._load_profile_meta(p_code_norm)
+                p_entries = matcher._profile_entries(p_code_norm)
+                
+                raw_scores = [0.0]
+                if p_entries:
+                    p_vecs = []
+                    for faiss_id, _ in p_entries:
+                        try:
+                            p_vecs.append(matcher._reconstruct_profile_vector(faiss_id))
+                        except Exception:
+                            pass
+                    if p_vecs:
+                        p_vecs_np = np.array(p_vecs, dtype=np.float32)
+                        faiss.normalize_L2(p_vecs_np)
+                        sims = np.dot(tender_vecs, p_vecs_np.T)
+                        raw_scores = sims.max(axis=1).tolist()
+                        
+                composite_query = "\n\n".join(
+                    str(payload.get("text") or "").strip()
+                    for _, payload in p_entries
+                    if str(payload.get("text") or "").strip()
+                )
+                query_terms = matcher._query_terms_for_subclass(composite_query)
+                
+                from app.vector_store.faiss_vector_reader import FaissVectorReader
+                reader = FaissVectorReader()
+                section_types = [str(reader.resolve_section_type(c) or "") for c in chunk_payloads]
+                okas_codes = []
+                for c in chunk_payloads:
+                    okas_codes.extend(reader.resolve_okas_codes(c))
+                evidence_texts = [str(c.get("text") or "")[:500] for c in chunk_payloads]
+                
+                breakdown = scorer.compute(
+                    raw_scores=raw_scores,
+                    section_types=section_types,
+                    okas_codes=list(dict.fromkeys(okas_codes)),
+                    query_terms=query_terms,
+                    tender_name=title_val,
+                    profile_okas_prefixes=p_meta.get("okas_prefixes", []),
+                    strong_terms=p_meta.get("strong_terms", []),
+                    negative_terms=p_meta.get("negative_terms", []),
+                    evidence_texts=evidence_texts,
+                )
+                
+                if breakdown.final_score > best_score:
+                    best_score = breakdown.final_score
+                    
+                    scores_obj = ScoreBreakdown(
+                        max_chunk=breakdown.max_similarity,
+                        top_chunks_mean=breakdown.top_similarity_mean,
+                        section_diversity=breakdown.section_diversity,
+                        okas_support=breakdown.okas_support,
+                        title_support=breakdown.title_support,
+                        final=breakdown.final_score,
+                        negative_penalty=breakdown.negative_term_penalty,
+                    )
+                    
+                    evidence_chunks = []
+                    for c_idx, c in enumerate(chunk_payloads):
+                        full_text = str(c.get("text") or "")
+                        evidence_chunks.append(
+                            ChunkEvidence(
+                                chunk_id=str(c.get("chunk_id") or ""),
+                                section_id=str(c.get("section_id") or ""),
+                                chunk_title=str(c.get("title") or ""),
+                                semantic_score=round(raw_scores[c_idx], 4) if c_idx < len(raw_scores) else 0.0,
+                                text=full_text,
+                                text_preview=full_text[:200],
+                            )
+                        )
+                        
+                    best_candidate = TenderSearchResult(
+                        tender_id=tender_id_val,
+                        ikn=tender_ikn_val,
+                        tender_name=title_val,
+                        chunk_title=evidence_chunks[0].chunk_title if evidence_chunks else "",
+                        primary_profile_code=p_code_norm,
+                        profile_codes=[p_code_norm],
+                        classification_status="",
+                        idare_adi=authority_val,
+                        il=str(first_payload.get("il") or ""),
+                        ihale_tarihi=str(first_payload.get("ihale_tarihi") or ""),
+                        ihale_turu=str(first_payload.get("ihale_turu") or ""),
+                        okas_codes=list(dict.fromkeys(okas_codes)),
+                        section_ids=list(set(st for st in section_types if st)),
+                        scores=scores_obj,
+                        evidence_chunks=evidence_chunks,
+                    )
+                    best_profile = p_code_norm
+                    
+            if best_candidate:
+                scored_candidates.append({
+                    "best_score": best_score,
+                    "best_profile": best_profile,
+                    "candidate": best_candidate,
+                    "examined_rank": distant_tenders_examined,
+                })
+                
+        # Sort by best_profile_score ASC
+        scored_candidates.sort(key=lambda x: x["best_score"])
+        
+        selection_rank = 0
+        for item in scored_candidates:
+            if args.max_decisions is not None and selection_rank >= args.max_decisions:
+                break
+                
+            selection_rank += 1
+            distant_tenders_selected += 1
+            best_score = item["best_score"]
+            distant_best_scores.append(best_score)
+            c = item["candidate"]
+            best_profile = item["best_profile"]
+            
+            LOGGER.info(
+                "[FAISS_DISTANT_SELECTION] examined_rank=%s selection_rank=%s ikn=%s tender_id=%s title=%s best_profile_code=%s best_profile_score=%.4f status=selected",
+                item["examined_rank"], selection_rank, c.ikn, c.tender_id, c.tender_name, best_profile, best_score
+            )
+            
+            faiss_distant_selection_report.append({
+                "selection_rank": selection_rank,
+                "examined_rank": item["examined_rank"],
+                "tender_id": c.tender_id,
+                "ikn": c.ikn,
+                "title": c.tender_name,
+                "best_profile_code": best_profile,
+                "best_profile_score": round(best_score, 4),
+                "status": "selected",
+                "reason": "",
+            })
+            
+            unique_item = UniqueTenderCandidate(
+                tender_key=tender_identity(c),
+                primary_profile_code=best_profile,
+                supporting_profile_codes=[],
+                profile_match_scores={best_profile: c.scores.final},
+                profile_matches=[ProfileCandidateMatch(
+                    profile_code=best_profile,
+                    retrieval_rank=selection_rank,
+                    candidate=c,
+                )],
+                candidate=c,
+            )
+            unique_candidates.append(unique_item)
+
+
+
 
     decision_candidates = (
         unique_candidates[: args.max_decisions]
@@ -1325,6 +1562,12 @@ def main() -> int:
         "random_tenders_missing_faiss": random_tenders_missing_faiss if args.selection_mode in ("database-random", "database-sequential") else None,
         "random_tenders_with_semantic_evidence": random_tenders_with_semantic_evidence if args.selection_mode in ("database-random", "database-sequential") else None,
         "random_tenders_submitted_to_model": random_tenders_submitted_to_model if args.selection_mode in ("database-random", "database-sequential") else None,
+        "distant_pool_size": args.distant_pool_size if args.selection_mode == "faiss-distant" else None,
+        "distant_tenders_examined": distant_tenders_examined if args.selection_mode == "faiss-distant" else None,
+        "distant_tenders_selected": distant_tenders_selected if args.selection_mode == "faiss-distant" else None,
+        "distant_best_score_min": round(min(distant_best_scores), 4) if distant_best_scores else None,
+        "distant_best_score_max": round(max(distant_best_scores), 4) if distant_best_scores else None,
+        "distant_best_score_avg": round(sum(distant_best_scores) / len(distant_best_scores), 4) if distant_best_scores else None,
         "unique_tenders_submitted_to_model": (
             submitted_to_model
         ),
@@ -1395,6 +1638,30 @@ def main() -> int:
                     row["top_profile_candidates"],
                 ])
         summary[f"database_{mode_slug}_selection_csv"] = str(db_random_report_path)
+        
+    if args.selection_mode == "faiss-distant":
+        distant_report_path = report_dir / "faiss_distant_selection.csv"
+        import csv
+        with open(distant_report_path, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "selection_rank", "examined_rank", "tender_id", "ikn", "title",
+                "best_profile_code", "best_profile_score", "status", "reason"
+            ])
+            for row in faiss_distant_selection_report:
+                writer.writerow([
+                    row["selection_rank"],
+                    row["examined_rank"],
+                    row["tender_id"],
+                    row["ikn"],
+                    row["title"],
+                    row["best_profile_code"],
+                    row["best_profile_score"],
+                    row["status"],
+                    row["reason"],
+                ])
+        summary["faiss_distant_selection_csv"] = str(distant_report_path)
+        
     summary_path = report_dir / "tender_decision_run_summary.json"
     summary_path.write_text(
         json.dumps(summary, ensure_ascii=False, indent=2),

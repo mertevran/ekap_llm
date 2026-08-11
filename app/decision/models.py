@@ -133,6 +133,9 @@ class NegativeScopeAnalysis:
     profile_okas_supported: bool = False
     matched_positive_terms: list[str] = field(default_factory=list)
     scope_type: NegativeScopeType = "none"
+    out_of_scope_verified: bool = False
+    negative_verification_method: str = "none"
+    out_of_scope_reasons: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

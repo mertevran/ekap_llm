@@ -22,6 +22,7 @@ from app.matching.scope_terms import (
     normalize_text,
     ordered_strings,
     is_strong_term,
+    token_matches,
     _WEAK_STANDALONE_TERMS,
     _WEAK_CAPABILITY_TERMS,
 )
@@ -358,14 +359,84 @@ def analyze_negative_scope(
         positive_terms,
     )
     matched_terms = list(dict.fromkeys([*title_matches, *evidence_terms]))
-    if not matched_terms:
-        scope_type = "none"
-    elif positive_matches:
-        scope_type = "mixed"
-    elif title_matches:
-        scope_type = "full"
+    
+    out_of_scope_verified = False
+    negative_verification_method = "none"
+    out_of_scope_reasons = []
+
+    if matched_terms:
+        out_of_scope_verified = True
+        negative_verification_method = "profile_negative_term"
+        if positive_matches:
+            scope_type = "mixed"
+        elif title_matches:
+            scope_type = "full"
+        else:
+            scope_type = "ambiguous"
     else:
-        scope_type = "ambiguous"
+        scope_type = "none"
+        # YOL B: Proven out of scope
+        positive_scope = analyze_positive_scope(context)
+        if not positive_scope.verified:
+            _GENERIC_WORDS = _WEAK_STANDALONE_TERMS.union({
+                "araç", "arac", "malzeme", "enerji", "ihale", "ihalesi", "işi",
+                "yılı", "aylık", "yıllık", "günlük", "kapsamında", "alımı", "satın",
+                "alınması", "yapım", "yapımı", "taşıt", "otomobil", "kamyon", "minibüs",
+                "otobüs", "hizmeti", "kiralama", "kiralık", "kira", "parçası", "parçaları",
+                "yedek", "makinesi", "motoru", "cihazı", "tesisi", "hizmetleri", "motor", "makine",
+                "sistem", "destek", "bakım"
+            })
+            _TITLE_STOPWORDS = {
+                "ve", "ile", "için", "olan", "dair", "ait", "veya",
+                "belediyesi", "müdürlüğü", "başkanlığı", "genel", "dairesi",
+                "bakanlığı", "müdür", "başkan", "kurumu"
+            }
+            
+            title_tokens = []
+            for t in normalize_text(context.tender_name).split():
+                if len(t) <= 2 or t in _TITLE_STOPWORDS or t.isdigit():
+                    continue
+                title_tokens.append(t)
+            
+            candidates = []
+            for i in range(len(title_tokens)):
+                for j in range(i + 1, min(i + 3, len(title_tokens))):
+                    candidates.append([title_tokens[i], title_tokens[j]])
+                    for k in range(j + 1, min(j + 2, len(title_tokens))):
+                        candidates.append([title_tokens[i], title_tokens[j], title_tokens[k]])
+            
+            valid_candidates = []
+            for cand in candidates:
+                all_generic = True
+                for t in cand:
+                    is_gen = False
+                    for gen in _GENERIC_WORDS:
+                        if token_matches(gen, t):
+                            is_gen = True
+                            break
+                    if not is_gen:
+                        all_generic = False
+                        break
+                if not all_generic:
+                    valid_candidates.append(" ".join(cand))
+            
+            valid_candidates = list(dict.fromkeys(valid_candidates))
+            proven_expressions = []
+            for chunk_id, text in context.evidence_text_by_chunk.items():
+                norm_text = normalize_text(text)
+                for cand in valid_candidates:
+                    if contains_term(norm_text, cand):
+                        proven_expressions.append(cand)
+                        if str(chunk_id) not in evidence_chunk_ids:
+                            evidence_chunk_ids.append(str(chunk_id))
+            
+            if proven_expressions:
+                proven_expressions = list(dict.fromkeys(proven_expressions))
+                out_of_scope_verified = True
+                negative_verification_method = "proven_out_of_scope"
+                out_of_scope_reasons = proven_expressions
+                matched_terms.extend(proven_expressions)
+                scope_type = "full" if not positive_matches else "mixed"
 
     return NegativeScopeAnalysis(
         verified=bool(matched_terms),
@@ -377,6 +448,9 @@ def analyze_negative_scope(
         profile_okas_supported=bool(matched_okas_codes),
         matched_positive_terms=list(dict.fromkeys(positive_matches)),
         scope_type=scope_type,
+        out_of_scope_verified=out_of_scope_verified,
+        negative_verification_method=negative_verification_method,
+        out_of_scope_reasons=out_of_scope_reasons,
     )
 
 
