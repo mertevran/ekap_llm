@@ -1,236 +1,381 @@
 # EKAP–İSBAK İhale Karar Destek Sistemi
 
-RAG (*Retrieval-Augmented Generation*) ve LLM (*Large Language Model*) tabanlı, kaynak doğrulamalı ve deterministik Python kurallarıyla denetlenen ihale değerlendirme ve karar destek altyapısı.
+Bu proje, EKAP (Elektronik Kamu Alımları Platformu) üzerinde yayımlanan binlerce kamu ihalesini otonom olarak analiz edip, İSBAK A.Ş. şirket faaliyet profilleriyle (AUS-01, TEK-01 vb.) eşleştirerek anlamsal (semantic) uygunluk değerlendirmesi yapan bir Karar Destek Sistemi'dir.
+
+Sistem:
+* Canlı PostgreSQL veritabanından güncel ihale dokümanlarını alır.
+* İSBAK şirket profilleriyle (20 adet aktif profil) ihaleleri anlamsal olarak karşılaştırır.
+* Milyonlarca kelimelik dokümanlar içinden en uygun profili ve ihaleyi tespit eder.
+* İhale kapsamı ile şirket faaliyet profili arasındaki uyumu katı iş kuralları ve LLM desteği ile değerlendirir.
+* Kaynak kanıtlara dayalı gerekçeli kararlar üretir.
+
+**Kısaca:** Manuel olarak incelenmesi günler sürecek ihale yığınlarını saniyeler içinde tarayan, hangi ihalenin hangi departman (profil) ile ilgili olduğunu bulan ve insan onayına (Human-in-the-Loop) gerekçeli raporlar sunan yapay zeka destekli, güvenli bir filtredir.
 
 ---
 
-## 📌 Proje Hakkında ve Temel İlkeler
+## 2. Projenin Temel Amacı
 
-Bu proje, EKAP (Elektronik Kamu Alımları Platformu) üzerinde yayımlanan kamu ihalelerini İSBAK A.Ş. Şirket Faaliyet Profilleri (AUS-01..04, ENT-01..04 vb.) ile otomatik ve semantik olarak karşılaştırmak amacıyla geliştirilmiştir.
-
-Sistem, basit bir anahtar kelime veya skor eşleştirmesi yapmaz. **Gömme Vektör Araması (BGE-M3 + FAISS)**, **PostgreSQL Canlı Veri Yenilemesi**, **Qwen 3.5 4B LLM Değerlendirmesi** ve **Python Tabanlı Deterministik Doğrulama Katmanı**'nı tek bir işlem hattında birleştirir.
-
-> [!IMPORTANT]
-> **Temel Karar İlkesi & Human-in-the-Loop:**
-> Sistem çıktısı doğrudan teklif verme veya ihale tamamlama kararı almaz. Çıktılar (`uygun`, `uygun_degil`, `inceleme_gerekli`), iş geliştirme ve satın alma uzmanlarına sunulacak kanıtlı bir karar desteğidir. Tüm çıktılarda `auto_action_allowed: False` zorunludur ve nihai operasyonel aksiyon insan onayına bağlıdır.
-
----
-
-## 🛠 Güncel Teknoloji Yığını ve Aktif Mimari
-
-| Katman | Kullanılan Teknoloji / Model | Açıklama |
-| :--- | :--- | :--- |
-| **Dil / Çalışma Zamanı** | Python 3.12+ (WSL / Linux) | Asenkron ve veri odaklı işlem hattı |
-| **Veritabanı (Ground Truth)** | PostgreSQL | Canlı EKAP ihale metinleri, ilanlar, özellikler ve OKAS kodları |
-| **Gömme Modeli (Embedding)** | BAAI/bge-m3 | 1024 boyutlu, metin içi anlamsal vektör üretimi (CPU) |
-| **Vektör Veritabanı** | FAISS (`IndexIDMap`) | İhale ve şirket profili chunk vektör indeksi |
-| **Karar Modeli (LLM)** | Qwen 3.5 4B (`qwen3.5:4b-q4_K_M`) | Ollama `/api/generate` üzerinden JSON Schema zorlamalı kararlar (`think=false`) |
-| **Doğrulama Katmanı** | SourceGroundedPythonValidator | Deterministik gerekçe, kaynak tutarlılığı, tahrifat denetimi ve güven kalibrasyonu |
-| **Çalıştırma Mimarisi** | `qwen_python_single_model` | Tek LLM + Python doğrulayıcı odaklı güncel üretim hattı |
-
-> [!NOTE]
-> **Aktif Sürüm Temizliği:**<br>
-> Projede geçmiş deneylere ait olan *Gemma dual-model / fallback yolları*, *Qdrant entegrasyonu* ve *Qwen thinking mode (`think=true`)* kaldırılmıştır. Mevcut üretim hattı **Qwen 3.5 4B (`think=false`) + FAISS + Grounded Python Validation** üzerinde çalışmaktadır.
+* **Hedef İhaleleri Belirlemek:** Dev ihale havuzunda, şirketin ana faaliyet alanlarına ve yetkinliklerine (örneğin akıllı ulaşım, yazılım, siber güvenlik) uygun ihaleleri radar ekranına düşürmek.
+* **Manuel İnceleme Yükünü Azaltmak:** İhale inceleme ekiplerinin alakasız ihalelere vakit harcamasını engellemek.
+* **Kontrollü Yapay Zeka Kararı:** Büyük Dil Modellerini (LLM) tek başına karar verici ("Blackbox") yapmadan; LLM'in muhakeme gücünü Python tabanlı katı doğrulama (Guardrails) kurallarıyla dengelemek.
+* **Yanlış Riskleri (False Positive / Negative) Azaltmak:** Jenerik bir kelime ("araç", "bakım") geçtiği için ilgisiz bir ihalenin alınmasını veya tam tersi ilgili bir ihalenin reddedilmesini engellemek.
+* **Gerekçeli ve Kaynaklı Sonuç:** İnsan karar vericinin önüne sadece "uygun" veya "değil" etiketi koymak yerine, ihalenin hangi maddesinden dolayı bu kararın verildiğini şeffaf kanıtlarla sunmak.
+* **Minimum Donanım, Maksimum Verim:** Ağır GPU sunucularına veya dış bulut servislerine (OpenAI vb.) ihtiyaç duymadan, yalnızca CPU üzerinde, kurumsal veri güvenliği sınırları içinde çalışabilmek.
 
 ---
 
-## 🔄 Uçtan Uca Sistem İşlem Hattı
+## 3. Güncel Sistem Mimarisi
 
-```mermaid
-graph TD
-    A[PostgreSQL Canlı Veritabanı] --> B[İhale Dokümanı Oluşturma]
-    B --> C[SectionAwareChunker - Parçalama]
-    C --> D[BGE-M3 Embedding - CPU]
-    D --> E[FAISS Vektör İndeksi]
-
-    P[İSBAK Şirket Profilleri] --> Q[Profil Vektörleri]
-    Q --> F[Profil Bazlı Aday Eşleştirme / DB-Random Seçimi]
-    E --> F
-
-    F --> G[Aday Puanlama & İKN Birleştirme]
-    G --> H[PostgreSQL Canlı Kaynak Yenilemesi]
-    H --> I[Grounded Kanıt Taraması & Seçimi]
-    I --> J[Qwen 3.5 4B LLM Değerlendirmesi]
-
-    J --> K[SourceGroundedPythonValidator]
-    K --> L[ScoreAggregator & Güven Kalibrasyonu]
-    L --> M{Nihai Karar}
-
-    M -->|uygun| N[İnsan Onayı / Teklif İncelemesi]
-    M -->|uygun_degil| O[Raporlama & Arşiv]
-    M -->|inceleme_gerekli| P2[Uzman İncelemesi]
-```
-
----
-
-## 🧩 Temel Bileşenler ve Mimari Katmanlar
-
-### 1. İndeksleme ve Vektör Yönetimi (`app/indexing` & `app/vector_store`)
-* **`SectionAwareChunker`**: İhale metinlerini idari şartname, teknik şartname, ihale ilanları, ihale özellikleri ve OKAS kodları olarak bölümlere ayırarak parçalar.
-* **`FaissVectorStore`**: İhale parçalarını `IndexIDMap` yapısıyla indeksler. Harici `tender_id` ve `chunk_id` bilgileri `payloads.pkl` dosyasında tutulur ve internal ID dönüşümü ile FAISS sub-index üzerinden doğrudan vektör erişimi sağlanır.
-* **Artımlı İndeksleme (`--missing-from-faiss-only`)**: PostgreSQL'deki aktif ihaleler ile FAISS payload'ındaki ihalelerin farkını (`active_db_ids - existing_faiss_ids`) hesaplayarak yalnızca indekste fiziksel olarak bulunmayan ihaleleri CPU üzerinde indeksler.
-
-### 2. Eşleştirme ve Çalıştırma Modları (`app/matching` & `scripts`)
-* **`candidate-pool` Modu**: İSBAK şirket profillerinin vektörlerini FAISS üzerinde sorgulayarak benzerlik skoru en yüksek aday ihaleleri getirir.
-* **`database-random` Modu**: PostgreSQL aktif ihale havuzundan rastgele ihaleler seçer, bunlara en uygun İSBAK profilini bağlar ve FAISS snapshot'ında semantik vektör bulunup bulunmadığını (`semantic_evidence_available`) denetler.
-
-### 3. Gerçek Kaynak Yenilemesi & Grounded Kanıt Seçimi (`app/database` & `app/decision`)
-* FAISS aramasından elde edilen aday ihaleler **doğrudan karara gönderilmez**. `TenderRepository` aracılığıyla PostgreSQL canlı tablolarından (`tenders`, `tender_announcements`, `tender_characteristics`, `tender_okas_codes`) orijinal ve güncel ihale metni yeniden okunur.
-* Metin üzerinde sinyal taraması yapılarak LLM'e sunulacak en ilişkili kanıtlar dinamik olarak seçilir.
-
-### 4. Qwen Karar & Python Doğrulama Katmanı (`app/decision` & `app/validation`)
-* **Qwen 3.5 4B**: Ollama API üzerinden katı bir JSON Schema ile çağrılır (`think=false`). Karar etiketi (`uygun`, `uygun_degil`, `inceleme_gerekli`), detaylı Türkçe gerekçe ve atıfta bulunulan kanıtları üretir.
-* **`SourceGroundedPythonValidator`**:
-  * LLM çıktısındaki kararın gerekçe ile çelişip çelişmediğini kontrol eder.
-  * Modelin sunduğu kaynakların orijinal ihale metninde gerçekten var olup olmadığını tahrifat/uydurma (*hallucination*) denetiminden geçirir.
-  * Karar ve gerekçeye göre `confidence_score` kalibrasyonu yapar.
-
----
-
-## 🎯 Karar Sınıfları ve Çıktı Formatı
-
-Sistem her değerlendirme için aşağıdaki üç sınıftan birini üretir:
-
-1. **`uygun`**: İhale konusu İSBAK'ın ana faaliyet ve yetkinlik alanlarıyla eşleşmektedir.
-2. **`uygun_degil`**: İhale konusu İSBAK'ın faaliyet alanlarının tamamen dışındadır veya olumsuz kapsam kısıtlarına takılmaktadır.
-3. **`inceleme_gerekli`**: Kısmi teklif durumu, sınırda kalan yetkinlikler veya belirsiz ihale şartnameleri nedeniyle uzman insan incelemesi gerekmektedir.
-
-### Örnek Karar Çıktısı (JSON)
-```json
-{
-  "ikn": "2025/2223767",
-  "decision": "uygun",
-  "reasoning": "İhale konusu akıllı ulaşım ve trafik sinyalizasyon sistemleri bakım-onarım işidir. İSBAK AUS-01 profil yetkinlikleri ile tam uyum sağlamaktadır.",
-  "confidence_score": 0.92,
-  "auto_action_allowed": false,
-  "human_review_required": true,
-  "profile_code": "AUS-01",
-  "semantic_evidence_available": true
-}
-```
-
----
-
-## 📂 Proje Dizin Yapısı
+Sistem, Retriever (Getirim) ve Generator (Üretim) aşamalarından oluşan klasik bir RAG mimarisini çok daha güvenli ve kurallı bir yaklaşımla (Source-Grounded) birleştirir.
 
 ```text
-LLM-dev-mert-tek_model/
-├── app/                        # Ana Uygulama Modülleri
-│   ├── config/                 # Pydantic tabanlı ortam ve sistem ayarları
-│   ├── database/               # PostgreSQL bağlantı ve TenderRepository katmanı
-│   ├── decision/               # Qwen LLM istemci, prompt yönetimi ve karar modelleri
-│   ├── domain/                 # Temel veri modelleri (TenderRecord, ProfileRecord vb.)
-│   ├── indexing/               # Metin parçalama (chunker), doküman oluşturucu ve indexer
-│   ├── matching/               # Profil-İhale eşleştirme ve skor birleştirici (ScoreAggregator)
-│   ├── pipeline/               # İSBAK İhale Analiz Servisi ve işlem hatları
-│   ├── reporting/              # JSONL, CSV ve konsol raporlayıcıları
-│   ├── retrieval/              # Vektör arama ve metin getirme mantığı
-│   ├── validation/             # SourceGroundedPythonValidator ve doğrulama kuralları
-│   └── vector_store/           # FaissVectorStore, IndexIDMap ve cache yönetimi
-│
-├── scripts/                    # CLI Çalıştırma Komutları ve Araçlar
-│   ├── build_active_tenders_faiss.py   # Aktif ihaleleri FAISS'e indeksleme (Artımlı / Full)
-│   ├── run_tender_decision_chain.py    # Ana karar işlem hattı koşturucusu
-│   ├── check_active_tender_index.py   # FAISS indeks durum kontrolü
-│   └── check_faiss_integrity.py       # Vektör indeksi bütünlük testi
-│
-├── tests/                      # Pytest Test Süreçleri
-│   ├── decision/               # Karar ve doğrulama mantığı testleri
-│   ├── integration/            # Veritabanı ve FAISS entegrasyon testleri
-│   └── unit/                   # Birim testler
-│
-├── storage/                    # Vektör ve İndeks Depolama Altyapısı
-│   └── faiss/                  # FAISS index ve payload pkl dosyaları
-│
-├── reports/                    # İşlem Sonucu Üretilen Raporlar
-├── .env.example                # Örnek ortam değişkenleri yapılandırması
-├── pytest.ini                  # Pytest ayarları
-└── README.md                   # Proje dokümantasyonu
+PostgreSQL (Source of Truth)
+   │
+   ▼
+İhale verisinin alınması
+   │
+   ▼
+Doküman oluşturma / mantıksal bölümleme
+   │
+   ▼
+BGE-M3 embedding (gömme) - CPU
+   │
+   ▼
+FAISS Vektör İndeksi
+   │
+   ▼
+İSBAK profil eşleştirme (Aday Bulma)
+   │
+   ▼
+Aday profil puanlama (Scoring)
+   │
+   ▼
+Gerçek ihale verisinin PostgreSQL'den YENİDEN okunması
+   │
+   ▼
+Kanıt seçimi (Dinamik 1/3/4 parça)
+   │
+   ▼
+Compact Context (Kompakt Şirket Bağlamı)
+   │
+   ▼
+Qwen 3.5 4B (Ollama - JSON Schema)
+   │
+   ▼
+Python Doğrulama (SourceGroundedPythonValidator)
+   │
+   ▼
+Güven kalibrasyonu (Confidence Scoring)
+   │
+   ▼
+uygun / uygun_degil / inceleme_gerekli
+   │
+   ▼
+İnsan Onayı / Uzman İncelemesi
+```
+
+**Katmanların Görevleri:**
+* **Gömme ve Arama:** İhaleleri ve profilleri uzaysal vektörlere çevirip birbirine yakın olanları bulur.
+* **Grounding (Gerçekleme):** Vektör indeksindeki olası eskimiş veri riskine karşı, karara girecek veriyi canlı veritabanından çekerek doğrular.
+* **Generation (Karar Üretimi):** Qwen LLM, bağlamı okur ve ihale katılım/uygunluk durumunu bir taslak JSON olarak üretir.
+* **Validation (Doğrulama):** Python katmanı, Qwen'in verdiği kararın kurallara, gerçek belgelere ve şirket profiline tam uygun olup olmadığını denetler, uydurmaları yakalar.
+
+---
+
+## 4. Neden PostgreSQL + FAISS Birlikte Kullanılıyor?
+
+Sistemin kalbinde yatan temel ayrım şudur:
+
+* **PostgreSQL:** Gerçek veri kaynağıdır (Source of Truth).
+* **FAISS:** Anlamsal getirim (Semantic Retrieval) ve aday bulma motorudur.
+
+FAISS nihai bir karar kaynağı değildir. Yalnızca benzer ihale ve şirket profil adaylarını hızlıca bulmak, milyonlarca kayıt arasından potansiyel eşleşmeleri saliseler içinde listelemek için kullanılır. 
+
+Ancak FAISS indeksleri belirli zaman aralıklarında (batch) güncellenir. Eğer indeks ile gerçek veri arasında bir saniyelik bile fark oluşursa, sistemin yanlış karar verme riski doğar. Bu nedenle FAISS üzerinden "Bu ihale AUS-01 için %80 uygun adaydır" tespiti yapıldıktan sonra; nihai LLM karar sürecine **asla FAISS'teki eski metin sokulmaz**. 
+
+Sistem, bulunan adayın güncel ve gerçek ihale verisini tekrar **PostgreSQL'den çeker**. Böylece, indeks güncelliği ile canlı veri arasındaki operasyonel farkın karar güvenliğini bozması %100 engellenmiş olur. FAISS'in güncelliği sadece "yeni ihalelerin ne kadar çabuk radara gireceğini" belirler, kararın doğruluğunu etkilemez.
+
+---
+
+## 5. Şirket Profilleri
+
+Sistem, İSBAK A.Ş.'nin departmanlarını ve iş alanlarını temsil eden 20 ayrı Şirket Faaliyet Profili (JSON) üzerinden çalışır.
+
+**Profil Örnekleri:**
+* `AUS-01` Trafik Yönetimi ve Sinyalizasyon
+* `AUS-04` Toplu Taşıma ve Raylı Sistem Teknolojileri
+* `ENT-02` Kamera, Video Analitik ve Güvenlik Sistemleri
+* `TEK-01` Yazılım, Veri ve Sistem Bütünleştirme
+* `TEK-04` Bilgi ve Siber Güvenlik
+* `OPS-02` Bakım, Onarım ve Teknik Destek
+
+**Profil Yapısı:**
+* **Profil Adı ve Faaliyet Açıklaması:** Profilin genel amacını LLM'e tanıtan metinler.
+* **Birincil Yetkinlikler:** Departmanın asıl varoluş sebebi olan anahtar kelimeler.
+* **Güçlü Terimler:** İhalede geçtiğinde, ihalenin direkt bu profile ait olduğuna dair kesin işaret veren terimler. (Python'daki Pozitif Faaliyet doğrulaması bu terimlere bakar).
+* **Destekleyici Terimler:** Yan veya tamamlayıcı yetkinlikler.
+* **Negatif Terimler:** İhalede geçtiğinde, konunun bu profilin dışında olduğunu belirten kırmızı çizgiler. (Python'daki Negatif Faaliyet doğrulaması bunu kullanır).
+* **Teknik Ekipman & Eylem Fiilleri:** Bağlamı zenginleştiren jargonsal yapılar.
+* **OKAS Kodları:** Kamu ihale sözlüğündeki resmi kod karşılıkları.
+
+*Önemli Not:* Profildeki bazı alanların boş bırakılması (örn: negatif terimlerin olmaması), o profilin her ihaleye "uygun" veya "uygun değil" sayılacağı anlamına gelmez. LLM ve Python, mevcut veriyi kendi dinamiğinde değerlendirir.
+
+---
+
+## 6. İhale Vektörleştirme ve FAISS
+
+İhaleler bütünsel ve yapısal olarak devasa olduğu için doğrudan değerlendirilemez.
+
+* **BGE-M3 Embedding:** İhale metinleri, CPU üzerinde çalışabilen hafif ve güçlü `BAAI/bge-m3` modeli ile 1024 boyutlu vektörlere dönüştürülür.
+* **Section-Aware Chunking:** Metinler; teknik şartname, idari şartname, ihale ilanları olarak mantıksal bölümlere ayrılarak parçalanır. Anlam bütünlüğü korunur.
+* **FAISS Saklama (`IndexIDMap`):** Vektörler bellek-içi (in-memory) indekslerde tutulur. İhale (`ekap_tender_chunks`) ve Şirket Profili (`isbak_company_profiles`) ayrı ayrı beslenir.
+* **Artımlı (Incremental) İndeksleme:** Aynı ihalenin defalarca vektörize edilerek sistem kaynaklarını tüketmemesi için sadece veritabanında olup FAISS'te olmayan yeni/değişmiş ihaleler hedeflenir. Atomik güncelleme ile indeks bozulmaları önlenir.
+
+---
+
+## 7. Aday Profil Eşleştirme ve Puanlama
+
+Sistem, vektör uzayında ihaleler ile şirket profilleri arasındaki "Aday Puanlama" (Candidate Scoring) mantığını özel bir ağırlık formülüyle hesaplar (`ScoreAggregator`).
+
+Puanlama bileşenleri şu şekildedir:
+* **%55 En Güçlü Chunk (Parça) Benzerliği:** İhalenin herhangi bir yerindeki en net eşleşme.
+* **%20 Ortalama Benzerlik:** Seçilen parçaların geneline yayılan uyum.
+* **%10 Bölüm Çeşitliliği:** Eşleşmelerin hem teknik hem idari bölümlere yayılma durumu (sadece bir yerde geçiyorsa puan düşer).
+* **%10 OKAS Desteği:** Resmi ihale kodu ile profil OKAS kodlarının uyumu.
+* **%5 İhale Başlığı Desteği:** Başlık ile profil içeriği uyuşuyorsa verilen bonus.
+
+Ayrıca profilin "Negatif Terimleri" metinde ağırlıklı olarak geçiyorsa genel puana ceza (penalty) uygulanır.
+
+> [!WARNING]
+> **ÖNEMLİ:** Bu Retrieval Score (Getirim Puanı) bir "uygunluk olasılığı" değildir! `score = 0.70` olması ihalenin "%70 uygun" olduğu anlamına **gelmez**. Bu sadece FAISS eşleştirme sırasını belirleyen semantik (anlamsal) bir sıralama skorudur. Kararı verecek olan model ve Python'dur.
+
+---
+
+## 8. Kanıt Seçim Sistemi
+
+Bütün ihaleyi (yüzlerce sayfayı) LLM'e göndermek hem imkansız hem de maliyetlidir. Sistem, ihaleden "duruma göre" dinamik sayıda kanıt çeker:
+
+* **Clear (Net Durum - 1 Kanıt):** Hem ihale başlığı hem de OKAS kodu şirketle birebir eşleşiyorsa, yüksek ihtimalle uygundur, 1 adet en iyi teknik şartname kanıtı yeterlidir.
+* **Ambiguous (Belirsiz Durum - 3 Kanıt):** Metin karmaşık, genel geçer veya düşük puanlıysa, karar vermek için modelin daha çok bağlama ihtiyacı vardır (3 kanıt).
+* **Mixed / Partial (Karmaşık / Kısmi - 4 Kanıt):** İhale içinde hem profilinize uyan hem de uymayan şeyler varsa veya kısmi teklife açıksa, en derinlemesine analiz için maksimum sayıda kanıt (4 kanıt) gönderilir.
+
+Bu sayılar LLM çağrı sayısını değil, Qwen modeline "context" (bağlam) olarak gönderilen maksimum ihale parça (chunk) sayısını ifade eder.
+
+---
+
+## 9. Compact Context (Kompakt Bağlam)
+
+Şirket profil JSON dosyaları oldukça detaylıdır. Bu durum LLM token sınırlarını doldurabilir. Bu sorunu çözmek için profil bilgileri **Compact Context (Kompakt Bağlam)** işleminden geçirilir.
+
+Kompakt bağlam bir "LLM özetleme işlemi" **değildir**. Python tabanlı bir filtrelemedir:
+* İçi boş olan JSON alanları tamamen kaldırılır.
+* Liste tekrarları (mükerrer terimler) temizlenir.
+* Sadece karar anında Qwen'in gerçekten ihtiyaç duyduğu kritik alanlar korunur.
+
+**Amaç:** Aynı karar açısından önemli bilgiyi, çok daha az token (belirteç) ile temsil ederek hızı ve doğruluğu artırmaktır. 
+
+**Integrity Guard (Bütünlük Koruması):** Eğer sıkıştırma işlemi sırasında `birincil_profil` gibi hayati bir bilgi silinirse veya hasar görürse, sistem "legacy_fallback" (eski ham metin) yapısına geri döner. Kritik bilginin kaybolmasına asla izin verilmez.
+
+---
+
+## 10. Qwen Karar Modeli
+
+Sistemin yegane ana modeli: **`qwen3.5:4b-q4_K_M`**
+
+* **Platform:** Ollama
+* **Donanım:** `num_gpu=0` (CPU-only çalışacak şekilde sabitlenmiştir)
+* **Ayar:** `temperature=0` (Yaratıcılık kapalı, deterministik sonuç), `think=False` (Eski düşünce/chain-of-thought modu kapatılmış, sadece JSON şeması).
+* **Çıktı:** Strict JSON Schema. Kararı, Türkçe gerekçeyi ve kriterleri standart bir JSON olarak döndürür.
+
+> [!NOTE]
+> **Qwen nihai kararın tek sahibi değildir.** Qwen ihaleyi yorumlar, gerekçe üretir ve birincil kararı "önerir". Ardından bu karar, sistemin asıl omurgası olan Python doğrulayıcısına girer. 
+
+---
+
+## 11. Python Doğrulama Katmanı (`SourceGroundedPythonValidator`)
+
+Qwen'in ürettiği her çıktı, Python tabanlı katı kurallardan oluşan bir süzgeçten geçer. Bu katman sistemin en önemli mühendislik başarısıdır.
+
+* **Tahrifat ve Kaynak Denetimi:** Qwen, gerekçesinde kanıt gösterdiği ID'leri gerçekten kullanmış mı? İhale metninde olmayan bir şeyi "zorunlu kriter" diye uydurmuş mu? Uydurmaları yakalar.
+* **Pozitif Faaliyet Doğrulaması (YOL A):** Model ihaleye "uygun" dediyse, şirket profilinin gerçekten güçlü terimlerinden biri (Örn: "sunucu", "yazılım") ihale metninde geçiyor mu diye bakar. Geçmiyorsa "Ben uygunluk göremedim" diyerek kararı `inceleme_gerekli` seviyesine düşürür.
+* **Negatif Faaliyet Doğrulaması (YOL B):** Profilin katı `negative_terms` listesine ek olarak `proven_out_of_scope` mantığı çalışır. Sadece ihalede "araç", "bakım" kelimesi geçti diye ret verilmesini engeller; "öğrenci taşıma hizmeti", "yemek alımı" gibi 2'li/3'lü tam faaliyet dışı ifadeleri tespit edip onaylar. Eğer Qwen kanıtsız biçimde ret (uygun_degil) verdiyse, kararı `inceleme_gerekli` durumuna çevirir.
+* **Faaliyet Yeterliliği Ayrımı:** İhalenin İSBAK işi olması ile ihaleye girecek evraklara sahip olup olunmaması ayrılır.
+* **Güven Kalibrasyonu:** Doğrulamadan geçen her adımda güven (confidence) skoru kalibre edilir. Python, skorları hiçbir zaman yükseltmez, yalnızca şüpheli durumlarda düşürür (Ceza mantığı).
+
+---
+
+## 12. Nihai Karar Mantığı
+
+Python doğrulamasından sağ çıkan sonuç üç ana sınıftan birini alır:
+
+### uygun
+İhale, şirketin faaliyet alanıyla doğrulanmış biçimde örtüşüyorsa verilir. Bu karar "Şirket bütün ihale şartlarını ve belgelerini eksiksiz karşılıyor, kesin ihaleyi alır" anlamına **gelmez**. Bu esas olarak "Faaliyet kapsamı yönünden (Activity-Scope Suitability) bizim işimizdir" kararıdır.
+
+### uygun_degil
+Şirket profilinde yer alan negatif faaliyetlerle kesin olarak çatışma varsa, tamamen alan dışıysa veya doğrulanmış bir elenme (ret) nedeni kanıtlanmışsa verilir.
+
+### inceleme_gerekli
+Sistemin belirsizliği insan uzmanına bıraktığı kilit sınıftır.
+* LLM uydurma (halüsinasyon) yaptıysa,
+* Kanıtlar bir karara varmak için yetersizse,
+* Zorunlu kriter belirsizliği varsa,
+* İhale kısmi teklife açıksa ve bazı kısımlar uyup bazıları uymuyorsa,
+* Qwen'in ret kararı, Python tarafından metinde kanıtlanamadıysa sistem güvenli tarafta kalarak "inceleme_gerekli" der.
+
+---
+
+## 13. İnsan Kontrolü ve Güvenlik (Human-in-the-Loop)
+
+Sistemdeki en değişmez kurallardan biri şudur:
+**`automatic_action_allowed = False`**
+
+* Sistem hiçbir şart altında EKAP'a otomatik teklif vermez, otomatik sözleşme yapmaz.
+* İhaleleri otomatik olarak çöpe atmaz (satın alma / elenme kesin kararı üretmez).
+* `uygun` kararı insan onayına (Human Approval), `inceleme_gerekli` kararı ise insan incelemesine (Human Review) gönderilir. Uzman personeller kararları, Python'un sunduğu kesin kanıtlarla birlikte okuyup nihai süreci yönetirler.
+
+---
+
+## 14. Sistem Performansı
+
+Proje **"Minimum Donanım, Maksimum Verim"** prensibiyle inşa edilmiştir. GPU'suz CPU ortamlarında çalışmak üzere optimize edilmiştir.
+Aktif kaynak tüketimi `scripts/monitor_system_resources.py` üzerinden canlı ölçülmektedir. 
+
+* **RAM Kullanımı:** Vektörler batch mantığıyla işlendiğinden System RAM ve Python RSS (tepe noktası) kısıtlı seviyelerde tutulur. Swap patlamasını engellemek için `MAX_RUNTIME_SWAP_GROWTH_MB=512` sınırı mevcuttur.
+* **LLM Süreleri:** Model CPU'da `eval_duration`, `prompt_eval_duration`, ve Token/sec hızlarına dayalı çalışır. Karar başına üretilen generation token sayısı, JSON Schema kısıtı sayesinde minimumda tutularak hız kazandırılır.
+
+---
+
+## 15. Aktif Dosya Yapısı
+
+```text
+app/
+├── config/                 # Pydantic yapılandırma ve çevresel değişkenler (.env)
+├── database/               # PostgreSQL repo, model ve bağlantıları
+├── decision/               # Qwen etkileşimi, Python Doğrulayıcısı ve Validator kuralları
+├── domain/                 # Ortak modeller (TenderRecord vb.)
+├── indexing/               # İhale indeksleyici ve FAISS bütünleşmesi
+├── matching/               # Retrieval skorlama ve profil eşleştirme matematiksel algoritması
+├── pipeline/               # Karar mekanizmasının uçtan uca zinciri
+├── reporting/              # JSONL / CSV / Terminal rapor üreticileri
+├── retrieval/              # Vektör sorgulama, kanıt sınıflandırma
+└── vector_store/           # FAISS IndexIDMap sarmalayıcıları ve depolama nesneleri
+
+scripts/
+├── build_active_tenders_faiss.py   # Yeni ihaleleri FAISS'e indeksler
+├── build_profiles_faiss.py         # Şirket profillerini FAISS'e indeksler
+├── run_tender_decision_chain.py    # Ana Karar İşlem Hattı Betiği
+├── check_database.py               # Veritabanı sağlık kontrolü
+├── check_faiss_integrity.py        # İndekslerin tahrifat denetimi
+└── monitor_system_resources.py     # CPU/RAM sistem metrik izleyicisi
+
+config/isbak/                       # Şirket Profili (JSON) Klasörü
+storage/
+├── faiss/                          # İhale .index ve .pkl dosyaları
+└── faiss_profiles/                 # Profil .index ve .pkl dosyaları
 ```
 
 ---
 
-## 🚀 Kurulum ve Yapılandırma
+## 16. Kurulum ve Yapılandırma
 
-### 1. Gereksinimler
-* **İşletim Sistemi**: Linux veya WSL2 (Windows Subsystem for Linux)
-* **Python**: 3.12+
-* **Veritabanı**: PostgreSQL (Canlı EKAP veri tabanı erişimi)
-* **LLM Sunucusu**: Ollama (`qwen3.5:4b-q4_K_M` modeli yüklü olmalıdır)
+Sistem Ubuntu / WSL Ubuntu temel alınarak tasarlanmıştır.
 
-### 2. Ortam Hazırlığı
+1. **Sanal Ortam ve Bağımlılıklar:**
 ```bash
-# Sanal ortam oluşturma ve aktifleştirme
 python3 -m venv .venv
-source .venv/bin/python3
-
-# Bağımlılıkların yüklenmesi
-pip install -r requirements.txt
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
 ```
 
-### 3. Çevre Değişkenleri (`.env`)
-Örnek yapılandırma için `.env.example` dosyasını kopyalayarak `.env` oluşturun:
+2. **Ollama Kontrolü:**
+```bash
+ollama --version
+ollama list
+```
+*(Sistemde `qwen3.5:4b-q4_K_M` modelinin kurulu olduğundan emin olun).*
+
+3. **Çevresel Değişkenler (`.env`):**
+`.env.example` dosyasını `.env` olarak kopyalayıp güncelleyin:
 ```env
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
+DATABASE_HOST=127.0.0.1
+DATABASE_PORT=5433
 DATABASE_NAME=ekap_db
-DATABASE_USER=postgres
-DATABASE_PASSWORD=your_password
+DATABASE_USER=ekap_reader
+DATABASE_PASSWORD=degistirin
 
-OLLAMA_BASE_URL=http://localhost:11434
-PRIMARY_MODEL_NAME=qwen3.5:4b-q4_K_M
-
-EMBEDDING_MODEL=BAAI/bge-m3
-EMBEDDING_DEVICE=cpu
+QWEN_MODEL=qwen3.5:4b-q4_K_M
+OLLAMA_BASE_URL=http://127.0.0.1:11434
 ```
 
 ---
 
-## 💻 Kullanım Rehberi (CLI)
+## 17. Test ve Doğrulama
 
-### 1. Aktif İhaleleri FAISS'e İndeksleme (Artımlı İndeksleme)
-PostgreSQL'de olup FAISS içinde henüz bulunmayan ihaleleri tespit edip CPU üzerinde indekslemek için:
-
-```bash
-# Yalnızca eksik ihaleleri tespit edip test etmek için (Dry-Run)
-PYTHONPATH=. .venv/bin/python3 scripts/build_active_tenders_faiss.py --missing-from-faiss-only --dry-run
-
-# Eksik ihaleleri FAISS'e gerçek olarak eklemek için
-PYTHONPATH=. .venv/bin/python3 scripts/build_active_tenders_faiss.py --missing-from-faiss-only
-```
-
-### 2. Ana Karar İşlem Hattını Çalıştırma
-Profil bazlı aday havuzu veya rastgele veri tabanı seçimi ile karar hattını koşturma:
+Aktif birim ve entegrasyon testlerini (Pytest) şu komutlarla çalıştırabilirsiniz:
 
 ```bash
-# Candidate-Pool modunda çalıştırma
-PYTHONPATH=. .venv/bin/python3 scripts/run_tender_decision_chain.py --mode candidate-pool --limit 10
-
-# Database-Random modunda (PostgreSQL canlı ihalelerinden rastgele seçim) çalıştırma
-PYTHONPATH=. .venv/bin/python3 scripts/run_tender_decision_chain.py --mode database-random --limit 10 --seed 42
-```
-
----
-
-## 🧪 Test ve Doğrulama
-
-Tüm birim ve entegrasyon testlerini koşturmak için:
-
-```bash
-# Tüm test paketini koşturma
+# Tüm testleri çalıştırmak için
 PYTHONPATH=. .venv/bin/python3 -m pytest
 
-# Syntax ve derleme kontrolü
-PYTHONPATH=. .venv/bin/python3 -m compileall app scripts tests
-
-# Git diff ve boşluk kontrolü
-git diff --check
+# Özellikle Negatif Faaliyet (Proven Out of Scope) kurallarını test etmek için (19 Test)
+PYTHONPATH=. .venv/bin/python3 -m pytest tests/decision/test_source_grounded_python_validation.py -v
 ```
 
 ---
 
-## 🛡 Güvenlik, Sınırlar ve Doğruluk Garantileri
+## 18. Canlı Karar Testi (İşlem Hattını Çalıştırma)
 
-1. **FAISS Bütünlük Garantisi**: İndeksleme veya vektör güncelleme sırasında atomik kaydetme yöntemi (`replace_tenders_records`) kullanılır. Olası bir hatada otomatik rollback yapılarak `.index` ve `.pkl` dosyalarının bozulması engellenir.
-2. **Deterministik Doğrulama**: LLM'in ürettiği gerekçe metinleri `SourceGroundedPythonValidator` tarafından kaynak ihale metniyle taranır. Eğer model metinde geçmeyen bir şartname maddesi uydurursa karar otomatik olarak `inceleme_gerekli` seviyesine çekilir ve güven puanı düşürülür.
-3. **Kaynak Sınırı**: Üretim mimarisinde tüm gömme (embedding) ve LLM karar adımları CPU üzerinde çalışacak şekilde yapılandırılmıştır.
+Ana veri kaynağı PostgreSQL olduğu için üretim ortamında `database-sequential` veya `database-random` modları kullanılır.
+
+*Örnek: PostgreSQL'deki en yeni 10 aktif ihaleyi alıp tüm karar zincirinden (FAISS Aday > PostgreSQL Grounding > LLM > Python) geçiren komut:*
+
+```bash
+PYTHONPATH=. python3 scripts/run_tender_decision_chain.py \
+  --source-mode database \
+  --selection-mode database-sequential \
+  --max-decisions 10 \
+  --log-level INFO
+```
+
+---
+
+## 19. Rapor Çıktıları
+
+`scripts/run_tender_decision_chain.py` komutu tamamlandığında `reports/` dizininde şu raporlar üretilir:
+
+* `tender_model_decisions.jsonl` (Tüm ham model çıktıları ve token verileri)
+* `tender_public_decisions.jsonl` (Kullanıcıya gösterilecek sade JSON)
+* `tender_public_decisions.csv` (Sadeleştirilmiş public rapor)
+* `tender_model_decisions.csv` (Sistem yöneticileri için detaylı debug csv)
+* `tender_review_required.csv` (Sadece "inceleme_gerekli" etiketi alan ihaleler)
+* `tender_human_action_queue.csv` (Onay bekleyen veya inceleme gerektiren iş kuyruğu)
+* `tender_professional_decisions.csv` (Yöneticiler için özet karar panosu)
+* `database_sequential_selection.csv` (İhalelerin seçilme ve FAISS aday aşaması kayıtları)
+* `tender_decision_run_summary.json` (Çalışma süresi, bellek özeti ve istatistikler)
+
+---
+
+## 20. Bilinen Sınırlamalar
+
+Sistemdeki mevcut kısıtlar şunlardır:
+* **PostgreSQL - FAISS Gecikmesi:** Yeni ihalelerin sisteme hemen dahil olabilmesi için FAISS indeksleme (incremental) betiğinin düzenli çalışması gerekir. O zamana kadar ihaleler radar dışı kalır.
+* **Aşırı Geniş Pozitif Eşleşme:** Bazı "taşıma" veya genel yetkinlik içeren ihalelerde, profiller agresif pozitif eşleşmeler yakalayabilir.
+* **Proven Out Of Scope Hassasiyeti:** Negatif faaliyet doğrulaması, özellikle karmaşık teknoloji ve bakım ihalelerinde fazla agresif davranıp, kısmi fırsatları yanlış reddedebilir. Düzenli Regex kalibrasyonuna ihtiyaç duyar.
+* **LLM Varyansı:** `temperature=0` olsa da, %100 deterministik değildir. Çok nadiren modelin yapısal (schema) dışına çıkması mümkündür.
+* **CPU Çıkarım (Inference) Hızı:** GPU kullanılmadığı için tek bir ihale analizi saniyeler (hatta bazen 10+ saniye) sürebilir. Ölçekleme, yataydaki CPU çekirdekleri (threading) üzerinden sağlanır.
+
+---
+
+## 21. Tasarım Kararları
+
+### Neden LangChain gibi ağır bir framework kullanılmadı?
+Daha düşük bellek ek yükü, bağımlılıkların tamamen kontrolümüzde olması, hatanın kolay ayıklanabilmesi ve sürecin "sihirli asistanlar" yerine deterministik Python fonksiyonları üzerinden %100 kontrol edilebilmesi için ağır orkestrasyon çatıları reddedilmiştir.
+
+### Neden Tek Model (Qwen)?
+Çoklu modellerin belleğe yüklenme maliyeti, CPU çıkarım (inference) sürelerini katlayarak uzatmaktaydı. Python Doğrulama Katmanının güçlenmesiyle LLM'in tek başına yarattığı risk azaltılmış, böylece tek model (Qwen 4B) ile hız ve RAM tasarrufu sağlanmıştır.
+
+### Neden FAISS?
+Milvus veya Qdrant gibi harici sunucu bağımlı vektör veritabanları yerine bellekte (in-memory) lokal çalışan, dış kurulum istemeyen, CPU ortamına en uygun ve en hızlı indeksleyici FAISS tercih edilmiştir.
+
+### Neden Python Doğrulama Katmanı?
+LLM'in kusursuz dilsel muhakeme yeteneği vardır ancak "katı iş kuralı" takip etme konusunda istikrarsızdır (deterministik değildir). LLM, bir hukukçu veya analiz uzmanı edasıyla metni okuyup yorumlar, Python ise formüllere dayalı matematiksel/mantıksal bir kalite kontrol şefi gibi o yorumun kanıtlarını belgelerde doğrulayarak sistemi güvenli hale getirir.
