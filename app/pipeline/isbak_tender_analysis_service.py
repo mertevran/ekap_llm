@@ -719,7 +719,7 @@ class IsbakTenderAnalysisService:
             raise TenderAnalysisError(f"Bağlam sınırı ayarlanırken hata: {e}") from e
 
         # 13-14. IsbakDecisionPipeline Çağrımı
-        step_decision = _track_step("Karar Modelleri (Qwen/Gemma) Çağrımı")
+        step_decision = _track_step("Karar Modeli Çağrımı")
         try:
             if primary_profile == "BELIRLENEMEDI":
                 from app.decision.models import FinalTenderDecision, ModelDecision, ValidationResult
@@ -753,7 +753,6 @@ class IsbakTenderAnalysisService:
                         missing_required_evidence=[],
                         forced_decision="inceleme_gerekli",
                     ),
-                    secondary_model=None,
                     human_review_required=True,
                     reasons=["Hiçbir kurum profili ihale ile eşleşmedi."],
                 )
@@ -791,19 +790,6 @@ class IsbakTenderAnalysisService:
                 result.metadata["primary_prompt_version"] = primary_meta.get("prompt_version")
                 result.metadata["primary_attempt_count"] = primary_meta.get("attempt_count")
                 result.metadata["primary_timeout_seconds"] = primary_meta.get("timeout_seconds")
-
-                if final_decision.secondary_model:
-                    secondary_meta = final_decision.secondary_model.raw_response.get(
-                        "_metadata", {}
-                    )
-                    result.metadata["secondary_model"] = final_decision.secondary_model.model_name
-                    result.metadata["secondary_prompt_version"] = secondary_meta.get(
-                        "prompt_version"
-                    )
-                    result.metadata["secondary_attempt_count"] = secondary_meta.get("attempt_count")
-                    result.metadata["secondary_timeout_seconds"] = secondary_meta.get(
-                        "timeout_seconds"
-                    )
 
                 logger.info(
                     f"Step '{step_decision.name}' success for ikn={ikn}, analysis_id={analysis_id}, duration={step_decision.duration_seconds:.2f}s"

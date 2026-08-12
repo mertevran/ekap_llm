@@ -36,7 +36,7 @@ def main() -> int:
     print()
     print(f"Gömme modeli     : {settings.embedding_model}")
     print(f"Qwen modeli      : {settings.qwen_model}")
-    print(f"Gemma modeli     : {settings.gemma_model}")
+
     print(f"Phi modeli       : {settings.phi_model}")
     print(f"Ollama adresi    : {settings.ollama_base_url}")
     print()

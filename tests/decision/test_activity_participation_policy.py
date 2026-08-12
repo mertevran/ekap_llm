@@ -24,13 +24,13 @@ def decision(**overrides):
     return ModelDecision(**data)
 
 
-def test_unverified_participation_does_not_force_review():
+def test_unverified_participation_forces_review():
     result = IsbakDeterministicValidator().validate(
         tender_id="1", ikn="2026/1", category_code="ENT-05",
         primary_decision=decision(), valid_chunk_ids=["chk_1"]
     )
-    assert result.passed is True
-    assert result.forced_decision is None
+    assert result.passed is False
+    assert result.forced_decision == "inceleme_gerekli"
     assert result.missing_mandatory_evidence is False
 
 
@@ -121,9 +121,9 @@ def test_pipeline_reports_unknown_mandatory_criterion():
 
     assert result.activity_decision == "uygun"
     assert result.katilim_yeterliligi_durumu == "dogrulanmadi"
-    assert result.final_decision == "uygun"
-    assert result.merge_rule == "validation_override_missing_evidence"
-    assert result.human_review_required is False
+    assert result.final_decision == "inceleme_gerekli"
+    assert result.merge_rule == "validation_override_blocking_issue"
+    assert result.human_review_required is True
     assert result.missing_mandatory_evidence is True
     assert result.mandatory_missing_evidence == [
         "iso_9001: ISO 9001 belgesi"
@@ -137,7 +137,7 @@ def test_pipeline_rejects_failed_mandatory_criterion():
     assert result.katilim_yeterliligi_durumu == "karsilanmiyor"
     assert result.final_decision == "uygun_degil"
     assert result.merge_rule == "validation_override_mandatory_rejection"
-    assert result.human_review_required is False
+    assert result.human_review_required is True
 
 
 def test_invalid_chunk_id_is_blocking():

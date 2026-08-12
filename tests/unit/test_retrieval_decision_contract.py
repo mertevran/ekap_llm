@@ -213,54 +213,6 @@ def test_invalid_chunk_id_reference_detected() -> None:
     assert len(result.invalid_evidence_references) > 0
 
 
-# ---------------------------------------------------------------------------
-# Test 67: İki model çelişirse inceleme_gerekli oluşmalı
-# ---------------------------------------------------------------------------
-
-
-def test_two_model_conflict_results_in_review() -> None:
-    from app.decision.isbak_decision_pipeline import IsbakDecisionPipeline
-
-    class _PrimaryModel:
-        name = "primary"
-
-        def analyze(self, **kwargs):
-            return _make_model_decision(decision="uygun", confidence=0.50)  # Düşük güven
-
-    class _SecondaryModel:
-        name = "secondary"
-
-        def analyze(self, **kwargs):
-            return _make_model_decision(decision="uygun_degil", confidence=0.80)
-
-    class _AlwaysPassValidator:
-        def validate(self, **kwargs):
-            return _make_validation(passed=True)
-
-    pipeline = IsbakDecisionPipeline(
-        primary_model=_PrimaryModel(),
-        validator=_AlwaysPassValidator(),
-        secondary_model=_SecondaryModel(),
-        secondary_confidence_threshold=0.75,  # 0.50 < 0.75 → ikincil tetiklenir
-    )
-    result = pipeline.run(
-        tender_id="T001",
-        ikn="2026/001",
-        tender_name="Test",
-        authority_name="Test İdare",
-        category_code="Hizmet",
-        primary_profile_code="AUS-01",
-        secondary_profile_codes=[],
-        tender_context="Test context",
-        company_context="Company context",
-        evaluation_rules={"ikinci_gorus_tetikleyicileri": ["dusuk_guven_duzeyi"]},
-        evidence_count=3,
-        valid_chunk_ids=["chunk-001"],
-    )
-    # İkinci model karar verdi ve çelişti → inceleme_gerekli
-    assert result.final_decision == "inceleme_gerekli"
-    assert result.human_review_required is True
-
 
 # ---------------------------------------------------------------------------
 # Test 68: Eksik kanıt raporlayan model uygun diyemez

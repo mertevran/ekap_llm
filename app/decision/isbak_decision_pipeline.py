@@ -9,7 +9,7 @@ from app.decision.models import (
     DecisionValidationContext,
     FinalTenderDecision,
     ModelDecision,
-    combine_validation_results,
+    ValidationResult,
 )
 
 def _is_participation_criterion(description: str) -> bool:
@@ -64,13 +64,9 @@ class IsbakDecisionPipeline:
         *,
         primary_model: DecisionModel,
         validator: DeterministicValidator,
-        secondary_model: DecisionModel | None = None,
-        secondary_confidence_threshold: float = 0.75,
     ) -> None:
         self.primary_model = primary_model
         self.validator = validator
-        self.secondary_model = secondary_model
-        self.secondary_confidence_threshold = secondary_confidence_threshold
 
     def run(
         self,
@@ -121,23 +117,20 @@ class IsbakDecisionPipeline:
         )
 
         triggers = evaluation_rules.get(
-            "ikinci_gorus_tetikleyicileri",
+            "insan_incelemesi_tetikleyicileri",
             [],
         )
-        needs_secondary = False
         review_reasons: list[str] = []
 
         if not validation_primary.passed:
-            needs_secondary = True
             review_reasons.append(
                 "Python doğrulama kuralları çelişki tespit etti."
             )
 
         if (
-            primary.confidence < self.secondary_confidence_threshold
+            primary.confidence < 0.75
             and "dusuk_guven_duzeyi" in triggers
         ):
-            needs_secondary = True
             review_reasons.append(
                 f"Model güven düzeyi ({primary.confidence:.3f}) eşiğin altında."
             )
@@ -146,113 +139,23 @@ class IsbakDecisionPipeline:
             primary.decision == "inceleme_gerekli"
             and "karar_inceleme_gerekli" in triggers
         ):
-            needs_secondary = True
             review_reasons.append(
-                "Ana model kararı inceleme_gerekli olduğu için "
-                "ikinci model tetiklendi."
+                "Ana model kararı inceleme_gerekli olarak belirlendi."
             )
 
         if (
             primary.kritik_belirsizlikler
             and "kritik_belirsizlik" in triggers
         ):
-            needs_secondary = True
             review_reasons.append("Ana model kritik belirsizlik raporladı.")
 
-        # Tek modelli ana akışta ikinci model tetikleyicileri karar durumunu
-        # değiştirmez; inceleme ihtiyacı doğrudan model/Python sonucundan gelir.
-        if self.secondary_model is None:
-            needs_secondary = False
-            review_reasons = []
-
-        secondary = None
         final_decision: DecisionLabel = primary.decision
         final_confidence = primary.confidence
         human_review_required = False
         human_review_reason = ""
-        validation_secondary = None
+        merge_rule = "single_model"
 
-        secondary_succeeded = False
-        secondary_error_type = ""
-        secondary_error_message = ""
-        model_agreement = False
-        merge_rule = "primary_only"
-        agreement_status = "secondary_skipped"
-
-        if needs_secondary and self.secondary_model is not None:
-            try:
-                secondary = self.secondary_model.analyze(
-                    tender_id=tender_id,
-                    ikn=ikn,
-                    category_code=category_code,
-                    tender_context=tender_context,
-                    company_context=company_context,
-                    matching_mode=matching_mode,
-                    retrieval_score=retrieval_score,
-                    score_breakdown=score_breakdown,
-                    valid_chunk_ids=valid_chunk_ids,
-                    primary_profile_code=primary_profile_code,
-                )
-                secondary_succeeded = True
-                validation_secondary = self._validate_model_decision(
-                    secondary,
-                    tender_id=tender_id,
-                    ikn=ikn,
-                    category_code=category_code,
-                    evidence_count=evidence_count,
-                    valid_chunk_ids=valid_chunk_ids,
-                    decision_source="secondary",
-                    validation_context=validation_context,
-                )
-            except Exception as e:
-                from app.pipeline.exceptions import TruncatedModelOutput
-                if isinstance(e, TruncatedModelOutput):
-                    secondary_error_type = "truncated_output"
-                else:
-                    secondary_error_type = "secondary_model_error"
-                secondary_error_message = str(e)
-                secondary = None
-                human_review_required = True
-                human_review_reason = f"Gemma ikinci görüş çıktısı tamamlanamadı. ({secondary_error_type})"
-                final_decision = "inceleme_gerekli"
-                merge_rule = "secondary_failure_fallback"
-                agreement_status = "secondary_failed"
-
-        # Apply Decision Aggregation Rules
-        if secondary and secondary_succeeded:
-            pd = primary.decision
-            sd = secondary.decision
-
-            if pd == sd:
-                model_agreement = True
-                agreement_status = "same_decision"
-                final_decision = pd
-                merge_rule = f"agreement_{pd}"
-            else:
-                agreement_status = "conflicting_decision"
-                model_agreement = False
-                final_decision = "inceleme_gerekli"
-                human_review_required = True
-                if pd == "uygun" and sd == "uygun_degil":
-                    merge_rule = "conflict_uygun_uygun_degil"
-                    human_review_reason = "Modeller çelişti (uygun vs uygun_degil)."
-                elif pd == "uygun_degil" and sd == "uygun":
-                    merge_rule = "conflict_uygun_degil_uygun"
-                    human_review_reason = "Modeller çelişti (uygun_degil vs uygun)."
-                elif pd == "inceleme_gerekli" and sd == "uygun":
-                    merge_rule = "conflict_inceleme_uygun"
-                    human_review_reason = "Modeller çelişti (inceleme_gerekli vs uygun)."
-                elif pd == "inceleme_gerekli" and sd == "uygun_degil":
-                    merge_rule = "conflict_inceleme_uygun_degil"
-                    human_review_reason = "Modeller çelişti (inceleme_gerekli vs uygun_degil)."
-                else:
-                    merge_rule = "model_disagreement"
-                    human_review_reason = "Modeller çelişti."
-
-            if final_confidence > 0:
-                final_confidence = (primary.confidence + secondary.confidence) / 2.0
-
-        combined_validation = combine_validation_results(validation_primary, validation_secondary)
+        combined_validation = validation_primary
         # --- CATEGORIZE VALIDATION ISSUES ---
         activity_blocking_issues = []
         participation_issues = []
@@ -342,8 +245,6 @@ class IsbakDecisionPipeline:
             elif has_activity_blocking:
                 final_decision = "inceleme_gerekli"
                 merge_rule = "validation_override_blocking_issue"
-            elif model_agreement is False and self.secondary_model is not None:
-                final_decision = "inceleme_gerekli"
             else:
                 final_decision = "uygun"
                 if combined_validation.missing_mandatory_evidence:
@@ -353,9 +254,7 @@ class IsbakDecisionPipeline:
             merge_rule = "validated_rejection" if combined_validation.verified_rejection else "activity_rejected"
         else:
             final_decision = "inceleme_gerekli"
-            if model_agreement is False and self.secondary_model is not None:
-                pass
-            elif not combined_validation.forced_decision:
+            if not combined_validation.forced_decision:
                 merge_rule = "activity_uncertain"
 
         human_review_required = final_decision == "inceleme_gerekli"
@@ -364,12 +263,7 @@ class IsbakDecisionPipeline:
             issue_messages = [i.message for i in combined_validation.issues[:3]]
             human_review_reason = " | ".join(issue_messages)
 
-        secondary_triggered = needs_secondary and self.secondary_model is not None
-
-        if self.secondary_model is None:
-            agreement_status = "single_model"
-
-        if needs_secondary and self.secondary_model is None:
+        if review_reasons:
             human_review_required = True
             human_review_reason = " | ".join(review_reasons)
 
@@ -428,24 +322,13 @@ class IsbakDecisionPipeline:
             final_confidence=final_confidence,
             primary_model=primary,
             validation=combined_validation,
-            secondary_model=secondary,
             human_review_required=human_review_required,
             human_review_reason=resolved_human_review_reason,
             evaluated_at=datetime.now(UTC).isoformat(),
             primary_decision=primary.decision,
             primary_confidence=primary.confidence,
             primary_used_chunk_ids=primary.kullanilan_chunk_idleri,
-            secondary_triggered=secondary_triggered,
-            secondary_trigger_reasons=review_reasons,
-            secondary_succeeded=secondary_succeeded,
-            secondary_decision=secondary.decision if secondary else "",
-            secondary_confidence=secondary.confidence if secondary else 0.0,
-            secondary_used_chunk_ids=secondary.kullanilan_chunk_idleri if secondary else [],
-            secondary_error_type=secondary_error_type,
-            secondary_error_message=secondary_error_message,
-            model_agreement=model_agreement,
             merge_rule=merge_rule,
-            agreement_status=agreement_status,
             validation_issues=[
                 {
                     "code": issue.code,

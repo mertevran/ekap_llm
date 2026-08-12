@@ -211,7 +211,6 @@ def run_profile_mode(args: argparse.Namespace) -> int:
         "retrieval_only": args.retrieval_only,
         "prompt_versions": {
             "primary": None if args.retrieval_only else "isbak_qwen_decision_v3",
-            "secondary": None if args.retrieval_only or args.skip_secondary else "isbak_gemma_review_v3"
         },
         "elapsed_seconds": elapsed,
     }
@@ -247,16 +246,9 @@ def run_profile_mode(args: argparse.Namespace) -> int:
         host=app_settings.ollama_base_url,
         prompt_version="isbak_qwen_decision_v3",
     )
-    secondary_model = None if args.skip_secondary else OllamaDecisionModel(
-        name=app_settings.gemma_model,
-        host=app_settings.ollama_base_url,
-        prompt_version="isbak_gemma_review_v3",
-    )
-    validator = IsbakRuleValidator()
     pipeline = IsbakDecisionPipeline(
         primary_model=primary_model,
         validator=validator,
-        secondary_model=secondary_model,
     )
 
     for m in matches[:max_decisions]:
@@ -350,7 +342,6 @@ def run_tender_mode(args: argparse.Namespace) -> int:
         "retrieval_only": args.retrieval_only,
         "prompt_versions": {
             "primary": None if args.retrieval_only else "isbak_qwen_decision_v3",
-            "secondary": None if args.retrieval_only or args.skip_secondary else "isbak_gemma_review_v3"
         },
         "elapsed_seconds": elapsed,
     }
@@ -385,13 +376,9 @@ def run_tender_mode(args: argparse.Namespace) -> int:
         name=app_settings.qwen_model, host=app_settings.ollama_base_url,
         prompt_version="isbak_qwen_decision_v3",
     )
-    secondary_model = None if args.skip_secondary else OllamaDecisionModel(
-        name=app_settings.gemma_model, host=app_settings.ollama_base_url,
-        prompt_version="isbak_gemma_review_v3",
-    )
     validator = IsbakRuleValidator()
     pipeline = IsbakDecisionPipeline(
-        primary_model=primary_model, validator=validator, secondary_model=secondary_model,
+        primary_model=primary_model, validator=validator,
     )
 
     for m in matches[:max_decisions]:
@@ -517,13 +504,9 @@ def run_tender_batch_mode(args: argparse.Namespace) -> int:
             name=app_settings.qwen_model, host=app_settings.ollama_base_url,
             prompt_version="isbak_qwen_decision_v3",
         )
-        secondary_model = None if args.skip_secondary else OllamaDecisionModel(
-            name=app_settings.gemma_model, host=app_settings.ollama_base_url,
-            prompt_version="isbak_gemma_review_v3",
-        )
         validator = IsbakRuleValidator()
         pipeline = IsbakDecisionPipeline(
-            primary_model=primary_model, validator=validator, secondary_model=secondary_model,
+            primary_model=primary_model, validator=validator,
         )
         context_builder = MatchContextBuilder(max_chars=settings.llm_context_max_chars)
         aggregator = DecisionAggregator()
@@ -633,7 +616,6 @@ def run_tender_batch_mode(args: argparse.Namespace) -> int:
         "retrieval_only": args.retrieval_only,
         "prompt_versions": {
             "primary": None if args.retrieval_only else "isbak_qwen_decision_v3",
-            "secondary": None if args.retrieval_only or args.skip_secondary else "isbak_gemma_review_v3"
         },
         "elapsed_seconds": elapsed,
     }
@@ -755,7 +737,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Minimum puan eşiği",
     )
     p.add_argument("--retrieval-only", action="store_true", help="LLM kararı yapma")
-    p.add_argument("--skip-secondary", action="store_true", help="Gemma ikinci görüşünü atla")
+
     p.add_argument("--max-decisions", type=int, default=0, help="Maksimum LLM karar sayısı")
     p.add_argument("--force", action="store_true", help="Mevcut kararı yeniden oluştur")
     p.add_argument("--report-dir", default="reports", help="Rapor dizini")

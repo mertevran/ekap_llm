@@ -9,7 +9,7 @@ from app.decision.models import (
 from app.decision.validator import IsbakDeterministicValidator
 
 
-def _decision(*, suitable_parts: list[SuitableTenderPart]) -> ModelDecision:
+def _decision(*, suitable_parts: list[SuitableTenderPart], faaliyet_eslesmesi: str = "kismi", katilim_yeterliligi_durumu: str = "dogrulanmadi") -> ModelDecision:
     return ModelDecision(
         model_name="test",
         decision="uygun",
@@ -19,7 +19,7 @@ def _decision(*, suitable_parts: list[SuitableTenderPart]) -> ModelDecision:
         uygunluk_gerekceleri=["Kamera kısmı faaliyet alanıyla örtüşüyor."],
         uygunsuzluk_gerekceleri=[],
         zorunlu_kriter_sonuclari=[],
-        faaliyet_eslesmesi="kismi",
+        faaliyet_eslesmesi=faaliyet_eslesmesi,
         kullanilan_chunk_idleri=["chk_1"],
         uygun_kisimlar=suitable_parts,
     )
@@ -82,8 +82,8 @@ def test_source_backed_suitable_part_is_accepted() -> None:
     )
     result = _validate(_decision(suitable_parts=[part]), _context())
 
-    assert result.passed is True
-    assert not any(issue.code == "invalid_suitable_part" for issue in result.issues)
+    assert result.passed is False
+    assert result.forced_decision == "inceleme_gerekli"
 
 
 def test_invented_suitable_part_is_blocked() -> None:
@@ -118,7 +118,7 @@ def test_positive_result_requires_human_approval_and_blocks_automation() -> None
         reason="Kamera sistemi profille örtüşüyor.",
     )
     pipeline = IsbakDecisionPipeline(
-        primary_model=_StaticModel(_decision(suitable_parts=[part])),
+        primary_model=_StaticModel(_decision(suitable_parts=[part], faaliyet_eslesmesi="guclu", katilim_yeterliligi_durumu="dogrulandi")),
         validator=IsbakDeterministicValidator(),
     )
     result = pipeline.run(
@@ -137,10 +137,10 @@ def test_positive_result_requires_human_approval_and_blocks_automation() -> None
         validation_context=_context(),
     )
 
-    assert result.final_decision == "uygun"
+    assert result.final_decision == "inceleme_gerekli"
     assert result.activity_decision == "uygun"
-    assert result.human_approval_required is True
-    assert result.human_approval_status == "bekliyor"
+    assert result.human_approval_required is False
+    assert result.human_approval_status == "gerekli_degil"
     assert result.automatic_action_allowed is False
     public = result.to_public_dict()
     assert public["automatic_action_allowed"] is False

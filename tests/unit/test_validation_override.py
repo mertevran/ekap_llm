@@ -49,16 +49,14 @@ class MockValidator:
             source_external_information_used=self.external_info
         )
 
-def run_pipeline(validator, primary_dec="uygun", secondary_dec="uygun"):
+def run_pipeline(validator, primary_dec="uygun"):
     primary = MockModel("Qwen", returns_decision=primary_dec, confidence=0.5)
-    secondary = MockModel("Gemma", returns_decision=secondary_dec, confidence=0.9)
 
     pipeline = IsbakDecisionPipeline(
         primary_model=primary,
         validator=validator,
-        secondary_model=secondary,
     )
-    # Give a trigger so secondary runs
+    # Give a trigger
     return pipeline.run(
         tender_id="t1", ikn="123", tender_name="Tender 1", authority_name="Auth",
         category_code="AUS-01", primary_profile_code="AUS-01", secondary_profile_codes=[],
@@ -66,42 +64,36 @@ def run_pipeline(validator, primary_dec="uygun", secondary_dec="uygun"):
         evidence_count=1, matching_mode="profile_to_tender", retrieval_score=0.9, score_breakdown={}, valid_chunk_ids=["c1"]
     )
 
-def test_primary_secondary_uygun_no_blocking_issue():
+def test_primary_uygun_no_blocking_issue():
     val = MockValidator(passed=True)
-    res = run_pipeline(val, "uygun", "uygun")
+    res = run_pipeline(val, "uygun")
     assert res.final_decision == "uygun"
-    assert res.merge_rule == "agreement_uygun"
+    assert res.merge_rule == "single_model"
 
-def test_primary_secondary_uygun_missing_mandatory():
+def test_primary_uygun_missing_mandatory():
     val = MockValidator(passed=False, forced_decision="inceleme_gerekli", missing_mandatory=True)
-    res = run_pipeline(val, "uygun", "uygun")
+    res = run_pipeline(val, "uygun")
     assert res.final_decision == "uygun"
     assert res.merge_rule == "validation_override_missing_evidence"
-    assert res.human_review_required is False
+    assert res.human_review_required is True
 
-def test_primary_secondary_uygun_blocking_issue():
+def test_primary_uygun_blocking_issue():
     val = MockValidator(passed=False, forced_decision="inceleme_gerekli", blocking=True)
-    res = run_pipeline(val, "uygun", "uygun")
+    res = run_pipeline(val, "uygun")
     assert res.final_decision == "inceleme_gerekli"
     assert res.merge_rule == "validation_override_blocking_issue"
     assert res.human_review_required is True
 
-def test_primary_secondary_uygun_external_info():
+def test_primary_uygun_external_info():
     val = MockValidator(passed=False, forced_decision="inceleme_gerekli", external_info=True)
-    res = run_pipeline(val, "uygun", "uygun")
+    res = run_pipeline(val, "uygun")
     assert res.final_decision == "inceleme_gerekli"
     assert res.merge_rule == "validation_override_external_information"
     assert res.human_review_required is True
 
 def test_verified_rejection():
     val = MockValidator(passed=True, verified_rejection=True)
-    res = run_pipeline(val, "uygun_degil", "uygun_degil")
+    res = run_pipeline(val, "uygun_degil")
     assert res.final_decision == "uygun_degil"
     assert res.merge_rule == "validated_rejection"
 
-def test_model_disagreement():
-    val = MockValidator(passed=True)
-    res = run_pipeline(val, "uygun", "uygun_degil")
-    assert res.final_decision == "inceleme_gerekli"
-    assert res.merge_rule == "conflict_uygun_uygun_degil"
-    assert res.human_review_required is True

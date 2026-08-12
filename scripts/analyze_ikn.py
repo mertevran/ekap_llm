@@ -76,18 +76,9 @@ def build_analysis_service(args, settings):
         prompt_version="isbak_qwen_decision_v1",
     )
 
-    secondary_model = None
-    if not getattr(args, "skip_secondary", False):
-        secondary_model = OllamaDecisionModel(
-            name=settings.gemma_model,
-            host=settings.ollama_base_url,
-            prompt_version="isbak_gemma_review_v1",
-        )
-
     validator = IsbakRuleValidator()
-
     decision_pipeline = IsbakDecisionPipeline(
-        primary_model=primary_model, validator=validator, secondary_model=secondary_model
+        primary_model=primary_model, validator=validator
     )
 
     profile_loader = IsbakProfileLoader()
@@ -129,7 +120,7 @@ def main():
     parser.add_argument(
         "--top-k", type=int, default=5, help="Getirilecek benzersiz RAG kanıtı sayısı"
     )
-    parser.add_argument("--skip-secondary", action="store_true", help="Gemma ikinci görüşünü atla")
+
     parser.add_argument(
         "--json-only",
         action="store_true",
@@ -198,16 +189,6 @@ def main():
                 else "Başarılı"
             )
             out_print(f"Kural Doğrulaması: {val_status}")
-
-            if args.skip_secondary:
-                out_print("Gemma İkinci Görüşü: Atlandı (--skip-secondary)")
-            else:
-                if report.decision.secondary_model:
-                    out_print(
-                        f"Gemma İkinci Görüşü: Çalıştırıldı ({report.decision.secondary_model.decision})"
-                    )
-                else:
-                    out_print("Gemma İkinci Görüşü: Gerek Duyulmadı")
 
             out_print(f"Nihai Karar: {report.decision.final_decision}")
             out_print(f"Güven Düzeyi: {report.decision.final_confidence}")

@@ -42,23 +42,6 @@ def test_qwen_v3_formatting():
     assert "JSON string" in formatted
     assert "zorunlu_kriter_sonuclari" in formatted
 
-def test_gemma_v3_formatting():
-    prompt_template = PROMPTS["isbak_gemma_review_v3"]
-    formatted = prompt_template.format(
-        tender_id="T2",
-        ikn="2024/2",
-        category_code="AUS-02",
-        matching_mode="tender_to_profile",
-        retrieval_score=0.91,
-        score_breakdown="{}",
-        valid_chunk_ids="[]",
-        tender_context="",
-        company_context=""
-    )
-
-    assert "bağımsız ikinci görüş" in formatted
-    assert "tender_to_profile" in formatted
-
 def test_prompt_keyerror_prevention():
     # Only format variables should be processed. If there are stray `{` or `}`, it will raise KeyError or ValueError
     prompt_template = PROMPTS["isbak_qwen_decision_v3"]

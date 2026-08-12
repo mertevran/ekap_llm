@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 ALLOWED_QWEN_MODELS = {"qwen3.5:4b-q4_K_M"}
+ALLOWED_GEMMA_MODELS = {"gemma4:e2b-it-q4_K_M"}
 
 
 class Settings(BaseSettings):
@@ -77,8 +78,23 @@ class Settings(BaseSettings):
             )
         return v
 
+    @field_validator("gemma_model")
+    @classmethod
+    def validate_gemma_model(cls, v: str) -> str:
+        if v not in ALLOWED_GEMMA_MODELS:
+            if "gemma2" in v.lower() or "gemma3" in v.lower():
+                raise ValueError(
+                    f"Eski model adları (Gemma2, gemma3:4b vb.) reddedildi. İzin verilenler: {ALLOWED_GEMMA_MODELS}"
+                )
+            raise ValueError(
+                f"İzin verilmeyen Gemma modeli: {v}. İzin verilenler: {ALLOWED_GEMMA_MODELS}"
+            )
+        return v
+
     @field_validator(
+        "gemma_decision_num_ctx",
         "qwen_decision_num_ctx",
+        "gemma_decision_num_predict",
         "qwen_decision_num_predict",
         "ollama_num_thread",
         "ollama_num_batch",

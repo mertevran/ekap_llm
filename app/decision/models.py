@@ -215,24 +215,13 @@ class FinalTenderDecision:
     final_confidence: float
     primary_model: ModelDecision
     validation: ValidationResult
-    secondary_model: ModelDecision | None
     human_review_required: bool
     human_review_reason: str
     evaluated_at: str
     primary_decision: str = ""
     primary_confidence: float = 0.0
     primary_used_chunk_ids: list[str] = field(default_factory=list)
-    secondary_triggered: bool = False
-    secondary_trigger_reasons: list[str] = field(default_factory=list)
-    secondary_succeeded: bool = False
-    secondary_decision: str = ""
-    secondary_confidence: float = 0.0
-    secondary_used_chunk_ids: list[str] = field(default_factory=list)
-    secondary_error_type: str = ""
-    secondary_error_message: str = ""
-    model_agreement: bool = False
     merge_rule: str = ""
-    agreement_status: str = ""
     validation_issues: list[dict[str, Any]] = field(default_factory=list)
     missing_mandatory_evidence: bool = False
     mandatory_missing_evidence: list[str] = field(default_factory=list)
@@ -271,81 +260,3 @@ class FinalTenderDecision:
         return build_public_decision_response(self).to_dict()
 
 
-def combine_validation_results(primary: ValidationResult, secondary: ValidationResult | None) -> ValidationResult:
-    if secondary is None:
-        return primary
-
-    issues_map: dict[tuple[Any, ...], ValidationIssue] = {}
-    for issue in [*primary.issues, *secondary.issues]:
-        key = (issue.code, issue.source, issue.message, tuple(sorted(issue.related_chunk_ids)))
-        issues_map.setdefault(key, issue)
-
-    issues = list(issues_map.values())
-    invalid_refs = sorted(set(primary.invalid_evidence_references + secondary.invalid_evidence_references))
-    external = primary.source_external_information_used or secondary.source_external_information_used
-    blocking = primary.has_blocking_issue or secondary.has_blocking_issue or bool(invalid_refs) or external
-    missing_mandatory = (
-        primary.missing_mandatory_evidence
-        or secondary.missing_mandatory_evidence
-    )
-    criterion_assessments_map: dict[tuple[Any, ...], CriterionEvidenceAssessment] = {}
-    for assessment in [
-        *primary.criterion_assessments,
-        *secondary.criterion_assessments,
-    ]:
-        key = (
-            assessment.criterion_id,
-            assessment.description,
-            assessment.model_status,
-            assessment.source_status,
-            tuple(assessment.evidence_chunk_ids),
-            tuple(assessment.matched_chunk_ids),
-        )
-        criterion_assessments_map.setdefault(key, assessment)
-
-    # Python yalnızca yapısal/kanıtsal güvenlik hatalarında güvenli geri dönüş uygular.
-    forced_decisions = {
-        result.forced_decision
-        for result in (primary, secondary)
-        if result.forced_decision is not None
-    }
-    forced: DecisionLabel | None = None
-    if blocking:
-        forced = (
-            "uygun_degil"
-            if forced_decisions == {"uygun_degil"} and not invalid_refs and not external
-            else "inceleme_gerekli"
-        )
-    return ValidationResult(
-        passed=not blocking,
-        forced_decision=forced,
-        issues=issues,
-        has_blocking_issue=blocking,
-        human_review_required=(
-            forced == "inceleme_gerekli"
-            or primary.human_review_required
-            or secondary.human_review_required
-        ),
-        verified_rejection=(
-            forced == "uygun_degil"
-            or primary.verified_rejection
-            or secondary.verified_rejection
-        ),
-        mandatory_rejection_verified=(
-            primary.mandatory_rejection_verified
-            or secondary.mandatory_rejection_verified
-        ),
-        missing_mandatory_evidence=missing_mandatory,
-        source_external_information_used=external,
-        contradictions=sorted(set(primary.contradictions + secondary.contradictions)),
-        missing_required_evidence=sorted(set(primary.missing_required_evidence + secondary.missing_required_evidence)),
-        invalid_evidence_references=invalid_refs,
-        deterministic_rules_applied=sorted(set(primary.deterministic_rules_applied + secondary.deterministic_rules_applied)),
-        warnings=sorted(set(primary.warnings + secondary.warnings)),
-        criterion_assessments=list(criterion_assessments_map.values()),
-        negative_scope=(
-            primary.negative_scope
-            if primary.negative_scope.verified
-            else secondary.negative_scope
-        ),
-    )

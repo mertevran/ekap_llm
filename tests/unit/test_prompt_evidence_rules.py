@@ -1,13 +1,10 @@
-from app.decision.ollama_decision_model import GEMMA_CORRECTION_MSG, PROMPTS, QWEN_CORRECTION_MSG
+from app.decision.ollama_decision_model import PROMPTS, QWEN_CORRECTION_MSG
 
 
 def test_prompt_semantic_rules_present():
     targets = [
         PROMPTS["isbak_qwen_decision_v3"],
-        PROMPTS["isbak_gemma_review_v3"],
-        PROMPTS["isbak_gemma_review_compact"],
-        QWEN_CORRECTION_MSG,
-        GEMMA_CORRECTION_MSG
+        QWEN_CORRECTION_MSG
     ]
 
     for text in targets:
@@ -27,5 +24,5 @@ def test_prompt_semantic_rules_present():
         assert "ZOR" in text
 
 def test_prompt_no_automatic_unsuitable():
-    for text in [PROMPTS["isbak_qwen_decision_v3"], PROMPTS["isbak_gemma_review_v3"]]:
+    for text in [PROMPTS["isbak_qwen_decision_v3"]]:
         assert "Bilinmiyor durumu otomatik uygun_degil üretmemelidir" in text

@@ -68,7 +68,6 @@ class DecisionReporter:
                     "activity_decision",
                     "activity_match",
                     "primary_decision",
-                    "secondary_decision",
                     "python_validation_passed",
                     "forced_decision",
                     "primary_profile_code",
@@ -98,7 +97,6 @@ class DecisionReporter:
                 ]
             )
             for d in decisions:
-                sec_dec = d.secondary_model.decision if d.secondary_model else ""
                 missing = d.primary_model.eksik_kanitlar
                 writer.writerow(
                     [
@@ -110,7 +108,6 @@ class DecisionReporter:
                         d.activity_decision,
                         d.activity_match,
                         d.primary_model.decision,
-                        sec_dec,
                         d.validation.passed,
                         d.validation.forced_decision or "",
                         d.primary_profile_code,

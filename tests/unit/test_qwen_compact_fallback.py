@@ -100,4 +100,4 @@ def test_qwen_num_predict_default():
     settings = get_settings()
     model = OllamaDecisionModel(name="qwen2", prompt_version="isbak_qwen_decision_v3")
     # Kısa v4 sözleşmesi için varsayılan üretim bütçesi ayardan (settings) okunmalıdır.
-    assert model.qwen_num_predict == settings.qwen_decision_num_predict
+    assert model.num_predict == settings.qwen_decision_num_predict

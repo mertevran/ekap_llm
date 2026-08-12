@@ -722,8 +722,10 @@ class OllamaDecisionModel:
         self.max_attempts = settings.ollama_max_attempts
         self.backoff_seconds = settings.ollama_retry_backoff_seconds
 
-        self.num_ctx = settings.qwen_decision_num_ctx
-        self.num_predict = settings.qwen_decision_num_predict
+        self.gemma_num_ctx = settings.gemma_decision_num_ctx
+        self.gemma_num_predict = settings.gemma_decision_num_predict
+        self.qwen_num_ctx = settings.qwen_decision_num_ctx
+        self.qwen_num_predict = settings.qwen_decision_num_predict
 
         self.ollama_num_thread = settings.ollama_num_thread
         self.ollama_num_batch = settings.ollama_num_batch
@@ -824,9 +826,14 @@ class OllamaDecisionModel:
                 "num_gpu": 0,
                 "num_thread": self.ollama_num_thread,
                 "num_batch": self.ollama_num_batch,
-                "num_ctx": self.num_ctx,
-                "num_predict": self.num_predict,
             }
+            is_gemma = "gemma" in active_prompt_version or "gemma" in self.name.lower()
+            if is_gemma:
+                options["num_ctx"] = self.gemma_num_ctx
+                options["num_predict"] = self.gemma_num_predict
+            else:
+                options["num_ctx"] = self.qwen_num_ctx
+                options["num_predict"] = self.qwen_num_predict
 
             active_schema = (
                 COMPACT_DECISION_OUTPUT_SCHEMA
@@ -1115,7 +1122,7 @@ class OllamaDecisionModel:
                 is_truncated = False
                 if done_reason == "length":
                     is_truncated = True
-                elif options.get("num_predict") and eval_count >= options["num_predict"] * 0.9:
+                elif is_gemma and options.get("num_predict") and eval_count >= options["num_predict"] * 0.9:
                     is_truncated = True
 
                 parsed_json = json.loads(response_text)
@@ -1151,8 +1158,12 @@ class OllamaDecisionModel:
                     if not has_run_compact_fallback:
                         has_run_compact_fallback = True
                         json_correction_attempts = 0 # reset attempts for fallback
-                        active_prompt_version = "isbak_qwen_decision_compact"
-                        logger.info("Kompakt birincil karar istemi ile (fallback) baştan çağrılıyor.")
+                        if is_gemma:
+                            active_prompt_version = "isbak_gemma_review_compact"
+                            logger.info("Kompakt ikinci görüş istemi ile (fallback) baştan çağrılıyor.")
+                        else:
+                            active_prompt_version = "isbak_qwen_decision_compact"
+                            logger.info("Kompakt birincil karar istemi ile (fallback) baştan çağrılıyor.")
 
                         active_base_prompt = PROMPTS[active_prompt_version].format(
                             tender_id=tender_id, ikn=ikn, category_code=category_code,
@@ -1183,7 +1194,10 @@ class OllamaDecisionModel:
                     if "fiyat avantajı" in err_str_lower:
                         dynamic_prefix += "\n- Fiyat avantajını tüm karar alanlarından çıkar.\n"
 
-                    correction_msg = QWEN_CORRECTION_MSG.format(error=e, category_code=category_code)
+                    if is_gemma:
+                        correction_msg = GEMMA_CORRECTION_MSG.format(error=e, category_code=category_code)
+                    else:
+                        correction_msg = QWEN_CORRECTION_MSG.format(error=e, category_code=category_code)
                     correction_msg = dynamic_prefix + correction_msg
 
                     if valid_chunk_ids:
@@ -1194,63 +1208,67 @@ class OllamaDecisionModel:
 
                     current_prompt = active_base_prompt + correction_msg
                 else:
-                    try:
-                        fallback_json = json.loads(response_text)
-                        if not isinstance(fallback_json, dict):
-                            raise ValueError("Kök obje dict değil")
-                    except Exception:
-                        raise DecisionServiceError(f"Tüm düzeltme hakları bitti ve son çıktı geçerli JSON değil. Son Hata: {e}")
-
-                    logger.warning(f"Birincil model tüm düzeltme haklarını tüketti. Güvenli temizleme (fallback) uygulanıyor. Son Hata: {e}")
-
-                    # decision, confidence, birincil_profil_kodu sağlam mı kontrol et
-                    try:
-                        from app.decision.decision_normalizer import normalize_decision
-                        normalize_decision(str(fallback_json.get("decision", "")))
-                        conf = fallback_json.get("confidence")
-                        if not isinstance(conf, (int, float)) or not (0.0 <= conf <= 1.0):
-                            raise ValueError("confidence bozuk")
-                        b_kodu = str(fallback_json.get("birincil_profil_kodu", "")).strip().upper()
-                        expected_code = primary_profile_code.strip().upper() if primary_profile_code else category_code.strip().upper()
-                        if b_kodu != expected_code:
-                            raise ValueError("birincil_profil_kodu bozuk")
-                    except ValueError as base_err:
-                        raise DecisionServiceError(f"Temel alanlar bozuk olduğu için temizleme yapılamadı: {base_err}. Asıl Hata: {e}")
-
-                    # ikincil_profil_kodlari temizleme
-                    ikincil_k = fallback_json.get("ikincil_profil_kodlari", [])
-                    if isinstance(ikincil_k, list) and len(ikincil_k) > 0:
+                    if not is_gemma:
                         try:
-                            self._validate_ikincil_profil_kodlari(fallback_json, ikincil_k)
-                        except ValueError:
-                            logger.info("ikincil_profil_kodlari hataya sebep oldu, [] yapılıyor.")
-                            fallback_json["ikincil_profil_kodlari"] = []
+                            fallback_json = json.loads(response_text)
+                            if not isinstance(fallback_json, dict):
+                                raise ValueError("Kök obje dict değil")
+                        except Exception:
+                            raise DecisionServiceError(f"Tüm düzeltme hakları bitti ve son çıktı geçerli JSON değil. Son Hata: {e}")
 
-                    # zorunlu_kriter_sonuclari temizleme
-                    raw_criteria = fallback_json.get("zorunlu_kriter_sonuclari", [])
-                    if isinstance(raw_criteria, list):
-                        valid_criteria = []
-                        for crit in raw_criteria:
-                            if isinstance(crit, dict):
-                                try:
-                                    self._validate_single_criterion(crit, valid_chunk_ids)
-                                    valid_criteria.append(crit)
-                                except ValueError as crit_err:
-                                    logger.info(f"Geçersiz kriter silindi: {crit.get('criterion_id', '')} - Hata: {crit_err}")
-                        fallback_json["zorunlu_kriter_sonuclari"] = valid_criteria
+                        logger.warning(f"Birincil model tüm düzeltme haklarını tüketti. Güvenli temizleme (fallback) uygulanıyor. Son Hata: {e}")
 
-                    # Son olarak güvenli alan temizliği ve tekrar doğrulama
-                    try:
-                        fallback_json = self._sanitize_semantic_fields(
-                            fallback_json,
-                            tender_context=tender_context,
-                            valid_chunk_ids=valid_chunk_ids,
-                        )
-                        self._validate_semantic_field_usage(fallback_json, tender_context, valid_chunk_ids)
-                        actual_category = primary_profile_code.strip().upper() if primary_profile_code else category_code
-                        return self._validate_and_build(fallback_json, actual_category, valid_chunk_ids)
-                    except ValueError as final_err:
-                        raise DecisionServiceError(f"Temizlenmiş çıktı ikinci doğrulamayı geçemedi: {final_err}. Asıl Hata: {e}")
+                        # decision, confidence, birincil_profil_kodu sağlam mı kontrol et
+                        try:
+                            from app.decision.decision_normalizer import normalize_decision
+                            normalize_decision(str(fallback_json.get("decision", "")))
+                            conf = fallback_json.get("confidence")
+                            if not isinstance(conf, (int, float)) or not (0.0 <= conf <= 1.0):
+                                raise ValueError("confidence bozuk")
+                            b_kodu = str(fallback_json.get("birincil_profil_kodu", "")).strip().upper()
+                            expected_code = primary_profile_code.strip().upper() if primary_profile_code else category_code.strip().upper()
+                            if b_kodu != expected_code:
+                                raise ValueError("birincil_profil_kodu bozuk")
+                        except ValueError as base_err:
+                            raise DecisionServiceError(f"Temel alanlar bozuk olduğu için temizleme yapılamadı: {base_err}. Asıl Hata: {e}")
+
+                        # ikincil_profil_kodlari temizleme
+                        ikincil_k = fallback_json.get("ikincil_profil_kodlari", [])
+                        if isinstance(ikincil_k, list) and len(ikincil_k) > 0:
+                            try:
+                                self._validate_ikincil_profil_kodlari(fallback_json, ikincil_k)
+                            except ValueError:
+                                logger.info("ikincil_profil_kodlari hataya sebep oldu, [] yapılıyor.")
+                                fallback_json["ikincil_profil_kodlari"] = []
+
+                        # zorunlu_kriter_sonuclari temizleme
+                        raw_criteria = fallback_json.get("zorunlu_kriter_sonuclari", [])
+                        if isinstance(raw_criteria, list):
+                            valid_criteria = []
+                            for crit in raw_criteria:
+                                if isinstance(crit, dict):
+                                    try:
+                                        self._validate_single_criterion(crit, valid_chunk_ids)
+                                        valid_criteria.append(crit)
+                                    except ValueError as crit_err:
+                                        logger.info(f"Geçersiz kriter silindi: {crit.get('criterion_id', '')} - Hata: {crit_err}")
+                            fallback_json["zorunlu_kriter_sonuclari"] = valid_criteria
+
+                        # Son olarak güvenli alan temizliği ve tekrar doğrulama
+                        try:
+                            fallback_json = self._sanitize_semantic_fields(
+                                fallback_json,
+                                tender_context=tender_context,
+                                valid_chunk_ids=valid_chunk_ids,
+                            )
+                            self._validate_semantic_field_usage(fallback_json, tender_context, valid_chunk_ids)
+                            actual_category = primary_profile_code.strip().upper() if primary_profile_code else category_code
+                            return self._validate_and_build(fallback_json, actual_category, valid_chunk_ids)
+                        except ValueError as final_err:
+                            raise DecisionServiceError(f"Temizlenmiş çıktı ikinci doğrulamayı geçemedi: {final_err}. Asıl Hata: {e}")
+                    else:
+                        raise DecisionServiceError(f"Tüm düzeltme hakları bitti. Geçersiz JSON formatı veya şema hatası: {e}")
+
         raise DecisionServiceError(f"Geçersiz JSON formatı veya şema hatası: {last_error}")
 
 

@@ -156,7 +156,6 @@ def test_professional_csv_teknik_ic_alanlari_icermiyor(tmp_path) -> None:
     forbidden = [
         "tender_id",
         "primary_decision",
-        "secondary_decision",
         "python_validation_passed",
         "forced_decision",
         "raw_confidence",

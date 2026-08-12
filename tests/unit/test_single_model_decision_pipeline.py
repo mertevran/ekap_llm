@@ -60,10 +60,7 @@ def test_single_model_uses_qwen_and_python_validation_only():
 
     assert result.final_decision == "uygun"
     assert result.human_review_required is False
-    assert result.secondary_model is None
-    assert result.secondary_triggered is False
-    assert result.agreement_status == "single_model"
-    assert result.merge_rule == "primary_only"
+    assert result.merge_rule == "single_model"
 
 
 def test_single_model_review_decision_requires_human_review():
@@ -72,6 +69,3 @@ def test_single_model_review_decision_requires_human_review():
     assert result.final_decision == "inceleme_gerekli"
     assert result.final_confidence == 0.60
     assert result.human_review_required is True
-    assert result.secondary_model is None
-    assert result.secondary_triggered is False
-    assert result.agreement_status == "single_model"
