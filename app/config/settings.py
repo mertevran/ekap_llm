@@ -39,18 +39,15 @@ class Settings(BaseSettings):
     embedding_normalize: bool = True
 
     qwen_model: str = "qwen3.5:4b-q4_K_M"
-    gemma_model: str = "gemma4:e2b-it-q4_K_M"
-    phi_model: str = "phi4-mini:latest"
+
 
     ollama_connect_timeout_seconds: int = 10
     ollama_decision_timeout_seconds: int = 3600
     ollama_max_attempts: int = 3
     ollama_retry_backoff_seconds: float = 2.0
 
-    gemma_decision_num_ctx: int = 12288
     qwen_decision_num_ctx: int = 8192
 
-    gemma_decision_num_predict: int = 1100
     qwen_decision_num_predict: int = 512
 
     ollama_num_thread: int = 4
