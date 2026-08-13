@@ -1,0 +1,39 @@
+# =============================================================================
+#  Versiyon kontrolüne GİRMEYECEK dosyalar
+# =============================================================================
+
+# Ortam değişkenleri ve sırlar — ASLA commit edilmez (veritabanı parolası içerir)
+.env
+.env.local
+
+# Yerel veritabanı kopyaları
+data/*.db
+*.sqlite
+*.sqlite3
+
+# Çalışma zamanında üretilen dosyalar
+storage/          # Qdrant indeksi ve model önbelleği
+logs/
+reports/
+*.faiss
+*.meta.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Editör ve işletim sistemi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# NOT: `Sonuclar/` klasörü BİLEREK izleniyor.
+# Ölçüm koşularının sürüm geçmişi bu projenin kaydıdır — bkz. CONTRIBUTING.md

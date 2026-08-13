@@ -1,0 +1,133 @@
+{
+  "profil_kodu": "TEK-01",
+  "profil_adi": "Yazılım, Veri ve Sistem Bütünleştirme",
+  "profil_ailesi": "Ortak Teknik Yetkinlikler",
+  "profil_surumu": "1.2.1",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Kurumsal yazılım geliştirme",
+    "Web ve mobil uygulamalar",
+    "Veri tabanı sistemleri",
+    "Uygulama programlama arayüzleri",
+    "Veri aktarımı ve bütünleştirme",
+    "Raporlama ve gösterge panelleri",
+    "Bulut ve merkezî sistemler",
+    "Kullanıcı ve yetki yönetimi",
+    "Mikroservis ve modüler uygulama altyapısı",
+    "Kurumsal yazılım bakım, güncelleme ve geliştirme",
+    "Trafik ve ulaşım verisi yönetim sistemleri",
+    "Saha cihazı - merkez veri bütünleştirmesi"
+  ],
+  "destekleyici_profiller": [
+    "TEK-03",
+    "TEK-04",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "yazılım geliştirme",
+      "bilgi yönetim sistemi",
+      "yönetim bilgi sistemi",
+      "sistem entegrasyonu",
+      "veri tabanı",
+      "web uygulaması",
+      "mobil uygulama",
+      "uygulama programlama arayüzü",
+      "sipariş yönetim platformu",
+      "sipariş yönetim sistemi",
+      "kurumsal yazılım platformu",
+      "mikroservis altyapısı",
+      "modüler uygulama altyapısı",
+      "yazılım bakım güncelleme ve geliştirme",
+      "kurumsal yazılım altyapısı"
+    ],
+    "destekleyici_terimler": [
+      "raporlama sistemi",
+      "gösterge paneli",
+      "veri aktarımı",
+      "yazılım bakım",
+      "kurumsal uygulama",
+      "yazılım teknik desteği",
+      "sunucu yazılım hizmeti",
+      "platform kurulumu"
+    ],
+    "negatif_terimler": [
+      "lisans belgesi",
+      "hazır ofis yazılımı",
+      "antivirüs lisansı",
+      "bilgisayar sarf malzemesi",
+      "bilgisayar sarf malzemeleri",
+      "kartuş alımı",
+      "toner alımı",
+      "ERP",
+      "SAP",
+      "kurumsal kaynak planlama",
+      "CRM",
+      "muhasebe yazılımı",
+      "bordro yazılımı",
+      "İK yazılımı",
+      "insan kaynakları yazılımı",
+      "ofis yazılımı lisansı",
+      "Microsoft 365",
+      "genel amaçlı yazılım platformu lisansı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "48",
+      "72"
+    ],
+    "genel_terimler": [
+      "raporlama",
+      "yazılım",
+      "entegrasyon"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Mevcut sistemleri veya donanımları birbirine bağlayan; sunucu, veritabanı, arka plan yazılımları ve API tabanlı yazılım geliştirme yetkinliklerini kapsar.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "API",
+      "expanded_form": "Uygulama Programlama Arayüzü",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Yazılım Kaynak Kodu",
+      "category": "teslim_ciktisi",
+      "aliases": []
+    },
+    {
+      "name": "Sistem Entegrasyonu",
+      "category": "metodoloji",
+      "aliases": [
+        "Bütünleştirme"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "geliştirme",
+    "yazılım",
+    "entegrasyon",
+    "programlama"
+  ],
+  "daraltma_notu": "Önceki daraltma KISMEN geri alındı. İSBAK genel kurumsal yazılım/BT işi de alıyor. Genel yetkinlikler geri geldi, alan çapaları korundu."
+}

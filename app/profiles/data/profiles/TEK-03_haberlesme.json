@@ -1,0 +1,102 @@
+{
+  "profil_kodu": "TEK-03",
+  "profil_adi": "Haberleşme ve Ağ Altyapısı",
+  "profil_ailesi": "Ortak Teknik Yetkinlikler",
+  "profil_surumu": "1.2.1",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Kablolu ve kablosuz haberleşme",
+    "Saha-merkez veri aktarımı",
+    "Mobil haberleşme",
+    "Yerel ve geniş alan ağları",
+    "Güvenli bağlantı",
+    "Yedekli iletişim",
+    "Uzaktan cihaz yönetimi",
+    "Trafik cihazlarında mobil haberleşme",
+    "Saha ağları"
+  ],
+  "destekleyici_profiller": [
+    "TEK-04",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "haberleşme altyapısı",
+      "ağ altyapısı",
+      "saha merkez veri aktarımı",
+      "telekomünikasyon sistemi",
+      "trafik haberleşme altyapısı"
+    ],
+    "destekleyici_terimler": [
+      "kablosuz haberleşme",
+      "uzaktan cihaz yönetimi",
+      "yedekli iletişim",
+      "network"
+    ],
+    "negatif_terimler": [
+      "bilgisayar sarf malzemesi",
+      "bilgisayar sarf malzemeleri",
+      "kartuş",
+      "toner",
+      "klavye",
+      "fare alımı",
+      "adaptör alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "324",
+      "325"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Veri aktarımını sağlamak için yerel ağ (LAN), geniş ağ (WAN) veya fiber optik kablolama gibi ağ (network) cihazlarının yapılandırması ve altyapı işleridir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "Switch",
+      "expanded_form": "Ağ Anahtarı",
+      "aliases": [
+        "Kenar Anahtar",
+        "Merkez Anahtar"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Ağ Anahtarı (Switch)",
+      "category": "donanım",
+      "aliases": [
+        "Router"
+      ]
+    },
+    {
+      "name": "Fiber Optik Kablo",
+      "category": "altyapi",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "kablolama",
+    "sonlandırma",
+    "yapılandırma",
+    "ağ kurulumu"
+  ],
+  "daraltma_notu": "Önceki daraltma KISMEN geri alındı. İSBAK genel kurumsal yazılım/BT işi de alıyor. Genel yetkinlikler geri geldi, alan çapaları korundu."
+}

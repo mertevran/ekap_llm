@@ -1,0 +1,38 @@
+{
+  "kurum_kodu": "ISBAK",
+  "kurum_adi": "İSBAK",
+  "resmi_unvan": null,
+  "profil_surumu": "1.0.0",
+  "durum": "taslak",
+  "veri_yonetim_politikasi": {
+    "tahmin_yapma": true,
+    "eksik_kurum_ici_veriyi_isaretle": true,
+    "gecerlilik_tarihi_gecmis_belgeyi_kullanma": true,
+    "kaynak_gosterimi_zorunlu": true
+  },
+  "ortak_kurumsal_bilgiler": {
+    "merkez": null,
+    "hizmet_bolgeleri": [],
+    "toplam_calisan_sayisi": null,
+    "toplam_muhendis_sayisi": null,
+    "mali_yeterlilik": {
+      "veri_durumu": "eksik"
+    },
+    "operasyonel_kapasite": {
+      "veri_durumu": "eksik"
+    }
+  },
+  "ortak_belgeler": [],
+  "ortak_personel_profilleri": [],
+  "ortak_tamamlanan_projeler": [],
+  "ortak_is_deneyim_belgeleri": [],
+  "alt_yuklenici_ve_is_ortaklari": [],
+  "profil_secim_politikasi": {
+    "birincil_profil_zorunlu": true,
+    "ikincil_profiller_destekleyici": true,
+    "arka_uc_kategori_kodu_alani": "kategori_kodu",
+    "birden_fazla_profil_destegi": true
+  },
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null
+}

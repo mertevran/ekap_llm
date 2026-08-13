@@ -1,0 +1,121 @@
+{
+  "profil_kodu": "AUS-02",
+  "profil_adi": "Elektronik Denetleme ve Yol Güvenliği",
+  "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Plaka tanıma",
+    "Görüntü işleme",
+    "Hız ve ihlal tespiti",
+    "Kırmızı ışık denetimi",
+    "Park ve emniyet şeridi denetimi",
+    "Mobil denetleme",
+    "Sensör sistemleri",
+    "Delil ve kayıt güvenliği",
+    "Merkezî yönetim yazılımı"
+  ],
+  "destekleyici_profiller": [
+    "ENT-02",
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "TEK-04",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "elektronik denetleme sistemi",
+      "plaka tanıma sistemi",
+      "hız ihlal tespit",
+      "kırmızı ışık ihlal tespit",
+      "ortalama hız tespit"
+    ],
+    "destekleyici_terimler": [
+      "görüntü işleme",
+      "video analitik",
+      "radar sistemi",
+      "ihlal tespiti",
+      "delil kayıt sistemi",
+      "kamera"
+    ],
+    "negatif_terimler": [
+      "özel güvenlik personeli",
+      "güvenlik görevlisi hizmet alımı"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "35125",
+      "32323"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Trafik kural ihlallerini tespit eden, yol güvenliğini sağlayan ve elektronik denetim amaçlı kamera ve hız radar sistemlerinin kurulumunu ve işletimini içerir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "EDS",
+      "expanded_form": "Elektronik Denetleme Sistemi",
+      "aliases": [
+        "Elektronik Denetim Sistemi"
+      ],
+      "ambiguous": false
+    },
+    {
+      "term": "PTS",
+      "expanded_form": "Plaka Tanıma Sistemi",
+      "aliases": [
+        "LPR",
+        "ALPR"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Kırmızı Işık İhlal Tespit Sistemi",
+      "category": "donanım",
+      "aliases": [
+        "Kırmızı Işık Kamerası"
+      ]
+    },
+    {
+      "name": "Hız İhlal Tespit Sistemi",
+      "category": "donanım",
+      "aliases": [
+        "Radar",
+        "Ortalama Hız Sistemi"
+      ]
+    },
+    {
+      "name": "PTS Kamerası",
+      "category": "donanım",
+      "aliases": [
+        "Plaka Okuma Kamerası"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "tespit",
+    "denetim",
+    "okuma",
+    "kurulum",
+    "kalibrasyon"
+  ]
+}

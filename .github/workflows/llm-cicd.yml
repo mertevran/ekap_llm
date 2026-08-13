@@ -1,0 +1,58 @@
+# =============================================================================
+#  Docker imajı derleme ve yayınlama
+# =============================================================================
+#  Bu iş akışı, `main` dalına gönderilen her değişiklikte projenin Docker
+#  imajını derler ve GitHub Container Registry'ye (ghcr.io) gönderir.
+#
+#  KURULUM: Ek bir gizli anahtar (secret) tanımlamanız gerekmez; iş akışı
+#  GitHub'ın otomatik verdiği GITHUB_TOKEN'ı kullanır. Deponuzun
+#  Settings > Actions > Workflow permissions bölümünde "Read and write
+#  permissions" seçili olmalıdır.
+#
+#  İmaj adı, deponun adından otomatik türetilir (ghcr.io/<kullanıcı>/<depo>).
+# =============================================================================
+name: Docker imajı derle ve yayınla
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:        # Actions sekmesinden elle de çalıştırılabilir
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Depoyu indir
+        uses: actions/checkout@v4
+
+      - name: Container registry'ye giriş yap
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: İmaj etiketlerini hazırla
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: İmajı derle ve gönder
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

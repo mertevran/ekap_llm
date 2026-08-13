@@ -1,0 +1,87 @@
+{
+  "profil_kodu": "OPS-03",
+  "profil_adi": "Danışmanlık, Fizibilite ve Proje Yönetimi",
+  "profil_ailesi": "Uygulama ve Yaşam Döngüsü Hizmetleri",
+  "profil_surumu": "1.2.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Akıllı ulaşım sistemleri ihtiyaç analizi",
+    "Ulaşım ve kent teknolojisi fizibilitesi",
+    "Trafik teknolojisi teknik şartname hazırlama",
+    "Akıllı şehir proje planlama ve yönetimi",
+    "Sistem kurulum kontrollüğü",
+    "Test ve kabul yönetimi",
+    "Risk ve kaynak planlama"
+  ],
+  "destekleyici_profiller": [],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "ulaşım danışmanlığı",
+      "akıllı şehir danışmanlığı",
+      "trafik teknolojisi fizibilitesi",
+      "akıllı ulaşım sistemleri proje yönetimi"
+    ],
+    "destekleyici_terimler": [
+      "ihtiyaç analizi",
+      "teknik şartname hazırlama",
+      "sistem danışmanlığı"
+    ],
+    "negatif_terimler": [
+      "bina inşaatı kontrollüğü",
+      "inşaat aşaması kontrollüğü",
+      "yapım işi kontrollüğü",
+      "jeolojik etüt",
+      "jeoteknik etüt",
+      "imar planı",
+      "maden etüdü",
+      "hukuki danışmanlık",
+      "mali danışmanlık",
+      "enerji santrali danışmanlığı",
+      "güneş enerji santrali",
+      "enerji üretim tesisi",
+      "kentsel tasarım yarışması",
+      "mimari proje yarışması",
+      "fikir projesi yarışması"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "713",
+      "794"
+    ],
+    "genel_terimler": [],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Projenin şartnamelere uygun yönetilmesi, ihale ve fizibilite dokümanlarının hazırlanması, kontrollük veya teknik danışmanlık hizmetlerinin verilmesidir.",
+  "abbreviations_and_jargon": [],
+  "technical_equipment": [
+    {
+      "name": "Fizibilite Raporu",
+      "category": "teslim_ciktisi",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "danışmanlık",
+    "proje yönetimi",
+    "müşavirlik",
+    "denetim"
+  ],
+  "daraltma_notu": "yatay/genel tanımlar İSBAK'ın alanına çapalandı. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

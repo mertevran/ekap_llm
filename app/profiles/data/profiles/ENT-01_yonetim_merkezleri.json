@@ -1,0 +1,97 @@
+{
+  "profil_kodu": "ENT-01",
+  "profil_adi": "Yönetim Merkezleri ve Komuta-Kontrol",
+  "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Trafik yönetim merkezi",
+    "Güvenlik operasyon merkezi",
+    "Görüntü duvarı sistemleri",
+    "Olay yönetimi",
+    "Alarm yönetimi",
+    "Farklı sistemlerin bütünleştirilmesi",
+    "Operatör çalışma alanları",
+    "Kesintisiz hizmet altyapısı"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-03",
+    "TEK-04",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "komuta kontrol merkezi",
+      "trafik yönetim merkezi",
+      "güvenlik operasyon merkezi",
+      "kontrol merkezi kurulumu"
+    ],
+    "destekleyici_terimler": [
+      "görüntü duvarı",
+      "olay yönetimi",
+      "alarm yönetimi",
+      "operatör konsolu"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": []
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Kritik tesislerin, kampüslerin veya şehirlerin tek merkezden izlenip yönetildiği, birden fazla donanımın ve yazılımın entegre çalıştığı operasyon merkezlerinin tasarımıdır.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "Video Wall",
+      "expanded_form": "Görüntü Duvarı",
+      "aliases": [
+        "Ekran Duvarı"
+      ],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Görüntü Duvarı",
+      "category": "donanım",
+      "aliases": [
+        "Video Wall"
+      ]
+    },
+    {
+      "name": "Operatör Konsolu",
+      "category": "donanım",
+      "aliases": []
+    },
+    {
+      "name": "Komuta Kontrol Yazılımı",
+      "category": "yazılım",
+      "aliases": [
+        "VMS",
+        "PSIM"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "izleme",
+    "yönetim",
+    "komuta",
+    "entegrasyon"
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "profil_kodu": "ENT-03",
+  "profil_adi": "Filo, Araç Takip ve Saha Operasyonları",
+  "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Araç takip cihazları",
+    "Uydu konum takibi",
+    "Rota ve bölge yönetimi",
+    "Sürücü ve görev atama",
+    "Araç bakım takibi",
+    "Alarm ve olay yönetimi",
+    "Sensör bütünleşmesi",
+    "Kurumsal sistem bağlantıları"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "filo yönetim sistemi",
+      "araç takip sistemi",
+      "rota yönetim sistemi"
+    ],
+    "destekleyici_terimler": [
+      "konum takibi",
+      "sürücü atama",
+      "araç bakım takibi",
+      "gps takip"
+    ],
+    "negatif_terimler": [
+      "araç kiralama hizmeti"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "32441",
+      "50111"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Araç filolarının GPS tabanlı takibini sağlayan, saha personelinin operasyonel iş akışlarını dijitalleştiren araç takip ve telemetri çözümleridir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "ATS",
+      "expanded_form": "Araç Takip Sistemi",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Araç Takip Cihazı",
+      "category": "donanım",
+      "aliases": [
+        "GPS Cihazı",
+        "Telemetri Cihazı"
+      ]
+    },
+    {
+      "name": "Filo Yönetim Yazılımı",
+      "category": "yazılım",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "takip",
+    "izleme",
+    "konumlandırma",
+    "telemetri"
+  ]
+}

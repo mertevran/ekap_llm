@@ -1,0 +1,377 @@
+{
+  "surum": "2.0.0",
+  "varsayilan_kurum_kodu": "ISBAK",
+  "arka_uc_sozlesmesi": {
+    "girdi_alani": "kategori_kodu",
+    "ikincil_kategori_alani": "ikincil_kategori_kodlari",
+    "_not": "EkapUnified iki aşamalı karar üretir; iki taksonomi de geçerlidir ve birbirinin yerine geçmez. Aşama 1 KAPSAM ('bizim alanımız mı'), Aşama 2 YETERLİLİK ('şartları karşılıyor muyuz') sorar.",
+    "asama1_kapsam_kararlari": [
+      "uygun",
+      "belirsiz",
+      "uygun_degil"
+    ],
+    "asama2_yeterlilik_kararlari": [
+      "dogrudan_uygun",
+      "inceleme_gerekli",
+      "ilgisiz"
+    ]
+  },
+  "profiller": [
+    {
+      "profil_kodu": "AUS-01",
+      "profil_adi": "Trafik Yönetimi ve Sinyalizasyon",
+      "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/AUS-01_trafik_yonetimi.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/AUS-01.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "AUS-01",
+        "Trafik Yönetimi ve Sinyalizasyon"
+      ]
+    },
+    {
+      "profil_kodu": "AUS-02",
+      "profil_adi": "Elektronik Denetleme ve Yol Güvenliği",
+      "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/AUS-02_elektronik_denetleme.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/AUS-02.json",
+      "destekleyici_profiller": [
+        "ENT-02",
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "TEK-04",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "AUS-02",
+        "Elektronik Denetleme ve Yol Güvenliği"
+      ]
+    },
+    {
+      "profil_kodu": "AUS-03",
+      "profil_adi": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+      "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/AUS-03_trafik_bilgilendirme.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/AUS-03.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "AUS-03",
+        "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri"
+      ]
+    },
+    {
+      "profil_kodu": "AUS-04",
+      "profil_adi": "Toplu Taşıma ve Raylı Sistem Teknolojileri",
+      "profil_ailesi": "Akıllı Ulaşım Sistemleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/AUS-04_toplu_tasima.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/AUS-04.json",
+      "destekleyici_profiller": [
+        "ENT-02",
+        "ENT-03",
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "AUS-04",
+        "Toplu Taşıma ve Raylı Sistem Teknolojileri"
+      ]
+    },
+    {
+      "profil_kodu": "ENT-01",
+      "profil_adi": "Yönetim Merkezleri ve Komuta-Kontrol",
+      "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/ENT-01_yonetim_merkezleri.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/ENT-01.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-03",
+        "TEK-04",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "ENT-01",
+        "Yönetim Merkezleri ve Komuta-Kontrol"
+      ]
+    },
+    {
+      "profil_kodu": "ENT-02",
+      "profil_adi": "Kamera, Video Analitik ve Güvenlik Sistemleri",
+      "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/ENT-02_kamera_guvenlik.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/ENT-02.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "TEK-04",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "ENT-02",
+        "Kamera, Video Analitik ve Güvenlik Sistemleri"
+      ]
+    },
+    {
+      "profil_kodu": "ENT-03",
+      "profil_adi": "Filo, Araç Takip ve Saha Operasyonları",
+      "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/ENT-03_filo_yonetimi.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/ENT-03.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "ENT-03",
+        "Filo, Araç Takip ve Saha Operasyonları"
+      ]
+    },
+    {
+      "profil_kodu": "ENT-04",
+      "profil_adi": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+      "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/ENT-04_gecis_kontrol.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/ENT-04.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "TEK-04",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "ENT-04",
+        "Geçiş Kontrolü ve Personel Devam Sistemleri"
+      ]
+    },
+    {
+      "profil_kodu": "ENT-05",
+      "profil_adi": "Akıllı Aydınlatma ve Enerji Yönetimi",
+      "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/ENT-05_akilli_aydinlatma.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/ENT-05.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "ENT-05",
+        "Akıllı Aydınlatma ve Enerji Yönetimi"
+      ]
+    },
+    {
+      "profil_kodu": "ENT-06",
+      "profil_adi": "Akıllı Kent Donatıları ve Sensör Sistemleri",
+      "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/ENT-06_akilli_kent_donatilari.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/ENT-06.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-02",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "ENT-06",
+        "Akıllı Kent Donatıları ve Sensör Sistemleri"
+      ]
+    },
+    {
+      "profil_kodu": "PLN-01",
+      "profil_adi": "Ulaşım Planlama ve Talep Yönetimi",
+      "profil_ailesi": "Planlama ve Projelendirme",
+      "aktif": true,
+      "profil_dosyasi": "profiles/PLN-01_ulasim_planlama.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/PLN-01.json",
+      "destekleyici_profiller": [
+        "PLN-03",
+        "TEK-01",
+        "OPS-03"
+      ],
+      "arka_uc_etiketleri": [
+        "PLN-01",
+        "Ulaşım Planlama ve Talep Yönetimi"
+      ]
+    },
+    {
+      "profil_kodu": "PLN-02",
+      "profil_adi": "Trafik Mühendisliği, Analiz ve Simülasyon",
+      "profil_ailesi": "Planlama ve Projelendirme",
+      "aktif": true,
+      "profil_dosyasi": "profiles/PLN-02_trafik_muhendisligi.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/PLN-02.json",
+      "destekleyici_profiller": [
+        "PLN-03",
+        "TEK-01",
+        "OPS-03"
+      ],
+      "arka_uc_etiketleri": [
+        "PLN-02",
+        "Trafik Mühendisliği, Analiz ve Simülasyon"
+      ]
+    },
+    {
+      "profil_kodu": "PLN-03",
+      "profil_adi": "Coğrafi Bilgi Sistemleri ve Mekânsal Analiz",
+      "profil_ailesi": "Planlama ve Projelendirme",
+      "aktif": true,
+      "profil_dosyasi": "profiles/PLN-03_cografi_bilgi.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/PLN-03.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "OPS-03"
+      ],
+      "arka_uc_etiketleri": [
+        "PLN-03",
+        "Coğrafi Bilgi Sistemleri ve Mekânsal Analiz"
+      ]
+    },
+    {
+      "profil_kodu": "TEK-01",
+      "profil_adi": "Yazılım, Veri ve Sistem Bütünleştirme",
+      "profil_ailesi": "Ortak Teknik Yetkinlikler",
+      "aktif": true,
+      "profil_dosyasi": "profiles/TEK-01_yazilim_veri.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/TEK-01.json",
+      "destekleyici_profiller": [
+        "TEK-03",
+        "TEK-04",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "TEK-01",
+        "Yazılım, Veri ve Sistem Bütünleştirme"
+      ]
+    },
+    {
+      "profil_kodu": "TEK-02",
+      "profil_adi": "Elektronik, Donanım ve Gömülü Sistemler",
+      "profil_ailesi": "Ortak Teknik Yetkinlikler",
+      "aktif": true,
+      "profil_dosyasi": "profiles/TEK-02_elektronik_donanim.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/TEK-02.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-03",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "TEK-02",
+        "Elektronik, Donanım ve Gömülü Sistemler"
+      ]
+    },
+    {
+      "profil_kodu": "TEK-03",
+      "profil_adi": "Haberleşme ve Ağ Altyapısı",
+      "profil_ailesi": "Ortak Teknik Yetkinlikler",
+      "aktif": true,
+      "profil_dosyasi": "profiles/TEK-03_haberlesme.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/TEK-03.json",
+      "destekleyici_profiller": [
+        "TEK-04",
+        "OPS-01",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "TEK-03",
+        "Haberleşme ve Ağ Altyapısı"
+      ]
+    },
+    {
+      "profil_kodu": "TEK-04",
+      "profil_adi": "Bilgi ve Siber Güvenlik",
+      "profil_ailesi": "Ortak Teknik Yetkinlikler",
+      "aktif": true,
+      "profil_dosyasi": "profiles/TEK-04_bilgi_guvenligi.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/TEK-04.json",
+      "destekleyici_profiller": [
+        "TEK-01",
+        "TEK-03",
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "TEK-04",
+        "Bilgi ve Siber Güvenlik"
+      ]
+    },
+    {
+      "profil_kodu": "OPS-01",
+      "profil_adi": "Kurulum ve Devreye Alma",
+      "profil_ailesi": "Uygulama ve Yaşam Döngüsü Hizmetleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/OPS-01_kurulum.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/OPS-01.json",
+      "destekleyici_profiller": [
+        "OPS-02"
+      ],
+      "arka_uc_etiketleri": [
+        "OPS-01",
+        "Kurulum ve Devreye Alma"
+      ]
+    },
+    {
+      "profil_kodu": "OPS-02",
+      "profil_adi": "Bakım, Onarım ve Teknik Destek",
+      "profil_ailesi": "Uygulama ve Yaşam Döngüsü Hizmetleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/OPS-02_bakim_onarim.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/OPS-02.json",
+      "destekleyici_profiller": [],
+      "arka_uc_etiketleri": [
+        "OPS-02",
+        "Bakım, Onarım ve Teknik Destek"
+      ]
+    },
+    {
+      "profil_kodu": "OPS-03",
+      "profil_adi": "Danışmanlık, Fizibilite ve Proje Yönetimi",
+      "profil_ailesi": "Uygulama ve Yaşam Döngüsü Hizmetleri",
+      "aktif": true,
+      "profil_dosyasi": "profiles/OPS-03_danismanlik.json",
+      "degerlendirme_kurali_dosyasi": "evaluation_rules/OPS-03.json",
+      "destekleyici_profiller": [],
+      "arka_uc_etiketleri": [
+        "OPS-03",
+        "Danışmanlık, Fizibilite ve Proje Yönetimi"
+      ]
+    }
+  ]
+}

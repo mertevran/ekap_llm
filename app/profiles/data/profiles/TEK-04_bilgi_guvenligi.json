@@ -1,0 +1,76 @@
+{
+  "profil_kodu": "TEK-04",
+  "profil_adi": "Bilgi ve Siber Güvenlik",
+  "profil_ailesi": "Ortak Teknik Yetkinlikler",
+  "profil_surumu": "1.2.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Kurulan sistemlerde erişim kontrolü ve yetkilendirme",
+    "Delil ve kayıt bütünlüğü",
+    "Sayısal imza",
+    "Saha-merkez güvenli veri aktarımı",
+    "Güvenlik günlükleri",
+    "Sistem yedekleme ve felaket kurtarma"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-03",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "delil kayıt bütünlüğü",
+      "güvenli veri aktarımı",
+      "erişim kontrolü ve yetkilendirme",
+      "sistem yedekleme"
+    ],
+    "destekleyici_terimler": [
+      "yetkilendirme",
+      "güvenlik günlüğü",
+      "sayısal imza"
+    ],
+    "negatif_terimler": [
+      "özel güvenlik personeli",
+      "bilgisayar sarf malzemesi",
+      "bilgisayar sarf malzemeleri",
+      "sızma testi",
+      "penetrasyon testi",
+      "siber tehdit istihbaratı",
+      "siber güvenlik ürünleri temini",
+      "güvenlik duvarı alımı",
+      "antivirüs lisansı",
+      "SOC izleme hizmeti"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "4873",
+      "72212"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Sistemlerin siber saldırılardan korunmasını sağlayan siber güvenlik donanımlarının, güvenlik duvarlarının ve güvenlik izleme politikalarının devreye alınmasıdır.",
+  "abbreviations_and_jargon": [],
+  "technical_equipment": [],
+  "action_verbs": [
+    "sıkılaştırma",
+    "yapılandırma",
+    "koruma"
+  ],
+  "daraltma_notu": "yatay/genel tanımlar İSBAK'ın alanına çapalandı. Yeni yetenek EKLENMEDİ, aşırı geniş tanımlar daraltıldı."
+}

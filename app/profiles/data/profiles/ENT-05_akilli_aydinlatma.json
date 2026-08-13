@@ -1,0 +1,102 @@
+{
+  "profil_kodu": "ENT-05",
+  "profil_adi": "Akıllı Aydınlatma ve Enerji Yönetimi",
+  "profil_ailesi": "Entegre Akıllı Şehir Çözümleri",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Yol aydınlatması",
+    "Tünel aydınlatması",
+    "Merkezî aydınlatma kontrolü",
+    "Enerji tüketimi takibi",
+    "Arıza ve alarm yönetimi",
+    "Bakım planlama",
+    "LED armatür sistemleri",
+    "Uzaktan yönetim"
+  ],
+  "destekleyici_profiller": [
+    "TEK-01",
+    "TEK-02",
+    "TEK-03",
+    "OPS-01",
+    "OPS-02"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "akıllı aydınlatma",
+      "aydınlatma kontrol sistemi",
+      "enerji yönetim sistemi",
+      "aydınlatma otomasyonu",
+      "uzaktan aydınlatma yönetimi"
+    ],
+    "destekleyici_terimler": [
+      "enerji izleme",
+      "merkezî aydınlatma",
+      "haberleşmeli armatür",
+      "uzaktan kontrol"
+    ],
+    "negatif_terimler": [
+      "genel elektrik malzemesi",
+      "ampul alımı",
+      "kablo alımı",
+      "priz",
+      "anahtar",
+      "sigorta malzemesi",
+      "elektrik malzemesi alımı",
+      "elektrik sarf malzemesi"
+    ],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "34928",
+      "31527"
+    ],
+    "genel_terimler": [
+      "led armatür",
+      "aydınlatma",
+      "elektrik malzemesi"
+    ],
+    "okas_metin_destegi_zorunlu": true
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Şehir veya tesis aydınlatmalarının uzaktan kontrol edilerek enerji verimliliğinin artırılmasını ve enerji tüketim verilerinin izlenmesini sağlayan çözümlerdir.",
+  "abbreviations_and_jargon": [],
+  "technical_equipment": [
+    {
+      "name": "Akıllı Aydınlatma Armatürü",
+      "category": "donanım",
+      "aliases": [
+        "LED Armatür"
+      ]
+    },
+    {
+      "name": "Aydınlatma Kontrol Modülü",
+      "category": "donanım",
+      "aliases": [
+        "Sensör",
+        "Node"
+      ]
+    }
+  ],
+  "action_verbs": [
+    "aydınlatma",
+    "karartma",
+    "tasarruf",
+    "izleme"
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "profil_kodu": "PLN-02",
+  "profil_adi": "Trafik Mühendisliği, Analiz ve Simülasyon",
+  "profil_ailesi": "Planlama ve Projelendirme",
+  "profil_surumu": "1.1.0",
+  "durum": "taslak",
+  "birincil_yetkinlikler": [
+    "Trafik sayımı",
+    "Mikro, mezo ve makro modelleme",
+    "Kavşak simülasyonu",
+    "Sinyal süresi iyileştirmesi",
+    "Koridor analizi",
+    "Trafik etki analizi",
+    "Geometrik yol düzenlemeleri",
+    "Bisiklet yolu projeleri"
+  ],
+  "destekleyici_profiller": [
+    "PLN-03",
+    "TEK-01",
+    "OPS-03"
+  ],
+  "urunler_ve_hizmetler": [],
+  "personel_kapasitesi": [],
+  "belgeler": [],
+  "tamamlanan_projeler": [],
+  "is_deneyim_belgeleri": [],
+  "ekipman_ve_altyapi": [],
+  "teknolojiler": [],
+  "is_ortaklari": [],
+  "hizmet_bolgeleri": [],
+  "kapasite_sinirlari": [],
+  "veri_kaynaklari": [],
+  "veri_durumu": "kurum_ici_dogrulama_gerekli",
+  "son_guncelleme": null,
+  "ihale_kategori_sinyalleri": {
+    "guclu_terimler": [
+      "trafik mühendisliği",
+      "trafik simülasyonu",
+      "trafik etki analizi",
+      "kavşak simülasyonu"
+    ],
+    "destekleyici_terimler": [
+      "trafik sayımı",
+      "koridor analizi",
+      "sinyal optimizasyonu",
+      "geometrik düzenleme"
+    ],
+    "negatif_terimler": [],
+    "okas_kodlari": [],
+    "okas_kod_on_ekleri": [
+      "71311"
+    ]
+  },
+  "context_policy": {
+    "usage": "profil_yonlendirme_ve_bilgi_getirme",
+    "is_company_evidence": false
+  },
+  "description_expanded": "Kavşak ve arter ölçeğinde trafik kapasite analizleri, geometrik düzenleme tasarımları ve mikro seviyede trafik simülasyonları yapılması süreçleridir.",
+  "abbreviations_and_jargon": [
+    {
+      "term": "Mikrosimülasyon",
+      "expanded_form": "Araç bazlı detaylı trafik akım simülasyonu",
+      "aliases": [],
+      "ambiguous": false
+    }
+  ],
+  "technical_equipment": [
+    {
+      "name": "Trafik Simülasyon Çıktısı",
+      "category": "teslim_ciktisi",
+      "aliases": [
+        "VISSIM",
+        "AIMSUN Analizi"
+      ]
+    },
+    {
+      "name": "Kapasite Analiz Raporu",
+      "category": "teslim_ciktisi",
+      "aliases": []
+    }
+  ],
+  "action_verbs": [
+    "simülasyon",
+    "analiz",
+    "tasarım",
+    "sayım"
+  ]
+}
