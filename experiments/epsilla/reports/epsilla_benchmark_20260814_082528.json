@@ -1,0 +1,522 @@
+{
+  "timestamp": "20260814_082528",
+  "epsilla": {
+    "host": "localhost",
+    "port": 8888,
+    "db": "EkapTestDB",
+    "table": "IsbakProfiles",
+    "connection_seconds": 2.0397017260000894
+  },
+  "embedding": {
+    "model": "BAAI/bge-m3",
+    "device": "cpu",
+    "init_seconds": 8.753328660999955,
+    "vector_dim": 1024,
+    "sample_l2_norm": 1.0,
+    "appears_l2_normalized": true
+  },
+  "tests": [
+    {
+      "number": 1,
+      "expected_profile": "ENT-03",
+      "query": "Araç takip sistemi filo yönetimi GPS konum takibi telemetri",
+      "embedding_seconds": 0.12721133200000168,
+      "query_seconds": 0.016577224999991813,
+      "vector_l2_norm": 1.0,
+      "top1": "ENT-03",
+      "top3": [
+        "ENT-03",
+        "AUS-03",
+        "AUS-04"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "ENT-03",
+          "profile_name": "Filo, Araç Takip ve Saha Operasyonları",
+          "section": "tender_signals",
+          "distance": 0.6495968699455261
+        },
+        {
+          "profile_code": "ENT-03",
+          "profile_name": "Filo, Araç Takip ve Saha Operasyonları",
+          "section": "identity_and_capabilities",
+          "distance": 0.6501352190971375
+        },
+        {
+          "profile_code": "ENT-03",
+          "profile_name": "Filo, Araç Takip ve Saha Operasyonları",
+          "section": "capacity_and_evidence",
+          "distance": 0.6501352190971375
+        },
+        {
+          "profile_code": "ENT-03",
+          "profile_name": "Filo, Araç Takip ve Saha Operasyonları",
+          "section": "terminology_and_context",
+          "distance": 0.7529401779174805
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "identity_and_capabilities",
+          "distance": 0.8640943169593811
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "expected_profile": "AUS-02",
+      "query": "Elektronik denetleme sistemi plaka tanıma PTS radar kamera trafik ihlal tespiti",
+      "embedding_seconds": 0.1471506389999604,
+      "query_seconds": 0.012694661000068663,
+      "vector_l2_norm": 1.0,
+      "top1": "AUS-02",
+      "top3": [
+        "AUS-02",
+        "AUS-03",
+        "ENT-02"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "AUS-02",
+          "profile_name": "Elektronik Denetleme ve Yol Güvenliği",
+          "section": "terminology_and_context",
+          "distance": 0.6541334390640259
+        },
+        {
+          "profile_code": "AUS-02",
+          "profile_name": "Elektronik Denetleme ve Yol Güvenliği",
+          "section": "identity_and_capabilities",
+          "distance": 0.6612956523895264
+        },
+        {
+          "profile_code": "AUS-02",
+          "profile_name": "Elektronik Denetleme ve Yol Güvenliği",
+          "section": "capacity_and_evidence",
+          "distance": 0.6612956523895264
+        },
+        {
+          "profile_code": "AUS-02",
+          "profile_name": "Elektronik Denetleme ve Yol Güvenliği",
+          "section": "tender_signals",
+          "distance": 0.7410610914230347
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "terminology_and_context",
+          "distance": 0.8310015797615051
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "expected_profile": "AUS-03",
+      "query": "Trafik yoğunluğu ölçüm sistemi araç sayım sistemi otopark yönlendirme bilgilendirme ekranı",
+      "embedding_seconds": 0.14876015400000142,
+      "query_seconds": 0.012145163000013781,
+      "vector_l2_norm": 1.0000001192092896,
+      "top1": "AUS-03",
+      "top3": [
+        "AUS-03",
+        "AUS-01",
+        "AUS-02"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "identity_and_capabilities",
+          "distance": 0.5593181252479553
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "capacity_and_evidence",
+          "distance": 0.5593181252479553
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "tender_signals",
+          "distance": 0.6203625202178955
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "terminology_and_context",
+          "distance": 0.7921410799026489
+        },
+        {
+          "profile_code": "AUS-01",
+          "profile_name": "Trafik Yönetimi ve Sinyalizasyon",
+          "section": "identity_and_capabilities",
+          "distance": 0.8052164316177368
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "expected_profile": "AUS-04",
+      "query": "Toplu taşıma yönetim sistemi yolcu bilgilendirme raylı sistem araç konum rota izleme",
+      "embedding_seconds": 0.13173644300002252,
+      "query_seconds": 0.014478938000024755,
+      "vector_l2_norm": 1.0,
+      "top1": "AUS-04",
+      "top3": [
+        "AUS-04",
+        "AUS-03",
+        "ENT-03"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "AUS-04",
+          "profile_name": "Toplu Taşıma ve Raylı Sistem Teknolojileri",
+          "section": "capacity_and_evidence",
+          "distance": 0.6884155869483948
+        },
+        {
+          "profile_code": "AUS-04",
+          "profile_name": "Toplu Taşıma ve Raylı Sistem Teknolojileri",
+          "section": "identity_and_capabilities",
+          "distance": 0.6884156465530396
+        },
+        {
+          "profile_code": "AUS-04",
+          "profile_name": "Toplu Taşıma ve Raylı Sistem Teknolojileri",
+          "section": "tender_signals",
+          "distance": 0.7220051884651184
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "identity_and_capabilities",
+          "distance": 0.8226281404495239
+        },
+        {
+          "profile_code": "AUS-03",
+          "profile_name": "Trafik Ölçme, Bilgilendirme ve Otopark Sistemleri",
+          "section": "capacity_and_evidence",
+          "distance": 0.8226281404495239
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "expected_profile": "ENT-02",
+      "query": "Kamera güvenlik sistemi video analiz görüntü işleme akıllı video izleme",
+      "embedding_seconds": 0.12563105300000643,
+      "query_seconds": 0.016075741000008748,
+      "vector_l2_norm": 1.0,
+      "top1": "ENT-02",
+      "top3": [
+        "ENT-02",
+        "AUS-02",
+        "ENT-05"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "ENT-02",
+          "profile_name": "Kamera, Video Analitik ve Güvenlik Sistemleri",
+          "section": "identity_and_capabilities",
+          "distance": 0.70990389585495
+        },
+        {
+          "profile_code": "ENT-02",
+          "profile_name": "Kamera, Video Analitik ve Güvenlik Sistemleri",
+          "section": "capacity_and_evidence",
+          "distance": 0.70990389585495
+        },
+        {
+          "profile_code": "ENT-02",
+          "profile_name": "Kamera, Video Analitik ve Güvenlik Sistemleri",
+          "section": "tender_signals",
+          "distance": 0.7448933124542236
+        },
+        {
+          "profile_code": "AUS-02",
+          "profile_name": "Elektronik Denetleme ve Yol Güvenliği",
+          "section": "identity_and_capabilities",
+          "distance": 0.8473720550537109
+        },
+        {
+          "profile_code": "AUS-02",
+          "profile_name": "Elektronik Denetleme ve Yol Güvenliği",
+          "section": "capacity_and_evidence",
+          "distance": 0.8473720550537109
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "expected_profile": "ENT-04",
+      "query": "Personel devam kontrol sistemi kartlı geçiş erişim kontrol turnike",
+      "embedding_seconds": 0.12763136199998826,
+      "query_seconds": 0.012937623999960124,
+      "vector_l2_norm": 1.0,
+      "top1": "ENT-04",
+      "top3": [
+        "ENT-04",
+        "AUS-01",
+        "OPS-02"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "ENT-04",
+          "profile_name": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+          "section": "identity_and_capabilities",
+          "distance": 0.5335243940353394
+        },
+        {
+          "profile_code": "ENT-04",
+          "profile_name": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+          "section": "capacity_and_evidence",
+          "distance": 0.5335243940353394
+        },
+        {
+          "profile_code": "ENT-04",
+          "profile_name": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+          "section": "tender_signals",
+          "distance": 0.6229153871536255
+        },
+        {
+          "profile_code": "ENT-04",
+          "profile_name": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+          "section": "terminology_and_context",
+          "distance": 0.6933304071426392
+        },
+        {
+          "profile_code": "AUS-01",
+          "profile_name": "Trafik Yönetimi ve Sinyalizasyon",
+          "section": "terminology_and_context",
+          "distance": 0.9650077223777771
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "expected_profile": "ENT-05",
+      "query": "Akıllı aydınlatma enerji yönetimi uzaktan kontrol sokak aydınlatması",
+      "embedding_seconds": 0.11899451700003283,
+      "query_seconds": 0.012267256999962228,
+      "vector_l2_norm": 1.0,
+      "top1": "ENT-05",
+      "top3": [
+        "ENT-05",
+        "AUS-01",
+        "ENT-06"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "ENT-05",
+          "profile_name": "Akıllı Aydınlatma ve Enerji Yönetimi",
+          "section": "tender_signals",
+          "distance": 0.6275497078895569
+        },
+        {
+          "profile_code": "ENT-05",
+          "profile_name": "Akıllı Aydınlatma ve Enerji Yönetimi",
+          "section": "identity_and_capabilities",
+          "distance": 0.6367429494857788
+        },
+        {
+          "profile_code": "ENT-05",
+          "profile_name": "Akıllı Aydınlatma ve Enerji Yönetimi",
+          "section": "capacity_and_evidence",
+          "distance": 0.6367429494857788
+        },
+        {
+          "profile_code": "ENT-05",
+          "profile_name": "Akıllı Aydınlatma ve Enerji Yönetimi",
+          "section": "terminology_and_context",
+          "distance": 0.7593185305595398
+        },
+        {
+          "profile_code": "AUS-01",
+          "profile_name": "Trafik Yönetimi ve Sinyalizasyon",
+          "section": "tender_signals",
+          "distance": 0.8267540335655212
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "expected_profile": "TEK-01",
+      "query": "Yazılım geliştirme veri entegrasyonu API uygulama entegrasyonu veri platformu",
+      "embedding_seconds": 0.12490081400005693,
+      "query_seconds": 0.013241000999983044,
+      "vector_l2_norm": 1.0,
+      "top1": "TEK-01",
+      "top3": [
+        "TEK-01",
+        "ENT-03",
+        "AUS-04"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "TEK-01",
+          "profile_name": "Yazılım, Veri ve Sistem Bütünleştirme",
+          "section": "tender_signals",
+          "distance": 0.8542487621307373
+        },
+        {
+          "profile_code": "TEK-01",
+          "profile_name": "Yazılım, Veri ve Sistem Bütünleştirme",
+          "section": "terminology_and_context",
+          "distance": 0.8925349712371826
+        },
+        {
+          "profile_code": "TEK-01",
+          "profile_name": "Yazılım, Veri ve Sistem Bütünleştirme",
+          "section": "identity_and_capabilities",
+          "distance": 0.9010437726974487
+        },
+        {
+          "profile_code": "TEK-01",
+          "profile_name": "Yazılım, Veri ve Sistem Bütünleştirme",
+          "section": "capacity_and_evidence",
+          "distance": 0.9010437726974487
+        },
+        {
+          "profile_code": "ENT-03",
+          "profile_name": "Filo, Araç Takip ve Saha Operasyonları",
+          "section": "identity_and_capabilities",
+          "distance": 1.02932608127594
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "expected_profile": "TEK-03",
+      "query": "Ağ altyapısı haberleşme sistemi network fiber optik veri iletişimi",
+      "embedding_seconds": 0.11970660399992994,
+      "query_seconds": 0.013551833000065017,
+      "vector_l2_norm": 0.9999999403953552,
+      "top1": "TEK-03",
+      "top3": [
+        "TEK-03",
+        "AUS-04",
+        "ENT-03"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "TEK-03",
+          "profile_name": "Haberleşme ve Ağ Altyapısı",
+          "section": "identity_and_capabilities",
+          "distance": 0.8327089548110962
+        },
+        {
+          "profile_code": "TEK-03",
+          "profile_name": "Haberleşme ve Ağ Altyapısı",
+          "section": "capacity_and_evidence",
+          "distance": 0.8327089548110962
+        },
+        {
+          "profile_code": "TEK-03",
+          "profile_name": "Haberleşme ve Ağ Altyapısı",
+          "section": "tender_signals",
+          "distance": 0.8612168431282043
+        },
+        {
+          "profile_code": "TEK-03",
+          "profile_name": "Haberleşme ve Ağ Altyapısı",
+          "section": "terminology_and_context",
+          "distance": 1.0359307527542114
+        },
+        {
+          "profile_code": "AUS-04",
+          "profile_name": "Toplu Taşıma ve Raylı Sistem Teknolojileri",
+          "section": "capacity_and_evidence",
+          "distance": 1.0459331274032593
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "expected_profile": "OPS-02",
+      "query": "Bakım onarım teknik destek periyodik bakım sistem destek hizmeti",
+      "embedding_seconds": 0.1298938200000066,
+      "query_seconds": 0.014728465999951368,
+      "vector_l2_norm": 1.0,
+      "top1": "OPS-02",
+      "top3": [
+        "OPS-02",
+        "ENT-04",
+        "ENT-03"
+      ],
+      "top1_correct": true,
+      "top3_correct": true,
+      "raw_top5": [
+        {
+          "profile_code": "OPS-02",
+          "profile_name": "Bakım, Onarım ve Teknik Destek",
+          "section": "identity_and_capabilities",
+          "distance": 0.6520544290542603
+        },
+        {
+          "profile_code": "OPS-02",
+          "profile_name": "Bakım, Onarım ve Teknik Destek",
+          "section": "capacity_and_evidence",
+          "distance": 0.6520544290542603
+        },
+        {
+          "profile_code": "OPS-02",
+          "profile_name": "Bakım, Onarım ve Teknik Destek",
+          "section": "tender_signals",
+          "distance": 0.6805184483528137
+        },
+        {
+          "profile_code": "OPS-02",
+          "profile_name": "Bakım, Onarım ve Teknik Destek",
+          "section": "terminology_and_context",
+          "distance": 0.9080476760864258
+        },
+        {
+          "profile_code": "ENT-04",
+          "profile_name": "Geçiş Kontrolü ve Personel Devam Sistemleri",
+          "section": "tender_signals",
+          "distance": 0.9189796447753906
+        }
+      ]
+    }
+  ],
+  "container_before": {
+    "cpu_percent_raw": "83.79%",
+    "memory_usage_raw": "907MiB / 11.68GiB",
+    "memory_percent_raw": "7.58%"
+  },
+  "container_after": {
+    "cpu_percent_raw": "74.76%",
+    "memory_usage_raw": "906.4MiB / 11.68GiB",
+    "memory_percent_raw": "7.58%"
+  },
+  "summary": {
+    "total_queries": 10,
+    "top1_hits": 10,
+    "top3_hits": 10,
+    "top1_accuracy": 1.0,
+    "top3_accuracy": 1.0,
+    "query_latency_mean_s": 0.013869790900002954,
+    "query_latency_median_s": 0.01339641700002403,
+    "query_latency_min_s": 0.012145163000013781,
+    "query_latency_max_s": 0.016577224999991813,
+    "python_rss_mb": 2303.1015625
+  }
+}

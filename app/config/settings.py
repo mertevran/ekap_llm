@@ -11,7 +11,16 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-ALLOWED_QWEN_MODELS = {"qwen3.5:4b-q4_K_M"}
+ALLOWED_QWEN_MODELS = {
+    "qwen2.5:14b-instruct-q2_K",
+    "qwen3.5:4b-q4_K_M",
+    "phi4-mini:3.8b-q4_K_M",
+    "gemma3:4b-it-q4_K_M",
+    "hf.co/ytu-ce-cosmos/Turkish-Gemma-9b-T1-GGUF:Q4_K_M",
+    "llama3.2:3b-instruct-q4_K_M",
+    "llama3.2:1b-instruct-q4_K_M",
+    "ministral-3:3b-instruct-2512-q4_K_M",
+}
 
 
 class Settings(BaseSettings):
