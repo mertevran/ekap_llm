@@ -816,7 +816,18 @@ def main() -> int:
         # database-random / database-sequential mode
         from app.indexing.active_tender_indexer import is_isbak_tender
         repository = TenderRepository()
+
+        _pm_db_start = time.perf_counter()
         active_tenders = repository.get_active_tenders()
+        _pm_db_seconds = time.perf_counter() - _pm_db_start
+
+        LOGGER.info(
+            "[PREMODEL_TIMING] stage=postgresql_active_tenders "
+            "duration_seconds=%.6f tender_count=%s",
+            _pm_db_seconds,
+            len(active_tenders),
+        )
+
         active_tender_pool_size = len(active_tenders)
 
         is_sequential = args.selection_mode == "database-sequential"
@@ -864,6 +875,7 @@ def main() -> int:
         scorer = ScoreAggregator(settings=rag_settings)
 
         # O(1) lookup table for FAISS payloads
+        _pm_payload_start = time.perf_counter()
         faiss_payloads_by_tender = defaultdict(list)
         for pid, payload in tender_store.payloads.items():
             p_ikn = normalize_ikn(payload.get("ikn"))
@@ -873,12 +885,89 @@ def main() -> int:
             if p_tid and p_tid != p_ikn:
                 faiss_payloads_by_tender[p_tid].append((pid, payload))
 
+        LOGGER.info(
+            "[PREMODEL_TIMING] stage=faiss_payload_lookup_build "
+            "duration_seconds=%.6f payload_count=%s lookup_keys=%s",
+            time.perf_counter() - _pm_payload_start,
+            len(tender_store.payloads),
+            len(faiss_payloads_by_tender),
+        )
+
+        # ------------------------------------------------------------
+        # Profil runtime cache (çalışma zamanı önbelleği)
+        #
+        # Profil verileri ihale-bağımsızdır. Bu nedenle metadata,
+        # profil FAISS vektörleri, normalize edilmiş vektörler ve
+        # query terms yalnızca bir kez hazırlanır.
+        # ------------------------------------------------------------
+        from app.vector_store.faiss_vector_reader import FaissVectorReader
+
+        _pm_profile_cache_start = time.perf_counter()
+
+        faiss_reader = FaissVectorReader()
+        profile_runtime_cache = {}
+
+        for _cache_profile_code in profile_codes:
+            _cache_code = str(_cache_profile_code).strip().upper()
+
+            _cache_meta = matcher._load_profile_meta(_cache_code)
+            _cache_entries = matcher._profile_entries(_cache_code)
+
+            _cache_vectors = []
+
+            for _cache_faiss_id, _ in _cache_entries:
+                try:
+                    _cache_vectors.append(
+                        matcher._reconstruct_profile_vector(
+                            _cache_faiss_id
+                        )
+                    )
+                except Exception:
+                    pass
+
+            if _cache_vectors:
+                _cache_vectors_np = np.array(
+                    _cache_vectors,
+                    dtype=np.float32,
+                )
+                faiss.normalize_L2(_cache_vectors_np)
+            else:
+                _cache_vectors_np = None
+
+            _cache_composite_query = "\n\n".join(
+                str(payload.get("text") or "").strip()
+                for _, payload in _cache_entries
+                if str(payload.get("text") or "").strip()
+            )
+
+            _cache_query_terms = (
+                matcher._query_terms_for_subclass(
+                    _cache_composite_query
+                )
+            )
+
+            profile_runtime_cache[_cache_code] = {
+                "meta": _cache_meta,
+                "entries": _cache_entries,
+                "vectors": _cache_vectors_np,
+                "query_terms": _cache_query_terms,
+            }
+
+        LOGGER.info(
+            "[PREMODEL_TIMING] stage=profile_cache_build "
+            "duration_seconds=%.6f profile_count=%s",
+            time.perf_counter() - _pm_profile_cache_start,
+            len(profile_runtime_cache),
+        )
+
         for tender in active_tenders:
             if args.max_decisions is not None and selection_rank >= args.max_decisions:
                 break
 
             random_tenders_examined += 1
             examined_rank = random_tenders_examined
+            _pm_tender_start = time.perf_counter()
+
             log_prefix = "DATABASE_SEQUENTIAL_SELECTION" if is_sequential else "DATABASE_RANDOM_SELECTION"
 
             # İSBAK kendi ihalelerini atla (selection_rank tüketmez)
@@ -904,7 +993,22 @@ def main() -> int:
             if matched_items:
                 matched_pids = [pid for pid, _ in matched_items]
                 try:
-                    chunk_vectors = _get_vectors_for_faiss_ids(tender_store.index, matched_pids)
+                    _pm_vector_start = time.perf_counter()
+
+                    chunk_vectors = _get_vectors_for_faiss_ids(
+                        tender_store.index,
+                        matched_pids,
+                    )
+
+                    LOGGER.info(
+                        "[PREMODEL_TIMING] stage=tender_vector_extract "
+                        "examined_rank=%s ikn=%s "
+                        "duration_seconds=%.6f chunk_count=%s",
+                        examined_rank,
+                        tender.ikn,
+                        time.perf_counter() - _pm_vector_start,
+                        len(chunk_vectors),
+                    )
                     chunk_payloads = [payload for _, payload in matched_items]
                 except Exception as e:
                     faiss_vector_extraction_error = e
@@ -950,62 +1054,72 @@ def main() -> int:
                     log_prefix, examined_rank, selection_rank, tender.ikn, tender.id, tender.adi,
                 )
 
+            # --------------------------------------------------------
+            # İhale-bağımlı fakat profil-bağımsız veriler.
+            # Bunlar 20 profil için tekrar tekrar hesaplanmamalıdır.
+            # --------------------------------------------------------
+            if chunk_payloads:
+                section_types = [
+                    str(faiss_reader.resolve_section_type(c) or "")
+                    for c in chunk_payloads
+                ]
+
+                okas_codes = []
+                for c in chunk_payloads:
+                    okas_codes.extend(
+                        faiss_reader.resolve_okas_codes(c)
+                    )
+
+                okas_codes = list(dict.fromkeys(okas_codes))
+
+                evidence_texts = [
+                    str(c.get("text") or "")[:500]
+                    for c in chunk_payloads
+                ]
+            else:
+                section_types = []
+                okas_codes = []
+                evidence_texts = []
+
+            tender_name_val = str(tender.adi or "")
+
             for p_code in profile_codes:
                 if not semantic_evidence_available:
                     continue
                 p_code_norm = str(p_code).strip().upper()
-                p_meta = matcher._load_profile_meta(p_code_norm)
+                _pm_profile_start = time.perf_counter()
+
+                p_runtime = profile_runtime_cache[p_code_norm]
+
+                p_meta = p_runtime["meta"]
+                p_entries = p_runtime["entries"]
+                p_vecs_np = p_runtime["vectors"]
+                query_terms = p_runtime["query_terms"]
+
                 strong_terms = p_meta.get("strong_terms", [])
                 negative_terms = p_meta.get("negative_terms", [])
                 okas_prefixes = p_meta.get("okas_prefixes", [])
 
                 raw_scores = []
-                if semantic_evidence_available and tender_vecs is not None:
-                    p_entries = matcher._profile_entries(p_code_norm)
-                    if p_entries:
-                        p_vecs = []
-                        for faiss_id, _ in p_entries:
-                            try:
-                                p_vecs.append(matcher._reconstruct_profile_vector(faiss_id))
-                            except Exception:
-                                pass
-                        if p_vecs:
-                            p_vecs_np = np.array(p_vecs, dtype=np.float32)
-                            faiss.normalize_L2(p_vecs_np)
-                            sims = np.dot(tender_vecs, p_vecs_np.T)
-                            raw_scores = sims.max(axis=1).tolist()
+
+                if (
+                    semantic_evidence_available
+                    and tender_vecs is not None
+                    and p_vecs_np is not None
+                ):
+                    sims = np.dot(
+                        tender_vecs,
+                        p_vecs_np.T,
+                    )
+                    raw_scores = sims.max(axis=1).tolist()
 
                 if not raw_scores:
                     raw_scores = [0.0]
 
-                # query terms
-                p_entries = matcher._profile_entries(p_code_norm)
-                composite_query = "\n\n".join(
-                    str(payload.get("text") or "").strip()
-                    for _, payload in p_entries
-                    if str(payload.get("text") or "").strip()
-                )
-                query_terms = matcher._query_terms_for_subclass(composite_query)
-
-                if chunk_payloads:
-                    from app.vector_store.faiss_vector_reader import FaissVectorReader
-                    reader = FaissVectorReader()
-                    section_types = [str(reader.resolve_section_type(c) or "") for c in chunk_payloads]
-                    okas_codes = []
-                    for c in chunk_payloads:
-                        okas_codes.extend(reader.resolve_okas_codes(c))
-                    evidence_texts = [str(c.get("text") or "")[:500] for c in chunk_payloads]
-                    tender_name_val = str(tender.adi or "")
-                else:
-                    section_types = []
-                    okas_codes = []
-                    evidence_texts = []
-                    tender_name_val = str(tender.adi or "")
-
                 breakdown = scorer.compute(
                     raw_scores=raw_scores,
                     section_types=section_types,
-                    okas_codes=list(dict.fromkeys(okas_codes)),
+                    okas_codes=okas_codes,
                     query_terms=query_terms,
                     tender_name=tender_name_val,
                     profile_okas_prefixes=okas_prefixes,
@@ -1055,12 +1169,32 @@ def main() -> int:
                         il=str(tender.il or ""),
                         ihale_tarihi=str(tender.ihale_tarihi or ""),
                         ihale_turu=str(tender.ihale_turu or ""),
-                        okas_codes=list(dict.fromkeys(okas_codes)),
+                        okas_codes=okas_codes,
                         section_ids=list(set(st for st in section_types if st)),
                         scores=scores_obj,
                         evidence_chunks=evidence_chunks,
                     )
                     best_profile = (p_code_norm, p_meta.get("name", ""))
+
+                LOGGER.info(
+                    "[PREMODEL_TIMING] stage=profile_score "
+                    "examined_rank=%s ikn=%s profile=%s "
+                    "duration_seconds=%.6f",
+                    examined_rank,
+                    tender.ikn,
+                    p_code_norm,
+                    time.perf_counter() - _pm_profile_start,
+                )
+
+            LOGGER.info(
+                "[PREMODEL_TIMING] stage=tender_profile_selection_total "
+                "examined_rank=%s ikn=%s "
+                "duration_seconds=%.6f profile_count=%s",
+                examined_rank,
+                tender.ikn,
+                time.perf_counter() - _pm_tender_start,
+                len(profile_codes),
+            )
 
             top_profiles.sort(key=lambda x: x[2], reverse=True)
             top_3 = top_profiles[:3]

@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable
+from functools import lru_cache
 from typing import Any
 
 _NON_ALNUM = re.compile(r"[^0-9a-zçğıöşü]+", re.IGNORECASE)
@@ -148,8 +149,13 @@ def contains_phrase(normalized_text: str, phrase: str) -> bool:
     return f" {normalized_phrase} " in f" {normalized_text} "
 
 
+@lru_cache(maxsize=32768)
 def token_matches(expected: str, actual: str) -> bool:
-    """İki tokenin anlamsal eşdeğer olup olmadığını döndürür."""
+    """İki tokenin anlamsal eşdeğer olup olmadığını döndürür.
+
+    Aynı token çiftleri puanlama boyunca çok sık tekrarlandığı için sonuç
+    sınırlı bir LRU önbelleğinde tutulur. Eşleştirme mantığı değişmez.
+    """
     if expected == actual:
         return True
     if any(expected in group and actual in group for group in SEMANTIC_TOKEN_GROUPS):
@@ -182,37 +188,67 @@ def contains_term(normalized_text: str, term: str) -> bool:
 
     Tek genel sözcük eşleşmesi ret üretmez — en az 2 token gerekir.
     Pencere tabanlı token eşleştirme anlamsal varyantları yakalar.
+
+    Performans notu:
+    Eski uygulama her başlangıç konumu için metnin sonuna kadar yeniden
+    tarama yapıyordu. Oysa geçerli bir eşleşmenin son ve ilk token konumu
+    arasındaki fark maximum_window değerini aşamaz.
+
+    Bu nedenle yalnız ilk tokenin gerçekten eşleştiği konumlardan başlanır
+    ve arama izin verilen pencere ile sınırlandırılır. Eşleşme semantiği
+    korunurken gereksiz O(n²) benzeri tarama ortadan kaldırılır.
     """
     if contains_phrase(normalized_text, term):
         return True
 
     text_tokens = normalized_text.split()
+
     for variant in term_variants(term):
         # Tek genel sözcük → büyük bir ihaleyi reddetmek için yetmez
         if len(variant) < 2 or len(text_tokens) < len(variant):
             continue
+
         maximum_window = len(variant) + 4
-        for start in range(len(text_tokens)):
-            search_from = start
-            matched_positions: list[int] = []
-            for expected in variant:
+        first_expected = variant[0]
+
+        # Eski algoritma her start değeri için aynı ilk eşleşmeyi yeniden
+        # keşfediyordu. Yalnız gerçekten eşleşen ilk token konumlarından başla.
+        for first_position, actual_token in enumerate(text_tokens):
+            if not token_matches(first_expected, actual_token):
+                continue
+
+            # Son geçerli token konumu:
+            # last_position - first_position <= maximum_window
+            search_from = first_position + 1
+            search_end = min(
+                len(text_tokens),
+                first_position + maximum_window + 1,
+            )
+
+            matched_count = 1
+
+            for expected in variant[1:]:
                 position = next(
                     (
                         index
-                        for index in range(search_from, len(text_tokens))
-                        if token_matches(expected, text_tokens[index])
+                        for index in range(search_from, search_end)
+                        if token_matches(
+                            expected,
+                            text_tokens[index],
+                        )
                     ),
                     None,
                 )
+
                 if position is None:
                     break
-                matched_positions.append(position)
+
+                matched_count += 1
                 search_from = position + 1
-            if (
-                len(matched_positions) == len(variant)
-                and matched_positions[-1] - matched_positions[0] <= maximum_window
-            ):
+
+            if matched_count == len(variant):
                 return True
+
     return False
 
 
