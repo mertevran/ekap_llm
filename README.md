@@ -233,7 +233,7 @@ storage/
 
 İhale ve şirket profil vektörleri ayrı indekslerde tutulur.
 
----
+--
 
 # 8. Profil Eşleştirme ve Skorlama
 
